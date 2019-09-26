@@ -1,0 +1,10 @@
+ [MSG]        Elements   Linear Nodes          Edges
+ [---]           10800           5611          16410
+ [---]             Bnd       BndTypes
+ [---]             420              3
+ [MSG] Nodes read done
+ [MSG] Elements read done
+ [MSG] Boundaries read done
+ [MSG] Depth read done
+ [MSG] Mesh file read successful
+ boussinesqQuad End

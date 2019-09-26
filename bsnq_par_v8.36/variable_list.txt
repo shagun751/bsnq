@@ -1,0 +1,206 @@
+! Jul 6 2016
+! 2100
+
++++Integer scalars
+
+1	npoinl		number of linear nodes
+2	npoinq		number of middle nodes, =nedge
+3	npoint		number of nodes totally =nedge+npoinl
+4	nelem		number of elements
+5	nbnd		number of boundary sides
+6	nbndtyp		number of boundary types
+7	ifile		file number
+8	maxNePoi	max number neighbouring nodes + itself for a node
+9	maxNeEle	max number of elements a node can belong to
+10	nedge		number of edges in the mesh
+11	nnzq1		number of non-zero units for quadratic element
+				Yale only
+12	nnzl1		number of non-zero units for linear element
+				Yale only
+13	nbndpoi		number of boundary nodes
+
++++Integer Matrices
+
+1a	conn(nelem,6)
+	connectivity matrix ele to node
+	n1,n2,n3,n4,n5,n6
+
+2a	mabnd(nbnd,6)
+	matrix containing info on boundary sides
+	n1 		n2 			ele 		bndtype 	middleNode
+	sideNo 
+	N3 = middle point
+	N1 N2 anticlockwise
+	sideNo = 1:1,2   2:2,3    3:3,1
+	
+
+3a	poi2poi(npoin,maxNePoi)	
+	matrix containing nodes nbhing a given node + itself
+	n1 n2 ...
+
+4a	poi2ele(npoin,maxNeEle)
+	matrix containing elements a node belongs to
+	e1 e2 ...
+
+5a	npoinsur(npoin,2)
+	col1 = number of surr nodes + itself for a given node
+	col2 = number of ele a node belongs to
+
+6	mafi()
+	file ids
+			   9 = runtime output
+	mafi(1) = 10 = mesh file
+	mafi(2) = 12 = out file
+	mafi(3) = 13 = volume output file
+	mafi(4) = 14 = resume file
+	mafi(5) = 11 = input file
+	mafi(6)	= 15 = por in file
+
+7a	poi2poi(npoint,maxNePoi)
+	contains the node numbers of nodes belonging all the elements the given node is a part of
+	it is sorted in ascending order hence all nodes greater than npoinl will be quad nodes
+
+8a	poi2ele(npoint,maxNeEle)
+	contains ele numbers of all eles a node is a part of
+
+9a	npoisur(npoint,3)
+	col1 = num of node neighbours (linear + quad)
+	col2 = num of eles node belongs to
+	col3 = num of linear neighbours
+
+10a	yqi(npoint+1)	Yale only
+	yale YI matrix for quadratic element
+
+11a	yqj(nnzq1)		Yale only
+	yale YJ matrix for quadratic element
+
+12a	yli(npoinl+1)	Yale only
+	yale YI matrix for linear element
+
+13a	ylj(nnzl1)		Yale only
+	yale YJ matrix for linear element
+
+14a	ivl(0:npoint)		  VSR only
+	ivl(0)=max number of non zero terms in a row
+	number of non zero terms in each row
+	both vertexes and middle points link to linear points
+
+15a	ivq(0:npoint)		  VSR only
+	ivl(0)=max number of non zero terms in a row
+	number of non zero terms in each row
+
+16a	linkl(ivl(0)*npoint)  VSR only
+    linktab for the matrix linear nodes
+    both vertexes and middle points link to linear points
+
+17a linkq(ivq(0)*npoint)  VSR only
+    linktab for the matrix all nodes
+
+18a	bndNode(nbndpoi)
+	boundary nodes matrix
+
+19a outAbsP(-1:NAbsPoi)
+	outAbs(-1)	= NAbsPoi Lin only
+	outAbs(0) 	= NAndPoi All = NNAndPoi
+
++++Real Scalars
+
+
+
++++Real Matrices
+
+1a	coord(npoint,2)
+	coordinates of the nodes
+	initially the number of rows is 2*npoinl as npoint is unknown
+
+2a	depth(npoint)
+	matrix containing water depth information for the grid nodes
+	initially the number of rows is 2*npoinl as npoint is unknown
+
+3a  invJ(nelem,5)
+    matrix containing inverse of jacobian
+    invJ11,invJ12,invJ21,invJ22,|J|
+    |J|=2A
+
+4a	mass1(ivq(0)*npoint)
+	mass1 matrix
+
+5a	mass2(ivl(0)*npoinl)
+	mass2 matrix
+
+6a	gBs1(ivq(0)*npoint)
+	global Bsnq matrix 1
+
+7a	gBs2(ivq(0)*npoint)
+	global Bsnq matrix 2
+
+8a	gBs3(ivq(0)*npoint)
+	global Bsnq matrix 3
+
+9a	gBs4(ivq(0)*npoint)
+	global Bsnq matrix 4
+
+10a	gCxFlux(ivq(0)*npoinl)	3x6
+	global Cx flux gradient 
+
+11a gCyFlux(ivq(0)*npoinl)	3x6
+	global Cy flux gradient
+
+12a	gAx(ivl(0)*npoint)	6x3
+	global Ax
+
+13a	gAy(ivl(0)*npoint)	6x3
+	global Ay
+
+14a	gDMat(ivl(0)*npoinl)	3x3
+	global dMat
+
+15a	gNAdv(ivq(0)*npoint)	6x6
+	global N advection
+
+16a	gGxElev(ivl(0)*npoint)	6x3
+	global gx elev
+
+17a	gGyElev(ivl(0)*npoint)	6x3
+	global gy elev
+
+18a	bndSide(nbnd,3)
+	nx,ny,sideLength
+
+19a	gFw(npoinl)	
+	Fw
+
+20a	gFn(npoinl)	
+	Fn	
+
+21a	gFp(npoint)	
+	Fp
+
+22a	gFq(npoint)	
+	Fq
+
+23a cnst(10)
+	real constants
+	cnst(1)=gravity g
+	cnst(2)=Bsnq cnst B
+	cnst(3)= B + 1/3
+	cnst(4)= 2B + 1/3
+	cnst(5)= 2B + 1/2
+	cnst(6)= g*B
+
+25a	bndNormal(npoint,2)
+	nx, ny
+	at node
+
+26a	dNdn(ivl(0)*npoinl) 3x3
+	calculates dNdn for d(eta)dn for application of eta BC
+	of d(eta)dn = 0
+
+27	waveInfo(5,5)
+	CentreX CentreY AngleOfIncidence Cos(th) Sin(th)
+
+
++++Logical Scalars
+
+1	ex
+	check existance of a file

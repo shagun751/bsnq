@@ -1,0 +1,22 @@
+ [MSG] Mesh Unit =       -129
+ [MSG] C_K1, C_K2 =          4         8
+       Elements   Linear Nodes          Edges
+          70882          35750         106631
+            Bnd       BndTypes
+            616              2
+ [MSG] Nodes read done
+ [MSG] Elements read done
+ [MSG] Boundaries read done
+ [MSG] Depth read done
+ [MSG] Mesh file read successful
+ 
+ [MSG] Middle points generation done
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]        35750      106631      142381      106631
+ [MSG] Boundary sides middle point done
+ [MSG] Node Connectivity Done
+ [MSG] VSR storage matrices done
+ [MSG] Boundary Geometry parameters done
+ 
+ [MSG] SetRun Unit =       -130
+ boussinesqQuad End
