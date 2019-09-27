@@ -10,7 +10,7 @@ continued from bsnq_par_v8.36
 - Predictor Corrector Time-stepping
 -----------------------------------------------
 
-### v1.01
+### bsnqM_v1.01
 
 ##### Attempting
 - bsnqModule with all the required variables
