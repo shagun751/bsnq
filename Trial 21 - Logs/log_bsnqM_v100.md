@@ -2,7 +2,8 @@
 
 ## Versions bsnqM_v1.xx.xx
 
-**Details**\
+**Details**
+
 continued from bsnq_par_v8.36
 - Quad Jacobian = Linear Jacobian for Triangle
 - Analytical Integration
