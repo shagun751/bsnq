@@ -1,9 +1,8 @@
 # Develpoment log for bsnqM
 
+## Versions bsnqM_v1.xx.xx
 -----------------------------------------------
 **Details**
-
-Versions bsnqM_v1.xx.xx \
 continued from bsnq_par_v8.36
 
 	- Quad Jacobian = Linear Jacobian for Triangle
@@ -12,11 +11,6 @@ continued from bsnq_par_v8.36
 	- Predictor Corrector Time-stepping
 -----------------------------------------------
 
-### v1.03
-#### Attempting
-  - bsnqModule with all the required variables
-  - blah
------------------------------------------------
 
 ### v1.02
 ##### Attempting
@@ -24,9 +18,3 @@ continued from bsnq_par_v8.36
   - blah
 -----------------------------------------------
 
-
-## v1.01
-#### Attempting
-  - bsnqModule with all the required variables
-  - blah
------------------------------------------------
