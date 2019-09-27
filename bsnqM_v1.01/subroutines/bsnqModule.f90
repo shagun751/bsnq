@@ -13,6 +13,14 @@ implicit none
   character(len=C_KSTR),private::bqtxt  
   logical,private::ex
 
+  type :: waveType    
+    real(kind=C_K2)::T,d,H,L,k,w
+    real(kind=C_K2)::x0,y0
+    real(kind=C_K2)::thDeg,thRad,csth,snth
+  contains
+    procedure :: waveLenCalc
+  end type waveType
+
   type :: bsnqCase
     character(len=C_KSTR)::probname,resumeFile
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
@@ -25,18 +33,22 @@ implicit none
     integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)        
     integer(kind=C_K1),allocatable::ivf(:),linkf(:)    
 
-    real(kind=C_K2)::dt,errLim,sysRate
+    real(kind=C_K2)::dt,errLim,rTime
+    real(kind=C_K2)::sysRate,sysTime(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
     real(kind=C_K2),allocatable::pt0(:),qt0(:),et0(:),tDt0(:)
     real(kind=C_K2),allocatable::pt1(:),qt1(:),et1(:),tDt1(:)
     real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
     real(kind=C_K2),allocatable::wr(:),por(:)
+    real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)
+    real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
+    real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
 
 
     logical::resume,presOn
 
-    integer(kind=8)::sysTime(10)
+    integer(kind=8)::sysClk(10)
     integer(kind=C_INT),allocatable::ivCSR1(:),jvCSR1(:)
     integer(kind=C_INT),allocatable::ivCSR2(:),jvCSR2(:)
 
@@ -46,11 +58,59 @@ implicit none
     procedure ::  meshRead
     procedure ::  femInit
     procedure ::  setRun
+    procedure ::  statMatrices
     !procedure ::  destructor
 
   end type bsnqCase
 
 contains
+
+!!---------------------------waveLenCalc---------------------------!!
+subroutine waveLenCalc(p)
+implicit none
+
+  !! WaveLen using dispersion relation from Airy wave-theory
+  
+  class(waveType),intent(inout)::p
+  integer(kind=C_K1)::iterMax
+  real(kind=C_K2)::l0,newl,oldl,x,errLim
+
+  p%w=2d0*pi/p%T
+  p%thRad=p%thDeg*pi/180d0
+  p%csth=dcos(p%thRad)
+  p%snth=dsin(p%thRad)
+
+  iterMax=50000
+  errLim=1d-6
+  l0 = (grav/2d0/pi)*(p%T)**2
+  oldl = l0  
+  do i = 1,iterMax
+    newl = l0*dtanh(2d0*pi*(p%d)/oldl)
+    !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
+    x = abs(newl-oldl)
+    if (x.le.errLim) then
+      p%L = newl
+      exit
+    else
+      oldl = newl
+    end if
+  end do
+
+  if(i.ge.iterMax) then
+    write(*,*)
+    write(*,*)"[ERR] waveCalculator Error waveL",p%L
+    write(*,*)
+    p%L=-999
+    p%k=0d0
+    return
+  endif
+
+  p%k=2d0*pi/p%L
+
+end subroutine waveLenCalc
+!!-------------------------End waveLenCalc-------------------------!!
+
+
 
 !!-----------------------------meshRead----------------------------!!
   subroutine meshRead(b)
@@ -156,7 +216,7 @@ contains
     14 write(9,*) "[ERR] Number of boundaries mismatch"
     stop
     12 close(mf)
-    write(9,*)"[MSG] Mesh file read successful"
+    write(9,*)"[MSG] Done meshRead "
     write(9,*)
   end subroutine meshRead
 !!---------------------------End meshRead--------------------------!!
@@ -404,7 +464,7 @@ contains
   ! do i=1,npoint
   !   write(9,*)i,":",bndNormal(i,1),bndNormal(i,2)
   ! enddo
-  write(9,*)"[MSG] Boundary Geometry parameters done"
+  write(9,*)"[MSG] Done femInit"
   write(9,*)
   !!----------------End Jacobian and Normals------------------!!
 
@@ -470,6 +530,9 @@ contains
     81 write(9,*) "[ERR] Check input file format"
     stop
     82 close(mf)
+
+    write(9,*)"[MSG] Done setRun"
+    write(9,*)
     
   end subroutine setRun
 !!---------------------------End setRun----------------------------!!
@@ -491,9 +554,41 @@ contains
     allocate(b%pt1(j),b%qt1(j),b%et1(i),b%tDt1(j))
     allocate(b%pr(j),b%qr(j),b%er(i),b%tDr(j))
     allocate(b%wr(i),b%por(j))
+    allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
 
+    allocate(b%gBs1(j1*j),b%gBs2(j1*j))
+    allocate(b%gBs3(j1*j),b%gBs4(j1*j))
+    allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
+
+    b%rTime=0d0
+    b%et0=0d0
+    b%pt0=0d0
+    b%qt0=0d0
+
+    call system_clock(b%sysClk(1),b%sysClk(2))
+    b%sysRate=real(b%sysClk(2),C_K2)
+
+    write(9,*)"[MSG] Done initMat"
+    write(9,*)
 
   end subroutine initMat
 !!---------------------------End initMat---------------------------!!
 
+
+
+!!---------------------------statMatrices--------------------------!!
+  subroutine statMatrices(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%ivl,b%ivq,&
+      b%linkl,b%linkq,b%invJ,b%dep,b%gBs1,b%gBs2,b%gBs3,&
+      b%gBs4,b%gCx,b%gCy,b%gDMat)
+
+    write(9,*)"[MSG] Done statMatrices"
+    write(9,*)
+
+  end subroutine statMatrices
+!!-------------------------End statMatrices------------------------!!
 end module bsnqModule

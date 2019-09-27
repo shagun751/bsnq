@@ -11,6 +11,8 @@ PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
 PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so
 PARA_INC=-I$(PARA_PATH)/build/inc
 
+COMPILER=ifort
+
 MAIN=bsnqQuadMain
 
 OBJ=paralution_fortran.o $(MAIN).f90
@@ -20,13 +22,13 @@ subroutines/mods.f90 \
 subroutines/bsnqModule.f90 \
 subroutines/geometry_v1.0.f90 \
 subroutines/mergeSort.f90 \
-subroutines/nodeConnAll.f90
+subroutines/nodeConnAll.f90 \
+subroutines/matrixSet1.f90
 	
 default: $(OBJ)
 	mkdir -p Output Resume
-	ifort -o bsnq $(OBJ) $(SUBS) $(PARA_LIB) $(PARA_FLAGS)
-	#gfortran -o bsnq $(OBJ) $(SUBS) $(PARA_LIB) $(PARA_FLAGS)
-
+	$(COMPILER) -o bsnq $(OBJ) $(SUBS) $(PARA_LIB) $(PARA_FLAGS)
+	
 # $(MAIN).o: $(MAIN).f90
 # 	ifort $(PARA_FLAGS) -c $(MAIN).f90 $(SUBS)
 

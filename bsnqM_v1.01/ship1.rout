@@ -8,7 +8,7 @@
  [MSG] Elements read done
  [MSG] Boundaries read done
  [MSG] Depth read done
- [MSG] Mesh file read successful
+ [MSG] Done meshRead 
  
  [MSG] Middle points generation done
  [INF]      LinNode    QuadNode     TotNode      nEdges
@@ -16,7 +16,13 @@
  [MSG] Boundary sides middle point done
  [MSG] Node Connectivity Done
  [MSG] VSR storage matrices done
- [MSG] Boundary Geometry parameters done
+ [MSG] Done femInit
  
  [MSG] setRun Unit =       -130
+ [MSG] Done setRun
+ 
+ [MSG] Done initMat
+ 
+ [MSG] Done statMatrices
+ 
  boussinesqQuad End

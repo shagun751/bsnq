@@ -68,7 +68,6 @@
 
 program boussinesqQuad
 use bsnqModule
-
 implicit none
 
 interface
@@ -134,6 +133,7 @@ end interface
   call bq%setRun  
   call bq%initMat
 
+  call bq%statMatrices
 
   write(9,*)"boussinesqQuad End"
 end program boussinesqQuad
