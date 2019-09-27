@@ -11,10 +11,10 @@ continued from bsnq_par_v8.36
 -----------------------------------------------
 
 ### v1.02
+
 ##### Attempting
-Hello
-  - bsnqModule with all the required variables
-  - blah
+- bsnqModule with all the required variables
+- blah
 -----------------------------------------------
 
 
