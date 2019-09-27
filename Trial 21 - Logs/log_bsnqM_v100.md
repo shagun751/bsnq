@@ -16,12 +16,19 @@ continued from bsnq_par_v8.36
 - bsnqModule with all the required variables
 
 ##### List of Work
+- [x] Mesh input (Type0)
+- [x] FEM Initialisations
 - [ ] Wave probes
 - [ ] Inlet wave characteristics
 - [ ] Absorbance coeffs
 - [ ] Porosity initialisation
 - [x] Stationary matrix set 1
 - [ ] Stationary matrix set 2
+- [ ] Boundary integrals in mass matrix
+- [ ] Dynamic matrix set 1
+- [ ] Boundary integrals
+- [ ] Dirichlet BC
+- [ ] Neumann BC for eta
 
 ##### Matrices with correct signs
 - [x] Bs1, Bs2, Bs3, Bs4
