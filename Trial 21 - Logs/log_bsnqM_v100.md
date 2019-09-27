@@ -34,5 +34,5 @@ continued from bsnq_par_v8.36
 ### References
 [1] Sørensen, O. R., Schäffer, H. A., & Sørensen, L. S. (2004). Boussinesq-type modelling using an unstructured finite element technique. Coastal Engineering, 50(4), 181–198. https://doi.org/10.1016/j.coastaleng.2003.10.005
 
-[2] Agarwal, S., Sriram, V., & Murali, K. (2019). Modelling Wave Interaction with Porous Structures Using Boussinesq Equations. In Proceedings of the Fourth International Conference in Ocean Engineering (ICOE2018) (pp. 573–583). https://doi.org/10.1007/978-981-13-3119-0_35
+[1] Agarwal, S., Sriram, V., & Murali, K. (2019). Modelling Wave Interaction with Porous Structures Using Boussinesq Equations. In Proceedings of the Fourth International Conference in Ocean Engineering (ICOE2018) (pp. 573–583). https://doi.org/10.1007/978-981-13-3119-0_35
 
