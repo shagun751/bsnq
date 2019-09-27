@@ -3,7 +3,7 @@
 -----------------------------------------------
 **Details**
 
-Versions bsnqM_v1.xx.xx
+Versions bsnqM_v1.xx.xx \
 continued from bsnq_par_v8.36
 
 	- Quad Jacobian = Linear Jacobian for Triangle
