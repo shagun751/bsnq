@@ -6,15 +6,15 @@
 Versions bsnqM_v1.xx.xx
 continued from bsnq_par_v8.36
 
-	-	Quad Jacobian = Linear Jacobian for Triangle
+	- Quad Jacobian = Linear Jacobian for Triangle
 	- Analytical Integration
 	- Object Oriented Programming
-	-	Predictor Corrector Time-stepping
+	- Predictor Corrector Time-stepping
 -----------------------------------------------
 
 
 ## v1.01
 #### Attempting
-	- bsnqModule with all the required variables
-	- blah
+  - bsnqModule with all the required variables
+  - blah
 -----------------------------------------------
