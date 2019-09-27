@@ -26,8 +26,12 @@ implicit none
     integer(kind=C_K1),allocatable::ivf(:),linkf(:)    
 
     real(kind=C_K2)::dt,errLim,sysRate
-    real(kind=C_K2),allocatable::cor(:,:),dep(:),tDe(:)    
+    real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
+    real(kind=C_K2),allocatable::pt0(:),qt0(:),et0(:),tDt0(:)
+    real(kind=C_K2),allocatable::pt1(:),qt1(:),et1(:),tDt1(:)
+    real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
+    real(kind=C_K2),allocatable::wr(:),por(:)
 
 
     logical::resume,presOn
@@ -38,7 +42,7 @@ implicit none
 
   contains    
 
-    !procedure ::  initMat
+    procedure ::  initMat
     procedure ::  meshRead
     procedure ::  femInit
     procedure ::  setRun
@@ -66,7 +70,7 @@ contains
     endif
 
     !!-------------------------Mesh Type 0--------------------!!
-    write(9,'(" [MSG] Mesh Unit = ",I10)')mf
+    write(9,'(" [MSG] meshRead Unit = ",I10)')mf
     write(9,'(" [MSG] C_K1, C_K2 = ",2I10)')C_K1,C_K2
     read(mf,*,end=11,err=11)bqtxt
     read(mf,*,end=11,err=11)b%nele,b%npl,b%nedg
@@ -426,7 +430,7 @@ contains
       stop
     endif
 
-    write(9,'(" [MSG] SetRun Unit = ",I10)')mf
+    write(9,'(" [MSG] setRun Unit = ",I10)')mf
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%resume
     read(mf,*,end=81,err=81)bqtxt
@@ -469,5 +473,27 @@ contains
     
   end subroutine setRun
 !!---------------------------End setRun----------------------------!!
+
+
+
+!!-----------------------------initMat-----------------------------!!
+  subroutine initMat(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    i=b%npl
+    j=b%npt
+    i1=b%ivl(0)
+    j1=b%ivq(0)
+
+    allocate(b%pt0(j),b%qt0(j),b%et0(i),b%tDt0(j))
+    allocate(b%pt1(j),b%qt1(j),b%et1(i),b%tDt1(j))
+    allocate(b%pr(j),b%qr(j),b%er(i),b%tDr(j))
+    allocate(b%wr(i),b%por(j))
+
+
+  end subroutine initMat
+!!---------------------------End initMat---------------------------!!
 
 end module bsnqModule

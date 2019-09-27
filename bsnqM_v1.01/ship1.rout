@@ -1,4 +1,4 @@
- [MSG] Mesh Unit =       -129
+ [MSG] meshRead Unit =       -129
  [MSG] C_K1, C_K2 =          4         8
        Elements   Linear Nodes          Edges
           70882          35750         106631
@@ -18,5 +18,5 @@
  [MSG] VSR storage matrices done
  [MSG] Boundary Geometry parameters done
  
- [MSG] SetRun Unit =       -130
+ [MSG] setRun Unit =       -130
  boussinesqQuad End

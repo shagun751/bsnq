@@ -131,7 +131,9 @@ end interface
 
   call bq%meshRead
   call bq%femInit
-  call bq%setRun
+  call bq%setRun  
+  call bq%initMat
+
 
   write(9,*)"boussinesqQuad End"
 end program boussinesqQuad

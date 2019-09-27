@@ -1,6 +1,21 @@
 log_bsnq_gq_v1.00
 
 -----------------------------------------------
+Versions bsnqM_v1.xx.xx
+
+continued from bsnq_par_v8.36
+- Quad Jacobian = Linear Jacobian for Triangle
+- Analytical Integration
+- Object Oriented Programming
+- Predictor Corrector Time-stepping
+-----------------------------------------------
+
+-v1.01
+Attempting
+	- bsnqModule with all the required variables
+
+
+-----------------------------------------------
 Versions bsnq_gq_v1.xx.xx
 
 continued from bsnq_par_v8.36
@@ -10,7 +25,6 @@ continued from bsnq_par_v8.36
 - Gauss Quadrature Integration
 -----------------------------------------------
 
--v1.00
 
 -----------------------------------------------
 Versions bsnq_par_v8.xx.xx
