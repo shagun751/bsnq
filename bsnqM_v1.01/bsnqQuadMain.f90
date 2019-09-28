@@ -136,6 +136,7 @@ end interface
   call bq%initMat
 
   call bq%statMatrices  
+  call bq%dynaMatrices
 
   wv=waveType(2d0,10d0,0.5d0,0d0,0d0,90d0)
   write(*,*)wv%T,wv%L,wv%thRad

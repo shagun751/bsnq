@@ -29,7 +29,6 @@ continued from bsnq\_par\_v8.36
 - [ ] Porosity initialisation
 - [x] Mass matrices
 - [x] Stationary matrix set 1
-- [ ] Boundary integrals in mass matrix
 - [ ] Dynamic matrix set 1
 - [ ] Boundary integrals
 - [ ] Full momentum mass matrix
@@ -46,7 +45,7 @@ continued from bsnq\_par\_v8.36
 - [x] DMat with porosity removed
 - [x] Bs5, Bs6
 - [ ] Advection matrix
-- [ ] Hydrostatic pressure matrix
+- [x] Hydrostatic pressure matrix
 
 -----------------------------------------------
 

@@ -24,11 +24,13 @@ subroutines/geometry_v1.0.f90 \
 subroutines/mergeSort.f90 \
 subroutines/nodeConnAll.f90 \
 subroutines/matrixSet1.f90 \
-subroutines/femAnalyticalTri_v1.0.f90
+subroutines/matrixSet2.f90 \
+subroutines/femAnalyticalTri_v1.0.f90 \
+subroutines/bndIntegral.f90
 	
 default: $(OBJ)
 	mkdir -p Output Resume
-	$(COMPILER) -o bsnq $(OBJ) $(SUBS) $(PARA_LIB) $(PARA_FLAGS)
+	$(COMPILER) -o bsnq $(SUBS) $(OBJ) $(PARA_LIB) $(PARA_FLAGS)
 	
 # $(MAIN).o: $(MAIN).f90
 # 	ifort $(PARA_FLAGS) -c $(MAIN).f90 $(SUBS)
@@ -37,7 +39,7 @@ paralution_fortran.o: $(PARA_CONV)
 	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
 
 clean:
-	rm -rf *.log *.var *.vtk *.dat *.o Output vol.png fort.20
+	rm -rf *.vtk *.dat *.o *.mod Output vol.png
 	mkdir Output
 
 rmout:

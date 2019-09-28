@@ -51,6 +51,8 @@ implicit none
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
+    real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
+    real(kind=C_K2),allocatable::gFp(:),gFq(:)
 
 
     logical::resume,presOn
@@ -66,6 +68,7 @@ implicit none
     procedure ::  femInit
     procedure ::  setRun
     procedure ::  statMatrices
+    procedure ::  dynaMatrices
     !procedure ::  destructor
 
   end type bsnqCase
@@ -576,6 +579,8 @@ end function waveLenCalc
     allocate(b%gBs3(j1*j),b%gBs4(j1*j))
     allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
     allocate(b%gBs5(i1*j),b%gBs6(i1*j))
+    allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
+    allocate(b%gFp(j1*j),b%gFq(j1*j))
 
     b%por=1d0
 
@@ -606,6 +611,10 @@ end function waveLenCalc
       b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCx,b%gCy,b%gDMat,&
       b%gBs5,b%gBs6)
 
+    call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
+      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
+      b%gFp,b%gFq)
+
     b%massW=b%massE
     b%massQ=b%massP
 
@@ -614,4 +623,22 @@ end function waveLenCalc
 
   end subroutine statMatrices
 !!-------------------------End statMatrices------------------------!!
+
+
+
+!!---------------------------dynaMatrices--------------------------!!
+  subroutine dynaMatrices(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%ivl,b%ivq,&
+      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%tDr,b%ur,b%vr,&
+      b%gGx,b%gGy,b%gNAdv)
+
+    write(9,*)"[MSG] Done dynaMatrices"
+    write(9,*)
+
+  end subroutine dynaMatrices
+!!-------------------------End dynaMatrices------------------------!!
 end module bsnqModule

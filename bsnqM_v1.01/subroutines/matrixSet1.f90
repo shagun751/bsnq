@@ -150,11 +150,11 @@ implicit none
       do lCol=1,3
         gCol=n(lCol)
         do j=1,ivl(gRow)
-          if(nlinkl(j).eq.gCol) goto 15
+          if(nlinkl(j).eq.gCol) goto 12
         enddo
         write(9,*)"[Err] node conn missing in Bsnq at",gRow
         stop
-        15 gBs5(k+j)=gBs5(k+j)+lBs5(lRow,lCol)
+        12 gBs5(k+j)=gBs5(k+j)+lBs5(lRow,lCol)
         gBs6(k+j)=gBs6(k+j)+lBs6(lRow,lCol)
       enddo
     enddo
@@ -167,11 +167,11 @@ implicit none
       do lCol=1,6
         gCol=n(lCol)
         do j=1,ivq(gRow)
-          if(nlinkq(j).eq.gCol) goto 12
+          if(nlinkq(j).eq.gCol) goto 13
         enddo
         write(9,*)"[Err] node conn missing in C Flux at",gRow
         stop
-        12 gCxFlux(k+j)=gCxFlux(k+j)+cxFlux(lRow,lCol)
+        13 gCxFlux(k+j)=gCxFlux(k+j)+cxFlux(lRow,lCol)
         gCyFlux(k+j)=gCyFlux(k+j)+cyFlux(lRow,lCol)
       enddo
     enddo    
