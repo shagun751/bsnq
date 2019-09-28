@@ -23,7 +23,8 @@ subroutines/bsnqModule.f90 \
 subroutines/geometry_v1.0.f90 \
 subroutines/mergeSort.f90 \
 subroutines/nodeConnAll.f90 \
-subroutines/matrixSet1.f90
+subroutines/matrixSet1.f90 \
+subroutines/femAnalyticalTri_v1.0.f90
 	
 default: $(OBJ)
 	mkdir -p Output Resume

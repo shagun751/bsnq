@@ -67,6 +67,7 @@
 
 
 program boussinesqQuad
+use bsnqGlobVars
 use bsnqModule
 implicit none
 
@@ -115,6 +116,7 @@ end interface
 
 !!--------------------------Declarations---------------------------!!
   type(bsnqCase)::bq
+  type(waveType)::wv
   character(len=C_KSTR)::bqtxt
 !!------------------------End Declarations-------------------------!!
   
@@ -133,7 +135,10 @@ end interface
   call bq%setRun  
   call bq%initMat
 
-  call bq%statMatrices
+  call bq%statMatrices  
+
+  wv=waveType(2d0,10d0,0.5d0,0d0,0d0,90d0)
+  write(*,*)wv%T,wv%L,wv%thRad
 
   write(9,*)"boussinesqQuad End"
 end program boussinesqQuad

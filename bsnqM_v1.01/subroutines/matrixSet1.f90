@@ -1,33 +1,42 @@
 subroutine matrixSet1(npoinl,npoint,nelem,conn,ivl,ivq,linkl,&
-  linkq,invJ,depth,gBs1,gBs2,gBs3,gBs4,gCxFlux,gCyFlux,gDMat)
+  linkq,invJ,depth,por,mass1,mass2,gBs1,gBs2,gBs3,gBs4,&
+  gCxFlux,gCyFlux,gDMat,gBs5,gBs6)
 use bsnqGlobVars
 implicit none
 
+  !Mass matrices M1(6x6) and M2(3x3)
   !Bsnq matrices 1,2,3,4
   !c Flux gradient mtrices x,y
   !D matrix
   
-  integer(kind=4),intent(in)::npoinl,npoint,nelem,conn(nelem,6)
-  integer(kind=4),intent(in)::ivl(0:npoint),linkl(ivl(0)*npoint)
-  integer(kind=4),intent(in)::ivq(0:npoint),linkq(ivq(0)*npoint)
-  integer(kind=4)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
-  integer(kind=4)::nlinkl(ivl(0)),nlinkq(ivq(0))
+  integer(kind=C_K1),intent(in)::npoinl,npoint,nelem,conn(nelem,6)
+  integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(ivl(0)*npoint)
+  integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(ivq(0)*npoint)
+  integer(kind=C_K1)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
+  integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
 
-  real(kind=8),intent(in)::invJ(nelem,5),depth(npoint)  
-  real(kind=8),intent(out)::gBs1(ivq(0)*npoint)
-  real(kind=8),intent(out)::gBs2(ivq(0)*npoint)
-  real(kind=8),intent(out)::gBs3(ivq(0)*npoint)
-  real(kind=8),intent(out)::gBs4(ivq(0)*npoint)
-  real(kind=8),intent(out)::gCxFlux(ivq(0)*npoinl)
-  real(kind=8),intent(out)::gCyFlux(ivq(0)*npoinl)
-  real(kind=8),intent(out)::gDMat(ivl(0)*npoinl)    
-  real(kind=8)::bs1t1(6,6),bs1t2(6,6)
-  real(kind=8)::bs2t1(6,6),bs2t2(6,6),bs2t3(6,6)
-  real(kind=8)::bs3t1(6,6),bs3t2(6,6),bs3t3(6,6)
-  real(kind=8)::bs4t1(6,6),bs4t2(6,6)
-  real(kind=8)::cxFlux(3,6),cyFlux(3,6)
-  real(kind=8)::dMat(3,3)
-  real(kind=8)::cnst(10)
+  real(kind=C_K2),intent(in)::invJ(nelem,5),depth(npoint)  
+  real(kind=C_K2),intent(in)::por(npoint)
+  real(kind=C_K2),intent(out)::mass1(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::mass2(ivl(0)*npoinl)  
+  real(kind=C_K2),intent(out)::gBs1(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::gBs2(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::gBs3(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::gBs4(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::gCxFlux(ivq(0)*npoinl)
+  real(kind=C_K2),intent(out)::gCyFlux(ivq(0)*npoinl)
+  real(kind=C_K2),intent(out)::gDMat(ivl(0)*npoinl)    
+  real(kind=C_K2),intent(out)::gBs5(ivl(0)*npoint)
+  real(kind=C_K2),intent(out)::gBs6(ivl(0)*npoint)
+  real(kind=C_K2)::bs1t1(6,6),bs1t2(6,6)
+  real(kind=C_K2)::bs2t1(6,6),bs2t2(6,6),bs2t3(6,6)
+  real(kind=C_K2)::bs3t1(6,6),bs3t2(6,6),bs3t3(6,6)
+  real(kind=C_K2)::bs4t1(6,6),bs4t2(6,6)  
+  real(kind=C_K2)::cxFlux(3,6),cyFlux(3,6)
+  real(kind=C_K2)::dMat(3,3)
+  real(kind=C_K2)::lBs5(6,3),lBs6(6,3)
+  real(kind=C_K2)::cnst(10)
+  real(kind=C_K2)::locM1(6,6),locM2(3,3),lScN3(3)
 
   cnst(1)=grav                    !gravity
   cnst(2)=BsqC                    !Bsnq constant
@@ -36,6 +45,8 @@ implicit none
   cnst(5)=2d0*BsqC+(1d0/2d0)      !derived 3
   cnst(6)=grav*BsqC               !derived 4
 
+  mass1=0d0
+  mass2=0d0
   gBs1=0d0
   gBs2=0d0
   gBs3=0d0
@@ -43,6 +54,21 @@ implicit none
   gCxFlux=0d0
   gCyFlux=0d0
   gDMat=0d0
+  gBs5=0d0
+  gBs6=0d0
+
+  locM1=0d0
+  locM1(1,:)=(/ 1d0/60d0,-1d0/360d0,-1d0/360d0,0d0,-1d0/90d0,0d0 /)
+  locM1(2,:)=(/ -1d0/360d0,1d0/60d0,-1d0/360d0,0d0,0d0,-1d0/90d0 /)
+  locM1(3,:)=(/ -1d0/360d0,-1d0/360d0,1d0/60d0,-1d0/90d0,0d0,0d0 /)
+  locM1(4,:)=(/ 0d0,0d0,-1d0/90d0,4d0/45d0,2d0/45d0,2d0/45d0 /)
+  locM1(5,:)=(/ -1d0/90d0,0d0,0d0,2d0/45d0,4d0/45d0,2d0/45d0 /)
+  locM1(6,:)=(/ 0d0,-1d0/90d0,0d0,2d0/45d0,2d0/45d0,4d0/45d0 /)
+
+  locM2=0d0
+  locM2(1,:)=(/ 1d0/12d0,1d0/24d0,1d0/24d0 /)
+  locM2(2,:)=(/ 1d0/24d0,1d0/12d0,1d0/24d0 /)
+  locM2(3,:)=(/ 1d0/24d0,1d0/24d0,1d0/12d0 /) 
 
   do i=1,nelem
     n=conn(i,:)    
@@ -77,7 +103,13 @@ implicit none
       invJ(i,3),invJ(i,4))
 
     call remainMat(dMat,invJ(i,1),invJ(i,2),invJ(i,3),&
-      invJ(i,4),depth(n(1)),depth(n(2)),depth(n(3)))    
+      invJ(i,4),depth(n(1)),depth(n(2)),depth(n(3)))  
+
+    lScN3=grav*BsqC*por(n(1:3))*(depth(n(1:3))**2)
+    call fem_N6i_Sc3_dN3jdx(lBs5,lScN3(1),lScN3(2),lScN3(3),&
+      invJ(i,1),invJ(i,2))
+    call fem_N6i_Sc3_dN3jdx(lBs6,lScN3(1),lScN3(2),lScN3(3),&
+      invJ(i,3),invJ(i,4))
     
 
     bs1t1=invJ(i,5)*((cnst(3)*bs1t1)+(cnst(4)*bs1t2))
@@ -86,7 +118,9 @@ implicit none
     bs4t1=invJ(i,5)*((cnst(3)*bs4t1)+(cnst(4)*bs4t2))
     cxFlux=-invJ(i,5)*cxFlux
     cyFlux=-invJ(i,5)*cyFlux
-    dMat=-invJ(i,5)*dMat    
+    dMat=-invJ(i,5)*dMat   
+    lBs5=invJ(i,5)*lBs5 
+    lBs6=invJ(i,5)*lBs6 
 
     !6x6
     do lRow=1,6
@@ -100,10 +134,28 @@ implicit none
         enddo
         write(9,*)"[Err] node conn missing in Bsnq at",gRow
         stop
-        11  gBs1(k+j)=gBs1(k+j)+bs1t1(lRow,lCol)
+        11 mass1(k+j)=mass1(k+j)+(locM1(lRow,lCol)*invJ(i,5))
+        gBs1(k+j)=gBs1(k+j)+bs1t1(lRow,lCol)
         gBs2(k+j)=gBs2(k+j)+bs2t1(lRow,lCol)
         gBs3(k+j)=gBs3(k+j)+bs3t1(lRow,lCol)
         gBs4(k+j)=gBs4(k+j)+bs4t1(lRow,lCol)        
+      enddo
+    enddo
+
+    !6x3
+    do lRow=1,6
+      gRow=n(lRow)
+      k=(gRow-1)*ivl(0)
+      nlinkl=linkl(k+1:k+ivl(0))
+      do lCol=1,3
+        gCol=n(lCol)
+        do j=1,ivl(gRow)
+          if(nlinkl(j).eq.gCol) goto 15
+        enddo
+        write(9,*)"[Err] node conn missing in Bsnq at",gRow
+        stop
+        15 gBs5(k+j)=gBs5(k+j)+lBs5(lRow,lCol)
+        gBs6(k+j)=gBs6(k+j)+lBs6(lRow,lCol)
       enddo
     enddo
 
@@ -136,7 +188,8 @@ implicit none
         enddo
         write(9,*)"[Err] node conn missing in dMat at",gRow
         stop
-        14 gDMat(k+j)=gDMat(k+j)+dMat(lRow,lCol)        
+        14 mass2(k+j)=mass2(k+j)+(locM2(lRow,lCol)*invJ(i,5))
+        gDMat(k+j)=gDMat(k+j)+dMat(lRow,lCol)        
       enddo
     enddo
   enddo
@@ -145,10 +198,11 @@ end subroutine matrixSet1
 
 
 subroutine bsnq1Term1(bs1t1,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs1t1(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs1t1(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs1t1(1,1)=(1d0/180d0)*(b11 + b12)**2d0 *(39d0*h1**2d0 &
     + 15d0*h1*(h2 + h3) + 7d0*(h2**2d0 + h2*h3 + h3**2d0))
@@ -313,10 +367,11 @@ end subroutine bsnq1Term1
 
 
 subroutine bsnq1Term2(bs1t2,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs1t2(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs1t2(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs1t2(1,1)=(1d0/120d0)*(b11 + b12)*(b11*(h1 - h2) &
     + b12*(h1 - h3))*(6d0*h1 + h2 + h3)
@@ -429,10 +484,11 @@ implicit none
 end subroutine bsnq1Term2
 
 subroutine bsnq2Term1(bs2t1,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs2t1(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs2t1(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs2t1(1,1)=(1d0/180d0)*(b11 + b12)*(b21 + b22)*(39d0*h1**2d0 &
     + 15d0*h1*(h2 + h3) + 7d0*(h2**2d0 + h2*h3 + h3**2d0))
@@ -607,10 +663,11 @@ implicit none
 end subroutine bsnq2Term1
 
 subroutine bsnq2Term2(bs2t2,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs2t2(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs2t2(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs2t2(1,1)=(1d0/120d0)*(b21 + b22)*(b11*(h1 - h2) &
     + b12*(h1 - h3))*(6d0*h1 + h2 + h3)
@@ -724,10 +781,11 @@ implicit none
 end subroutine bsnq2Term2
 
 subroutine bsnq2Term3(bs2t3,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs2t3(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs2t3(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs2t3(1,1)=(1d0/120d0)*(b11 + b12)*(b21*(h1 - h2) &
     + b22*(h1 - h3))*(6d0*h1 + h2 + h3)
@@ -841,10 +899,11 @@ implicit none
 end subroutine bsnq2Term3
 
 subroutine bsnq3Term1(bs3t1,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs3t1(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3
+  real(kind=C_K2),intent(out)::bs3t1(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3
 
   bs3t1(1,1)=(1d0/180d0)*(b11 + b12)*(b21 + b22)*(39d0*h1**2d0 &
     + 15d0*h1*(h2 + h3) + 7d0*(h2**2d0 + h2*h3 + h3**2d0))
@@ -1023,10 +1082,11 @@ implicit none
 end subroutine bsnq3Term1
 
 subroutine bsnq4Term1(bs4t1,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs4t1(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs4t1(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs4t1(1,1)=(1d0/180d0)*(b21 + b22)**2d0*(39d0*h1**2d0 &
     + 15d0*h1*(h2 + h3) + 7d0*(h2**2d0 + h2*h3 + h3**2d0))
@@ -1192,10 +1252,11 @@ implicit none
 end subroutine bsnq4Term1
 
 subroutine bsnq4Term2(bs4t2,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::bs4t2(6,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3 
+  real(kind=C_K2),intent(out)::bs4t2(6,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3 
 
   bs4t2(1,1)=(1d0/120d0)*(b21 + b22)*(b21*(h1 - h2) &
     + b22*(h1 - h3))*(6d0*h1 + h2 + h3)
@@ -1309,10 +1370,11 @@ implicit none
 end subroutine bsnq4Term2
 
 subroutine cFluxMat(cxFlux,cyFlux,b11,b12,b21,b22)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::cxFlux(3,6),cyFlux(3,6)
-  real(kind=8),intent(in)::b11,b12,b21,b22
+  real(kind=C_K2),intent(out)::cxFlux(3,6),cyFlux(3,6)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22
 
   ! !As per paper dN3idx N6j
   ! cxFlux=0d0
@@ -1385,10 +1447,11 @@ implicit none
 end subroutine cFluxMat
 
 subroutine remainMat(dMat,b11,b12,b21,b22,h1,h2,h3)
+use bsnqGlobVars
 implicit none
 
-  real(kind=8),intent(out)::dMat(3,3)
-  real(kind=8),intent(in)::b11,b12,b21,b22,h1,h2,h3   
+  real(kind=C_K2),intent(out)::dMat(3,3)
+  real(kind=C_K2),intent(in)::b11,b12,b21,b22,h1,h2,h3   
 
 
   !Taking aux var equation as

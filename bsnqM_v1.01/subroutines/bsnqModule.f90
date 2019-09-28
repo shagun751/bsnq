@@ -1,27 +1,32 @@
 module bsnqModule
 use bsnqGlobVars
 implicit none
+  
+  private
+  integer(kind=C_K1)::i,i1,i2,j,j1,j2,k,k1,k2
+  integer(kind=C_K1)::iel,n1,n2,n3,n4,n5,n6
+  integer(kind=C_K1)::nq(6),nl(3)
+  integer(kind=C_K1)::tmpi1,tmpi2,tmpi3,tmpi4,tmpi5
+  integer(kind=C_K1)::maxNePoi=30
+  integer(kind=C_K1)::maxNeEle=10
 
-  integer(kind=C_K1),private::i,i1,i2,j,j1,j2,k,k1,k2
-  integer(kind=C_K1),private::iel,n1,n2,n3,n4,n5,n6
-  integer(kind=C_K1),private::nq(6),nl(3)
-  integer(kind=C_K1),private::tmpi1,tmpi2,tmpi3,tmpi4,tmpi5
-  integer(kind=C_K1),private::maxNePoi=30
-  integer(kind=C_K1),private::maxNeEle=10
+  real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5 
+  character(len=C_KSTR)::bqtxt  
+  logical::ex
 
-  real(kind=C_K2),private::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5 
-  character(len=C_KSTR),private::bqtxt  
-  logical,private::ex
-
-  type :: waveType    
+  
+  type, public :: waveType    
     real(kind=C_K2)::T,d,H,L,k,w
     real(kind=C_K2)::x0,y0
-    real(kind=C_K2)::thDeg,thRad,csth,snth
-  contains
-    procedure :: waveLenCalc
+    real(kind=C_K2)::thDeg,thRad,csth,snth      
   end type waveType
 
-  type :: bsnqCase
+  interface waveType
+     procedure :: waveLenCalc
+  end interface waveType
+
+  
+  type, public :: bsnqCase
     character(len=C_KSTR)::probname,resumeFile
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd
@@ -42,8 +47,10 @@ implicit none
     real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
     real(kind=C_K2),allocatable::wr(:),por(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)
+    real(kind=C_K2),allocatable::massW(:),massE(:),massP(:),massQ(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
+    real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
 
 
     logical::resume,presOn
@@ -66,30 +73,37 @@ implicit none
 contains
 
 !!---------------------------waveLenCalc---------------------------!!
-subroutine waveLenCalc(p)
+type(waveType) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
 implicit none
 
   !! WaveLen using dispersion relation from Airy wave-theory
-  
-  class(waveType),intent(inout)::p
+
   integer(kind=C_K1)::iterMax
   real(kind=C_K2)::l0,newl,oldl,x,errLim
+  real(kind=C_K2),intent(in)::inT,inD,inH,inX0,inY0,inThDeg
 
-  p%w=2d0*pi/p%T
-  p%thRad=p%thDeg*pi/180d0
-  p%csth=dcos(p%thRad)
-  p%snth=dsin(p%thRad)
+
+  waveLenCalc%T=inT
+  waveLenCalc%d=inD
+  waveLenCalc%H=inH
+  waveLenCalc%x0=inX0
+  waveLenCalc%y0=inY0
+  waveLenCalc%thDeg=inThDeg
+  waveLenCalc%w=2d0*pi/waveLenCalc%T
+  waveLenCalc%thRad=waveLenCalc%thDeg*pi/180d0
+  waveLenCalc%csth=dcos(waveLenCalc%thRad)
+  waveLenCalc%snth=dsin(waveLenCalc%thRad)
 
   iterMax=50000
   errLim=1d-6
-  l0 = (grav/2d0/pi)*(p%T)**2
+  l0 = (grav/2d0/pi)*(waveLenCalc%T)**2
   oldl = l0  
   do i = 1,iterMax
-    newl = l0*dtanh(2d0*pi*(p%d)/oldl)
+    newl = l0*dtanh(2d0*pi*(waveLenCalc%d)/oldl)
     !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
     x = abs(newl-oldl)
     if (x.le.errLim) then
-      p%L = newl
+      waveLenCalc%L = newl
       exit
     else
       oldl = newl
@@ -98,16 +112,16 @@ implicit none
 
   if(i.ge.iterMax) then
     write(*,*)
-    write(*,*)"[ERR] waveCalculator Error waveL",p%L
+    write(*,*)"[ERR] waveCalculator Error waveL",waveLenCalc%L
     write(*,*)
-    p%L=-999
-    p%k=0d0
+    waveLenCalc%L=-999
+    waveLenCalc%k=0d0
     return
   endif
 
-  p%k=2d0*pi/p%L
+  waveLenCalc%k=2d0*pi/waveLenCalc%L
 
-end subroutine waveLenCalc
+end function waveLenCalc
 !!-------------------------End waveLenCalc-------------------------!!
 
 
@@ -556,9 +570,14 @@ end subroutine waveLenCalc
     allocate(b%wr(i),b%por(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
 
+    allocate(b%massW(i1*i),b%massE(i1*i))
+    allocate(b%massP(j1*j),b%massQ(j1*j))    
     allocate(b%gBs1(j1*j),b%gBs2(j1*j))
     allocate(b%gBs3(j1*j),b%gBs4(j1*j))
     allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
+    allocate(b%gBs5(i1*j),b%gBs6(i1*j))
+
+    b%por=1d0
 
     b%rTime=0d0
     b%et0=0d0
@@ -580,11 +599,15 @@ end subroutine waveLenCalc
   subroutine statMatrices(b)
   implicit none
 
-    class(bsnqCase),intent(inout)::b
+    class(bsnqCase),intent(inout)::b    
 
     call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%ivl,b%ivq,&
-      b%linkl,b%linkq,b%invJ,b%dep,b%gBs1,b%gBs2,b%gBs3,&
-      b%gBs4,b%gCx,b%gCy,b%gDMat)
+      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%massP,b%massE,&
+      b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCx,b%gCy,b%gDMat,&
+      b%gBs5,b%gBs6)
+
+    b%massW=b%massE
+    b%massQ=b%massP
 
     write(9,*)"[MSG] Done statMatrices"
     write(9,*)
