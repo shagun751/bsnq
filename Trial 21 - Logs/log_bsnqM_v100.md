@@ -21,23 +21,23 @@ continued from bsnq\_par\_v8.36
 - FEM analytical integrals as general functions so that they can be used later in other code. Check file *femAnalyticalTri_vx.x.f90*
 
 ##### List of Work
-- [x] Mesh input (Type0)
-- [x] FEM Initialisations
-- [ ] Wave probes
-- [ ] Inlet wave characteristics
-- [ ] Absorbance coeffs
-- [ ] Porosity initialisation
-- [x] Mass matrices
-- [x] Stationary matrix set 1
-- [ ] Boundary integrals in mass matrix
-- [ ] Dynamic matrix set 1
-- [ ] Boundary integrals
-- [ ] Full momentum mass matrix
-- [ ] Dirichlet BC
-- [ ] Neumann BC for eta
-- [ ] Bottom shear 
-- [ ] Porosity drag terms
-- [x] WaveType class with constructor for waveLength
+  - [x] Mesh input (Type0)
+  - [x] FEM Initialisations
+  - [ ] Wave probes
+  - [ ] Inlet wave characteristics
+  - [ ] Absorbance coeffs
+  - [ ] Porosity initialisation
+  - [x] Mass matrices
+  - [x] Stationary matrix set 1
+  - [ ] Boundary integrals in mass matrix
+  - [ ] Dynamic matrix set 1
+  - [ ] Boundary integrals
+  - [ ] Full momentum mass matrix
+  - [ ] Dirichlet BC
+  - [ ] Neumann BC for eta
+  - [ ] Bottom shear 
+  - [ ] Porosity drag terms
+  - [x] WaveType class with constructor for waveLength
 
 ##### Matrices with correct signs
 - [x] Mass M1 and M2
