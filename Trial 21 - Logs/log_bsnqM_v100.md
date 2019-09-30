@@ -29,8 +29,8 @@ continued from bsnq\_par\_v8.36
 - [ ] Porosity initialisation
 - [x] Mass matrices
 - [x] Stationary matrix set 1
-- [ ] Dynamic matrix set 1
-- [ ] Boundary integrals
+- [x] Dynamic matrix set 1
+- [x] Boundary integrals
 - [ ] Full momentum mass matrix
 - [ ] Dirichlet BC
 - [ ] Neumann BC for eta
@@ -44,7 +44,7 @@ continued from bsnq\_par\_v8.36
 - [x] CxF, CyF
 - [x] DMat with porosity removed
 - [x] Bs5, Bs6
-- [ ] Advection matrix
+- [x] Advection matrix with porosity removed
 - [x] Hydrostatic pressure matrix
 
 -----------------------------------------------

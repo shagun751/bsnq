@@ -15,7 +15,7 @@ implicit none
   real(kind=C_K2),intent(out)::gGx(ivl(0)*npoint)
   real(kind=C_K2),intent(out)::gGy(ivl(0)*npoint)      
   real(kind=C_K2),intent(out)::gNAdv(ivq(0)*npoint)
-  real(kind=C_K2)::lGx(6,3),lGy(6,3),lNAd(6,6)
+  real(kind=C_K2)::lGx(6,3),lGy(6,3),lNAd(6,6),tmp(6,6)
   real(kind=C_K2)::lScN3(3)
   
 
@@ -32,12 +32,18 @@ implicit none
     call fem_N6i_Sc3_dN3jdx(lGy,lScN3(1),lScN3(2),lScN3(3),&
       invJ(i,3),invJ(i,4))
 
-    !call nAdvMatv2(lNAd,invJ(i,1),invJ(i,2),invJ(i,3),invJ(i,4),&
-    !  ur(n(1)),ur(n(2)),ur(n(3)),v(n(1)),v(n(2)),v(n(3)))
+    call fem_N6i_du6N6jdx(tmp,ur(n(1)),ur(n(2)),ur(n(3)),&
+      ur(n(4)),ur(n(5)),ur(n(6)),invJ(i,1),invJ(i,2))
+    lNAd=tmp
+    call fem_N6i_du6N6jdx(tmp,vr(n(1)),vr(n(2)),vr(n(3)),&
+      vr(n(4)),vr(n(5)),vr(n(6)),invJ(i,3),invJ(i,4))
+    lNAd=lNAd+tmp
 
-    
+
     lGx=-invJ(i,5)*lGx
     lGy=-invJ(i,5)*lGy
+    lNAd=-invJ(i,5)*lNAd
+    
 
     !6x6
     do lRow=1,6

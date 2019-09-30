@@ -52,7 +52,7 @@ implicit none
     real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
-    real(kind=C_K2),allocatable::gFp(:),gFq(:)
+    real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
 
 
     logical::resume,presOn
@@ -69,6 +69,7 @@ implicit none
     procedure ::  setRun
     procedure ::  statMatrices
     procedure ::  dynaMatrices
+    procedure ::  destructR1
     !procedure ::  destructor
 
   end type bsnqCase
@@ -580,7 +581,8 @@ end function waveLenCalc
     allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
     allocate(b%gBs5(i1*j),b%gBs6(i1*j))
     allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
-    allocate(b%gFp(j1*j),b%gFq(j1*j))
+    allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
+    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
 
     b%por=1d0
 
@@ -610,13 +612,21 @@ end function waveLenCalc
       b%linkl,b%linkq,b%invJ,b%dep,b%por,b%massP,b%massE,&
       b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCx,b%gCy,b%gDMat,&
       b%gBs5,b%gBs6)
+    write(9,*)"[MSG] Done matrixSet1"
 
     call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
       b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
-      b%gFp,b%gFq)
+      b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+    write(9,*)"[MSG] Done bndIntegral1"
 
     b%massW=b%massE
     b%massQ=b%massP
+    b%gBs1=b%gBs1+b%gFBs1
+    b%gBs2=b%gBs2+b%gFBs2
+    b%gBs3=b%gBs3+b%gFBs3
+    b%gBs4=b%gBs4+b%gFBs4
+
+    call b%destructR1
 
     write(9,*)"[MSG] Done statMatrices"
     write(9,*)
@@ -641,4 +651,17 @@ end function waveLenCalc
 
   end subroutine dynaMatrices
 !!-------------------------End dynaMatrices------------------------!!
+
+
+
+!!----------------------------destructR1---------------------------!!
+  subroutine destructR1(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+
+  end subroutine destructR1
+!!--------------------------End destructR1-------------------------!!
 end module bsnqModule
