@@ -9,4 +9,4 @@ Currently only the solver for system of linear equations is parallelised using O
 
 Please check the Trial xx - Logs with the markdown file for details regarding each version of the code and development stage.
 
-<img align="left" src="https://www.ccp-wsi.ac.uk/sites/www.ccp-wsi.ac.uk/files/field/image/CCP-WSI_Logo_Light_small.png">
+<img align="left" src="./fem-bsnq.png">

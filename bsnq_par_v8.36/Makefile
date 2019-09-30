@@ -29,7 +29,7 @@ paralution_fortran.o: $(PARA_CONV)
 	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
 
 clean:
-	rm -rf *.log *.var *.vtk *.dat *.o Output vol.png fort.20
+	rm -rf *.vtk *.dat *.o *.mod Output
 	mkdir Output
 
 rmout:
