@@ -25,8 +25,14 @@
  
  [MSG] Done matrixSet1
  [MSG] Done bndIntegral1
+ [MSG] Done dirichletBC
+ [INF] Solve Lin      35750    249012
+ [INF] Solve Quad    284762   6531004
+ [MSG] Done CSRMatrices
  [MSG] Done statMatrices
+ [TIM]          0.7168
  
  [MSG] Done dynaMatrices
  
- boussinesqQuad End
+ [MSG] boussinesqQuad End
+ [TIM]          0.8865

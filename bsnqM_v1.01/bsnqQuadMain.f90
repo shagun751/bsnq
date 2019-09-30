@@ -4,8 +4,8 @@
 !!    -> 11 - Inlet - No Absorbing
 !!    -> 12 - NoSlip Wall 
 !!    -> 13 - Slip Wall - Rectangular wall only
-!!    -> 14 - Outlet  - Not coded
-!!    -> 15 - Sponge - BOUSS2D approach generalised input
+!!    -> 14 - Sponge - BOUSS2D approach generalised input
+!!    -> 15 - Outlet  - Not coded
 !!  -> Porosity - Energent structure only
 !!    -> Generalised input
 !!  -> Bottom Shear
@@ -130,6 +130,7 @@ end interface
   bqtxt=trim(bq%probname)//'.rout'
   open(9,file=trim(bqtxt))
 
+  call system_clock(bq%sysC(1))
   call bq%meshRead
   call bq%femInit
   call bq%setRun  
@@ -138,8 +139,7 @@ end interface
   call bq%statMatrices  
   call bq%dynaMatrices
 
-  wv=waveType(2d0,10d0,0.5d0,0d0,0d0,90d0)
-  write(*,*)wv%T,wv%L,wv%thRad
-
-  write(9,*)"boussinesqQuad End"
+  call system_clock(bq%sysC(2))
+  write(9,*)"[MSG] boussinesqQuad End"
+  write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
 end program boussinesqQuad

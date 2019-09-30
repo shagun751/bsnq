@@ -10,9 +10,9 @@ implicit none
   integer(kind=C_K1)::maxNePoi=30
   integer(kind=C_K1)::maxNeEle=10
 
-  real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5 
+  real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5,tmpr6
   character(len=C_KSTR)::bqtxt  
-  logical::ex
+  logical(kind=C_LG)::ex
 
   
   type, public :: waveType    
@@ -27,19 +27,21 @@ implicit none
 
   
   type, public :: bsnqCase
+    
     character(len=C_KSTR)::probname,resumeFile
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
-    integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd
+    integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
     integer(kind=C_K1)::nTSteps,maxIter,fileOut,resumeOut    
+    integer(kind=C_K1)::nnzl,nnzf
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)
     integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
-    integer(kind=C_K1),allocatable::bndPT(:)
+    integer(kind=C_K1),allocatable::bndPT(:),probe(:)
     integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)        
     integer(kind=C_K1),allocatable::ivf(:),linkf(:)    
 
     real(kind=C_K2)::dt,errLim,rTime
-    real(kind=C_K2)::sysRate,sysTime(10)
+    real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
     real(kind=C_K2),allocatable::pt0(:),qt0(:),et0(:),tDt0(:)
@@ -47,19 +49,24 @@ implicit none
     real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
     real(kind=C_K2),allocatable::wr(:),por(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)
-    real(kind=C_K2),allocatable::massW(:),massE(:),massP(:),massQ(:)
+    real(kind=C_K2),allocatable::massW(:),massE(:),mass1(:),mass2(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
     real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
+    real(kind=C_K2),allocatable::aFull(:)
+    real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
 
 
-    logical::resume,presOn
+    logical(kind=C_LG)::resume,presOn,absOn
 
-    integer(kind=8)::sysClk(10)
-    integer(kind=C_INT),allocatable::ivCSR1(:),jvCSR1(:)
-    integer(kind=C_INT),allocatable::ivCSR2(:),jvCSR2(:)
+    type(waveType)::wvIn
+
+    integer(kind=8)::sysC(10)
+    integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
+    integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
+    real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
 
   contains    
 
@@ -70,6 +77,7 @@ implicit none
     procedure ::  statMatrices
     procedure ::  dynaMatrices
     procedure ::  destructR1
+    procedure ::  CSRMatrices
     !procedure ::  destructor
 
   end type bsnqCase
@@ -533,16 +541,24 @@ end function waveLenCalc
     read(mf,*,end=81,err=81)b%presOn      
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%nthrd
-    !read(mf,*,end=81,err=81)bqtxt
-    !read(mf,*,end=81,err=81)tmpi1
-    ! if(tmpi1.gt.0) then
-    !   allocate(probe(0:tmpi1))
-    !   probe(0)=tmpi1
-    !   read(mf,*,end=81,err=81)probe(1:probe(0))
-    ! else
-    !   allocate(probe(0:1))
-    !   probe(0)=0
-    ! endif
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpi1
+    if(tmpi1.gt.0) then
+      allocate(b%probe(0:tmpi1))
+      b%probe(0)=tmpi1
+      read(mf,*,end=81,err=81)b%probe(1:b%probe(0))
+    else
+      allocate(b%probe(0:1))
+      b%probe(0)=0
+    endif
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
+    ! waveType(T,d,H,X0,Y0,thDeg)
+    b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
+    write(*,*)b%wvIn%T,b%wvIn%L,b%wvIn%thRad
+
 
     goto 82
     81 write(9,*) "[ERR] Check input file format"
@@ -575,7 +591,7 @@ end function waveLenCalc
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
 
     allocate(b%massW(i1*i),b%massE(i1*i))
-    allocate(b%massP(j1*j),b%massQ(j1*j))    
+    allocate(b%mass1(j1*j),b%mass2(i1*i))    
     allocate(b%gBs1(j1*j),b%gBs2(j1*j))
     allocate(b%gBs3(j1*j),b%gBs4(j1*j))
     allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
@@ -583,7 +599,13 @@ end function waveLenCalc
     allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
     allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
     allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
+    allocate(b%aFull(b%ivf(0)*2*j))
+    allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
 
+    b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
+    b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
+    b%Sz(3)=i1*j ![6x3] ![ivl(0) * npt]
+    b%Sz(4)=j1*j ![6x6] ![ivq(0) * npt]
     b%por=1d0
 
     b%rTime=0d0
@@ -591,8 +613,8 @@ end function waveLenCalc
     b%pt0=0d0
     b%qt0=0d0
 
-    call system_clock(b%sysClk(1),b%sysClk(2))
-    b%sysRate=real(b%sysClk(2),C_K2)
+    call system_clock(b%sysC(1),b%sysC(2))
+    b%sysRate=real(b%sysC(2),C_K2)
 
     write(9,*)"[MSG] Done initMat"
     write(9,*)
@@ -608,27 +630,37 @@ end function waveLenCalc
 
     class(bsnqCase),intent(inout)::b    
 
-    call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%ivl,b%ivq,&
-      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%massP,b%massE,&
+    call system_clock(b%sysC(5))
+    call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%Sz,b%ivl,b%ivq,&
+      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%mass1,b%mass2,&
       b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCx,b%gCy,b%gDMat,&
       b%gBs5,b%gBs6)
     write(9,*)"[MSG] Done matrixSet1"
 
     call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
-      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
+      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
       b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
     write(9,*)"[MSG] Done bndIntegral1"
 
-    b%massW=b%massE
-    b%massQ=b%massP
-    b%gBs1=b%gBs1+b%gFBs1
+    b%massW=b%mass2
+    b%massE=b%mass2
+    b%gBs1=b%gBs1+b%gFBs1+b%mass1
     b%gBs2=b%gBs2+b%gFBs2
     b%gBs3=b%gBs3+b%gFBs3
-    b%gBs4=b%gBs4+b%gFBs4
+    b%gBs4=b%gBs4+b%gFBs4+b%mass1
+
+    call dirichletBC(b%npl,b%npt,b%nbndp,b%bndP,b%bndPT,&
+      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%bndPN,b%gBs1,b%gBs2,&
+      b%gBs3,b%gBs4,b%massE)    
+    write(9,*)"[MSG] Done dirichletBC"
+
+    call b%CSRMatrices
 
     call b%destructR1
 
+    call system_clock(b%sysC(6))
     write(9,*)"[MSG] Done statMatrices"
+    write(9,'(" [TIM] ",F15.4)')1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
     write(9,*)
 
   end subroutine statMatrices
@@ -642,15 +674,124 @@ end function waveLenCalc
 
     class(bsnqCase),intent(inout)::b    
 
-    call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%ivl,b%ivq,&
-      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%tDr,b%ur,b%vr,&
-      b%gGx,b%gGy,b%gNAdv)
+    call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
+      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,b%tDr,&
+      b%ur,b%vr,b%gGx,b%gGy,b%gNAdv)
 
     write(9,*)"[MSG] Done dynaMatrices"
     write(9,*)
 
   end subroutine dynaMatrices
 !!-------------------------End dynaMatrices------------------------!!
+
+
+
+!!----------------------------CSRMatrices--------------------------!!
+  subroutine CSRMatrices(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    ! Full Matrice A
+    do i=1,b%npt
+      k=(i-1)*b%ivf(0)
+      k2=(i-1)*b%ivq(0)
+      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs1(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs2(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivf(i)-1)=b%gBs2(k2+b%ivq(i))
+      b%aFull(k+b%ivf(i))=b%gBs1(k2+b%ivq(i))
+
+      k=(i+b%npt-1)*b%ivf(0)
+      k2=(i-1)*b%ivq(0)
+      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs3(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs4(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivf(i)-1)=b%gBs3(k2+b%ivq(i))
+      b%aFull(k+b%ivf(i))=b%gBs4(k2+b%ivq(i))
+    enddo
+
+    
+    ! Normalising matrices
+    b%rowMaxW=0d0
+    b%rowMaxE=0d0
+    b%rowMaxPQ=0d0
+    do i=1,b%npl
+      k=(i-1)*b%ivl(0)
+      b%rowMaxW(i)=b%massW(k+b%ivl(i))
+      b%rowMaxE(i)=b%massE(k+b%ivl(i))
+      b%massW(k+1:k+b%ivl(i))=b%massW(k+1:k+b%ivl(i))/b%rowMaxW(i)
+      b%massE(k+1:k+b%ivl(i))=b%massE(k+1:k+b%ivl(i))/b%rowMaxE(i)
+    enddo
+    j1=2*b%npt
+    j2=b%ivf(0)
+    do i=1,j1
+      k=(i-1)*j2
+      k2=b%ivf(i)
+      b%rowMaxPQ(i)=b%aFull(k+k2)
+      b%aFull(k+1:k+k2)=b%aFull(k+1:k+k2)/b%rowMaxPQ(i)
+    enddo
+
+    
+    ! Paralution CSR linear nodes
+    b%nnzl=0
+    do i=1,b%npl
+      b%nnzl=b%nnzl+b%ivl(i)
+    enddo
+
+    allocate(b%ivsl(b%npl+1),b%jvsl(b%nnzl))
+    allocate(b%gMW(b%nnzl),b%gME(b%nnzl))
+
+    i2=0
+    b%ivsl(1)=1
+    do i=1,b%npl
+      b%ivsl(i+1)=b%ivsl(i)+b%ivl(i)
+      k=(i-1)*b%ivl(0)
+      do j=1,b%ivl(i)
+        k2=b%linkl(k+j)
+        i2=i2+1
+        b%jvsl(i2)=k2
+        b%gMW(i2)=b%massW(k+j)
+        b%gME(i2)=b%massE(k+j)
+      enddo
+    enddo
+    if((i2.ne.b%nnzl).or.(b%ivsl(b%npl+1).ne.b%nnzl+1)) then
+      write(9,*)'[ERR] CSR linear nnz not correct'
+      stop
+    endif
+
+
+    ! Paralution CSR quadratic nodes
+    b%nnzf=0
+    do i=1,2*b%npt
+      b%nnzf=b%nnzf+b%ivf(i)
+    enddo
+
+    allocate(b%ivsf(2*b%npt+1),b%jvsf(b%nnzf))
+    allocate(b%gMPQ(b%nnzf))
+
+    i2=0
+    b%ivsf(1)=1
+    do i=1,2*b%npt
+      b%ivsf(i+1)=b%ivsf(i)+b%ivf(i)
+      k=(i-1)*b%ivf(0)
+      do j=1,b%ivf(i)
+        k2=b%linkf(k+j)
+        i2=i2+1
+        b%jvsf(i2)=k2
+        b%gMPQ(i2)=b%aFull(k+j)
+      enddo
+    enddo
+    if((i2.ne.b%nnzf).or.(b%ivsf(2*b%npt+1).ne.b%nnzf+1)) then
+      write(9,*)'[ERR] CSR quadratic nnz not correct'
+      stop
+    endif
+
+
+    write(9,'(" [INF] Solve Lin ",2I10)')b%npl,b%nnzl
+    write(9,'(" [INF] Solve Quad",2I10)')2*b%npt,b%nnzf
+    write(9,*)"[MSG] Done CSRMatrices"
+
+  end subroutine CSRMatrices
+!!--------------------------End CSRMatrices------------------------!!
 
 
 
@@ -661,6 +802,9 @@ end function waveLenCalc
     class(bsnqCase),intent(inout)::b    
 
     deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+    deallocate(b%gBs1,b%gBs2,b%gBs3,b%gBs4)
+    deallocate(b%p2e,b%p2p)
+    deallocate(b%aFull,b%ivf,b%linkf)
 
   end subroutine destructR1
 !!--------------------------End destructR1-------------------------!!

@@ -26,7 +26,9 @@ subroutines/nodeConnAll.f90 \
 subroutines/matrixSet1.f90 \
 subroutines/matrixSet2.f90 \
 subroutines/femAnalyticalTri_v1.0.f90 \
-subroutines/bndIntegral.f90
+subroutines/bndIntegral.f90 \
+subroutines/bndCondition_v1.0.f90 \
+#subroutines/miscOps_v1.0.f90
 	
 default: $(OBJ)
 	mkdir -p Output Resume

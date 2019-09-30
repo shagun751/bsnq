@@ -1,19 +1,20 @@
-subroutine bndIntegral1(npl,npt,nele,nbnd,conn,mabnd,ivl,ivq,&
+subroutine bndIntegral1(npl,npt,nele,nbnd,conn,mabnd,Sz,ivl,ivq,&
   linkl,linkq,invJ,bndS,dep,gFPP,gFPQ,gFQP,gFQQ)
 use bsnqGlobVars
 implicit none
 
-  integer(kind=C_K1),intent(in)::npl,npt,nele,nbnd,conn(nele,6)
+  integer(kind=C_K1),intent(in)::npl,npt,nele,nbnd
+  integer(kind=C_K1),intent(in)::Sz(4),conn(nele,6)
   integer(kind=C_K1),intent(in)::ivl(0:npt),ivq(0:npt)
-  integer(kind=C_K1),intent(in)::linkl(ivl(0)*npt)
-  integer(kind=C_K1),intent(in)::linkq(ivq(0)*npt)
+  integer(kind=C_K1),intent(in)::linkl(Sz(3))
+  integer(kind=C_K1),intent(in)::linkq(Sz(4))
   integer(kind=C_K1),intent(in)::mabnd(nbnd,6)
   integer(kind=C_K1)::i,j,k,ele,en(6),gRow,gCol,lRow,lCol
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
   
   real(kind=C_K2),intent(in)::invJ(nele,5),bndS(nbnd,3),dep(npt)
-  real(kind=C_K2),intent(out)::gFPP(ivq(0)*npt),gFPQ(ivq(0)*npt)
-  real(kind=C_K2),intent(out)::gFQP(ivq(0)*npt),gFQQ(ivq(0)*npt)
+  real(kind=C_K2),intent(out)::gFPP(Sz(4)),gFPQ(Sz(4))
+  real(kind=C_K2),intent(out)::gFQP(Sz(4)),gFQQ(Sz(4))
   real(kind=C_K2)::cnst(10)
   real(kind=C_K2)::nx,ny,sL
   real(kind=C_K2)::lFPP(6,6),lFPQ(6,6),tmp(6,6)

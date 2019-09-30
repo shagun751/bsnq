@@ -1,20 +1,21 @@
-subroutine matrixSet2(npoinl,npoint,nelem,conn,ivl,ivq,linkl,&
+subroutine matrixSet2(npoinl,npoint,nelem,conn,Sz,ivl,ivq,linkl,&
   linkq,invJ,depth,por,tDr,ur,vr,gGx,gGy,gNAdv)
 use bsnqGlobVars
 implicit none
 
-  integer(kind=C_K1),intent(in)::npoinl,npoint,nelem,conn(nelem,6)
-  integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(ivl(0)*npoint)
-  integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(ivq(0)*npoint)
+  integer(kind=C_K1),intent(in)::npoinl,npoint,nelem
+  integer(kind=C_K1),intent(in)::Sz(4),conn(nelem,6)
+  integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(Sz(3))
+  integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(Sz(4))
   integer(kind=C_K1)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
 
   real(kind=C_K2),intent(in)::invJ(nelem,5),depth(npoint)  
   real(kind=C_K2),intent(in)::por(npoint),tDr(npoint)
   real(kind=C_K2),intent(in)::ur(npoint),vr(npoint)
-  real(kind=C_K2),intent(out)::gGx(ivl(0)*npoint)
-  real(kind=C_K2),intent(out)::gGy(ivl(0)*npoint)      
-  real(kind=C_K2),intent(out)::gNAdv(ivq(0)*npoint)
+  real(kind=C_K2),intent(out)::gGx(Sz(3))
+  real(kind=C_K2),intent(out)::gGy(Sz(3))      
+  real(kind=C_K2),intent(out)::gNAdv(Sz(4))
   real(kind=C_K2)::lGx(6,3),lGy(6,3),lNAd(6,6),tmp(6,6)
   real(kind=C_K2)::lScN3(3)
   

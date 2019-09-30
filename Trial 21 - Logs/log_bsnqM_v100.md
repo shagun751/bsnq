@@ -31,12 +31,14 @@ continued from bsnq\_par\_v8.36
 - [x] Stationary matrix set 1
 - [x] Dynamic matrix set 1
 - [x] Boundary integrals
-- [ ] Full momentum mass matrix
-- [ ] Dirichlet BC
+- [x] Full momentum mass matrix
+- [x] Dirichlet BC
+- [x] Conversion to CSR form
 - [ ] Neumann BC for eta
 - [ ] Bottom shear 
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
+- [ ] Paraview XML output
 
 #### Matrices with correct signs
 - [x] Mass M1 and M2

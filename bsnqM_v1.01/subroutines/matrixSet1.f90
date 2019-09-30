@@ -1,5 +1,5 @@
-subroutine matrixSet1(npoinl,npoint,nelem,conn,ivl,ivq,linkl,&
-  linkq,invJ,depth,por,mass1,mass2,gBs1,gBs2,gBs3,gBs4,&
+subroutine matrixSet1(npoinl,npoint,nelem,conn,Sz,ivl,ivq,&
+  linkl,linkq,invJ,depth,por,mass1,mass2,gBs1,gBs2,gBs3,gBs4,&
   gCxFlux,gCyFlux,gDMat,gBs5,gBs6)
 use bsnqGlobVars
 implicit none
@@ -9,25 +9,23 @@ implicit none
   !c Flux gradient mtrices x,y
   !D matrix
   
-  integer(kind=C_K1),intent(in)::npoinl,npoint,nelem,conn(nelem,6)
-  integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(ivl(0)*npoint)
-  integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(ivq(0)*npoint)
+  integer(kind=C_K1),intent(in)::npoinl,npoint,nelem,Sz(4)
+  integer(kind=C_K1),intent(in)::conn(nelem,6)
+  integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(Sz(3))
+  integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(Sz(4))
   integer(kind=C_K1)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
 
   real(kind=C_K2),intent(in)::invJ(nelem,5),depth(npoint)  
   real(kind=C_K2),intent(in)::por(npoint)
-  real(kind=C_K2),intent(out)::mass1(ivq(0)*npoint)
-  real(kind=C_K2),intent(out)::mass2(ivl(0)*npoinl)  
-  real(kind=C_K2),intent(out)::gBs1(ivq(0)*npoint)
-  real(kind=C_K2),intent(out)::gBs2(ivq(0)*npoint)
-  real(kind=C_K2),intent(out)::gBs3(ivq(0)*npoint)
-  real(kind=C_K2),intent(out)::gBs4(ivq(0)*npoint)
-  real(kind=C_K2),intent(out)::gCxFlux(ivq(0)*npoinl)
-  real(kind=C_K2),intent(out)::gCyFlux(ivq(0)*npoinl)
-  real(kind=C_K2),intent(out)::gDMat(ivl(0)*npoinl)    
-  real(kind=C_K2),intent(out)::gBs5(ivl(0)*npoint)
-  real(kind=C_K2),intent(out)::gBs6(ivl(0)*npoint)
+  real(kind=C_K2),intent(out)::mass1(Sz(4))
+  real(kind=C_K2),intent(out)::mass2(Sz(1))  
+  real(kind=C_K2),intent(out)::gBs1(Sz(4)),gBs2(Sz(4))
+  real(kind=C_K2),intent(out)::gBs3(Sz(4)),gBs4(Sz(4))
+  real(kind=C_K2),intent(out)::gCxFlux(Sz(2))
+  real(kind=C_K2),intent(out)::gCyFlux(Sz(2))
+  real(kind=C_K2),intent(out)::gDMat(Sz(1))    
+  real(kind=C_K2),intent(out)::gBs5(Sz(3)),gBs6(Sz(3))
   real(kind=C_K2)::bs1t1(6,6),bs1t2(6,6)
   real(kind=C_K2)::bs2t1(6,6),bs2t2(6,6),bs2t3(6,6)
   real(kind=C_K2)::bs3t1(6,6),bs3t2(6,6),bs3t3(6,6)
