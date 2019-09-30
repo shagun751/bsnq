@@ -9,7 +9,8 @@ Currently only the solver for system of linear equations is parallelised using O
 
 Please check the Trial xx - Logs with the markdown file for details regarding each version of the code and development stage.
 
--bsnqModule
+##### Modular structure
+- bsnqModule
   - type :: bsnqCase
     - procedure ::  initMat
     - procedure ::  meshRead
@@ -20,5 +21,7 @@ Please check the Trial xx - Logs with the markdown file for details regarding ea
     - procedure ::  destructR1
   - type :: waveType
     - constructor :: waveLenCalc
+- bsnqGlobVars  
+  - Datatypes and constants only
 
 <img align="left" src="./fem-bsnq.png">

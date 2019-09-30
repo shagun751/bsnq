@@ -47,6 +47,21 @@ continued from bsnq\_par\_v8.36
 - [x] Advection matrix with porosity removed
 - [x] Hydrostatic pressure matrix
 
+##### Modular structure
+- bsnqModule
+  - type :: bsnqCase
+    - procedure ::  initMat
+    - procedure ::  meshRead
+    - procedure ::  femInit
+    - procedure ::  setRun
+    - procedure ::  statMatrices
+    - procedure ::  dynaMatrices
+    - procedure ::  destructR1
+  - type :: waveType
+    - constructor :: waveLenCalc
+- bsnqGlobVars  
+  - Datatypes and constants only
+
 -----------------------------------------------
 
 ### References
