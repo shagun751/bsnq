@@ -14,13 +14,13 @@ continued from bsnq\_par\_v8.36
 
 ### v1.01
 
-##### Attempting
+#### Attempting
 - Making the code modular so that it can be used by many
 - bsnqModule with all the required variables
 - It is also required to make it easier to couple with other codes, especially such as MLPG\_R code.
 - FEM analytical integrals as general functions so that they can be used later in other code. Check file *femAnalyticalTri_vx.x.f90*
 
-##### List of Work
+#### List of Work
 - [x] Mesh input (Type0)
 - [x] FEM Initialisations
 - [ ] Wave probes
@@ -38,7 +38,7 @@ continued from bsnq\_par\_v8.36
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
 
-##### Matrices with correct signs
+#### Matrices with correct signs
 - [x] Mass M1 and M2
 - [x] Bs1, Bs2, Bs3, Bs4
 - [x] CxF, CyF
@@ -47,7 +47,7 @@ continued from bsnq\_par\_v8.36
 - [x] Advection matrix with porosity removed
 - [x] Hydrostatic pressure matrix
 
-##### Modular structure
+#### Modular structure
 - bsnqModule
   - type :: bsnqCase
     - procedure ::  initMat

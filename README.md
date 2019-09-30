@@ -9,7 +9,7 @@ Currently only the solver for system of linear equations is parallelised using O
 
 Please check the Trial xx - Logs with the markdown file for details regarding each version of the code and development stage.
 
-##### Modular structure
+#### Modular structure
 - bsnqModule
   - type :: bsnqCase
     - procedure ::  initMat
