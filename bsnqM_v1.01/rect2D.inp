@@ -5,8 +5,8 @@ Q) Resume file name (Mention the path in between quotes)
 
 Q) Time-step (s)
 0.02
-Q) Number of time-steps
-2500
+Q) Run Time (s)
+0.10
 
 Q) Error limit
 1e-6
@@ -28,8 +28,8 @@ Q) Number of OpenMP Threads
 Q) Wave Probes
 0
 
-Q) Inlet boundary wave time-period amplitude (s) (m)
-2 -0.0075
+Q) Inlet boundary wave Time-period Height Depth (s) (m) (m)
+2 -0.015 0.4572
 Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
 0 0 0
 

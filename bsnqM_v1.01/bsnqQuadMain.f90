@@ -51,72 +51,14 @@
 !!  21.0  ->  Removing all Kennedy breaking implementation
 !!  31.0  ->  Removed smoothing module and some bloatcode
 
-! include 'subroutines/bndIntegral.f90'
-! include 'subroutines/boundaryDifferential.f90'
-! include 'subroutines/geometry.f90'
-! include 'subroutines/gqMatrixSet1.f90'
-! include 'subroutines/matrixSet1.f90'
-! include 'subroutines/matrixSet2.f90'
-! include 'subroutines/mergeSort.f90'
-! include 'subroutines/nodeConnAll.f90'
-! include 'subroutines/outputN.f90'
-! include 'subroutines/porMatrices.f90'
-! include 'subroutines/resumeFile.f90'
-! include 'subroutines/shipFncs.f90'
-! include 'subroutines/waveCalculator_v2.f90'
-
 
 program boussinesqQuad
 use bsnqGlobVars
 use bsnqModule
 implicit none
 
-interface
-  ! Shagun modify 2017_08_14
-  subroutine paralution_init(nthreads) BIND(C)
-    use, intrinsic :: ISO_C_BINDING, only : C_INT
-    integer(kind=C_INT), value, intent(in)  :: nthreads
-  end subroutine paralution_init
-
-  subroutine paralution_stop() BIND(C)
-  end subroutine paralution_stop    
-
-  subroutine paralution_fortran_solve_coo( n, m, nnz, solver, mformat, preconditioner, pformat,    &
-                                          rows, cols, rval, rhs, atol, rtol, div, maxiter, basis, &
-                                          p, q, x, iter, resnorm, ierr ) BIND(C)
-
-    use, intrinsic :: ISO_C_BINDING, only : C_INT, C_PTR, C_DOUBLE, C_CHAR
-
-    integer(kind=C_INT), value, intent(in)  :: n, m, nnz, maxiter, basis, p, q
-    real(kind=C_DOUBLE), value, intent(in)  :: atol, rtol, div
-    integer(kind=C_INT),        intent(out) :: iter, ierr
-    real(kind=C_DOUBLE),        intent(out) :: resnorm
-    type(C_PTR),         value, intent(in)  :: rows, cols, rval, rhs
-    type(C_PTR),         value              :: x
-    character(kind=C_CHAR)                  :: solver, mformat, preconditioner, pformat
-
-  end subroutine paralution_fortran_solve_coo
-
-  subroutine paralution_fortran_solve_csr( n, m, nnz, solver, mformat, preconditioner, pformat, &
-                                          ivCSR, jvCSR, rval, rhs, atol, rtol, div, maxiter, basis, &
-                                          p, q, x, iter, resnorm, ierr ) BIND(C)
-
-    use, intrinsic :: ISO_C_BINDING, only : C_INT, C_PTR, C_DOUBLE, C_CHAR
-
-    integer(kind=C_INT), value, intent(in)  :: n, m, nnz, maxiter, basis, p, q
-    real(kind=C_DOUBLE), value, intent(in)  :: atol, rtol, div
-    integer(kind=C_INT),        intent(out) :: iter, ierr
-    real(kind=C_DOUBLE),        intent(out) :: resnorm
-    type(C_PTR),         value, intent(in)  :: ivCSR, jvCSR, rval, rhs
-    type(C_PTR),         value              :: x
-    character(kind=C_CHAR)                  :: solver, mformat, preconditioner, pformat
-
-  end subroutine paralution_fortran_solve_csr
-end interface
-
 !!--------------------------Declarations---------------------------!!
   type(bsnqCase)::bq
-  type(waveType)::wv
   character(len=C_KSTR)::bqtxt
 !!------------------------End Declarations-------------------------!!
   
@@ -135,11 +77,29 @@ end interface
   call bq%femInit
   call bq%setRun  
   call bq%initMat
-
   call bq%statMatrices  
-  call bq%dynaMatrices
+  
+  do while(bq%rTime.lt.bq%endTime)    
+
+    call bq%preInstructs
+
+    !!------------Predictor------------!!
+    bq%ur=bq%pt1/bq%tDt1
+    bq%vr=bq%qt1/bq%tDt1
+    bq%pbpr=bq%pt1/bq%por
+    bq%qbpr=bq%qt1/bq%por    
+    call bq%dynaMatrices(bq%tDt1,bq%ur,bq%vr)
+    call bq%solveW(bq%et1)
+    call bq%solveEta(bq%pbpr,bq%qbpr,bq%et1)
+    call bq%solvePQ(bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%er,bq%wr)
+    !!----------End Predictor----------!!
+
+    call bq%postInstructs
+
+  enddo
 
   call system_clock(bq%sysC(2))
   write(9,*)"[MSG] boussinesqQuad End"
   write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
+  close(9)
 end program boussinesqQuad

@@ -26,4 +26,4 @@ Please check the Trial xx - Logs with the markdown file for details regarding ea
   - type :: waveType
     - constructor :: waveLenCalc
 - bsnqGlobVars  
-  - Datatypes and constants only
+  Datatypes and constants only

@@ -36,6 +36,7 @@ implicit none
 end subroutine jacbInvLin
 
 
+
 subroutine bndSideInfo(npoinl,npoint,nelem,nbnd,coord,mabnd,&
   bndSide)
 implicit none
@@ -67,6 +68,8 @@ implicit none
     bndSide(i,3)=s
   enddo
 end subroutine
+
+
 
 subroutine bndNodeNormal(npoinl,npoint,nelem,nbnd,coord,mabnd,&
   bndSide,bndNormal)
@@ -105,6 +108,8 @@ implicit none
   enddo
 
 end subroutine
+
+
 
 subroutine middleNode(npoinl,npoinq,npoint,nelem,nedge,maxNePoi,&
     coord,depth,conn,poi2poi,npoisur)
@@ -165,6 +170,8 @@ implicit none
 
 end subroutine middleNode
 
+
+
 subroutine bndMiddleNodes(npoinl,npoint,nelem,nbnd,conn,mabnd)
 implicit none
   
@@ -213,3 +220,24 @@ implicit none
 
   enddo
 end subroutine bndMiddleNodes
+
+
+
+subroutine fillMidPoiVals(npl,npt,nele,conn,mat)
+use bsnqGlobVars
+implicit none
+
+  integer(kind=C_K1),intent(in)::npl,npt,nele
+  integer(kind=C_K1),intent(in)::conn(nele,6)
+  integer(kind=C_K1)::iele,n(6)
+
+  real(kind=C_K2),intent(inout)::mat(npt)
+
+  do iele=1,nele
+    n=conn(iele,1:6)    
+    mat(n(4))=0.5d0*(mat(n(1))+mat(n(2)))
+    mat(n(5))=0.5d0*(mat(n(2))+mat(n(3)))
+    mat(n(6))=0.5d0*(mat(n(3))+mat(n(1)))
+  enddo
+
+end subroutine fillMidPoiVals

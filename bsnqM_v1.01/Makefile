@@ -28,6 +28,7 @@ subroutines/matrixSet2.f90 \
 subroutines/femAnalyticalTri_v1.0.f90 \
 subroutines/bndIntegral.f90 \
 subroutines/bndCondition_v1.0.f90 \
+subroutines/solver_v1.0.f90
 #subroutines/miscOps_v1.0.f90
 	
 default: $(OBJ)
@@ -41,13 +42,19 @@ paralution_fortran.o: $(PARA_CONV)
 	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
 
 clean:
-	rm -rf *.vtk *.dat *.o *.mod Output vol.png
+	rm -rf *.vtk *.dat *.o *.mod Output 
+	mkdir Output
+
+clean2:
+	rm -rf *.dat *.mod Output 
 	mkdir Output
 
 rmout:
 	rm -rf Output
 	mkdir Output
 	
-
+run: clean2 default	
+	./bsnq rect2D
+	cat rect2D.rout
 
 

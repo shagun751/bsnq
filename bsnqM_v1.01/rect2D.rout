@@ -1,1 +1,70 @@
+ [MSG] sysRate =         1000000.0000
+ [MSG] meshRead Unit =       -129
+ [MSG] C_K1, C_K2 =          4         8
        Elements   Linear Nodes          Edges
+          10800           5611          16410
+            Bnd       BndTypes
+            420              3
+ [MSG] Nodes read done
+ [MSG] Elements read done
+ [MSG] Boundaries read done
+ [MSG] Depth read done
+ [MSG] Done meshRead 
+ 
+ [MSG] Middle points generation done
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]         5611       16410       22021       16410
+ [MSG] Boundary sides middle point done
+ [MSG] Node Connectivity Done
+ [MSG] VSR storage matrices done
+ [MSG] Done femInit
+ 
+ [MSG] setRun Unit =       -130
+ [MSG] Done setRun
+ 
+ 
+ [MSG] OutXML at          0.0000
+ 
+ [MSG] Done initMat
+ 
+ [MSG] Done matrixSet1
+ [MSG] Done bndIntegral1
+ [MSG] Done dirichletBC
+ [INF] Solve Lin       5611     38431
+ [INF] Solve Quad     44042   1000324
+ [MSG] Done CSRMatrices
+ [MSG] Done statMatrices
+ [TIM]          0.0886
+ 
+ ------Time :          1        0.020000------
+      |     W         1         0     0.0000E+00
+      |   Eta         1         0     0.0000E+00
+      |    PQ         1         0     0.0000E+00
+      | [SPD]         0.0431         0.0886       205.5317
+ 
+ ------Time :          2        0.040000------
+      |     W         1         0     0.0000E+00
+      |   Eta         1         0     0.0000E+00
+      |    PQ         1         0     0.0000E+00
+      | [SPD]         0.0389         0.0886       227.4906
+ 
+ ------Time :          3        0.060000------
+      |     W         1         0     0.0000E+00
+      |   Eta         1         0     0.0000E+00
+      |    PQ         1         0     0.0000E+00
+      | [SPD]         0.0388         0.0886       228.0646
+ 
+ ------Time :          4        0.080000------
+      |     W         1         0     0.0000E+00
+      |   Eta         1         0     0.0000E+00
+      |    PQ         1         0     0.0000E+00
+      | [SPD]         0.0386         0.0886       229.4945
+ 
+ ------Time :          5        0.100000------
+      |     W         1         0     0.0000E+00
+      |   Eta         1         0     0.0000E+00
+      |    PQ         1         0     0.0000E+00
+      | [SPD]         0.0389         0.0886       227.7713
+ 
+ [MSG] boussinesqQuad End
+ [TIM]          0.4893

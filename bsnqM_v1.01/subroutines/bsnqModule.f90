@@ -1,9 +1,20 @@
 module bsnqModule
 use bsnqGlobVars
+use airyWaveModule
 implicit none
+
+  interface
+    subroutine paralution_init(nthreads) BIND(C)
+      use, intrinsic :: ISO_C_BINDING, only : C_INT
+      integer(kind=C_INT), value, intent(in)  :: nthreads
+    end subroutine paralution_init
+
+    subroutine paralution_stop() BIND(C)
+    end subroutine paralution_stop        
+  end interface
   
   private
-  integer(kind=C_K1)::i,i1,i2,j,j1,j2,k,k1,k2
+  integer(kind=C_K1)::i,i1,i2,j,j1,j2,k,k1,k2,mf
   integer(kind=C_K1)::iel,n1,n2,n3,n4,n5,n6
   integer(kind=C_K1)::nq(6),nl(3)
   integer(kind=C_K1)::tmpi1,tmpi2,tmpi3,tmpi4,tmpi5
@@ -12,18 +23,7 @@ implicit none
 
   real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5,tmpr6
   character(len=C_KSTR)::bqtxt  
-  logical(kind=C_LG)::ex
-
-  
-  type, public :: waveType    
-    real(kind=C_K2)::T,d,H,L,k,w
-    real(kind=C_K2)::x0,y0
-    real(kind=C_K2)::thDeg,thRad,csth,snth      
-  end type waveType
-
-  interface waveType
-     procedure :: waveLenCalc
-  end interface waveType
+  logical(kind=C_LG)::ex  
 
   
   type, public :: bsnqCase
@@ -31,8 +31,8 @@ implicit none
     character(len=C_KSTR)::probname,resumeFile
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
-    integer(kind=C_K1)::nTSteps,maxIter,fileOut,resumeOut    
-    integer(kind=C_K1)::nnzl,nnzf
+    integer(kind=C_K1)::maxIter,fileOut,resumeOut    
+    integer(kind=C_K1)::nnzl,nnzf,tStep
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)
     integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
@@ -40,7 +40,7 @@ implicit none
     integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)        
     integer(kind=C_K1),allocatable::ivf(:),linkf(:)    
 
-    real(kind=C_K2)::dt,errLim,rTime
+    real(kind=C_K2)::dt,errLim,rTime,endTime
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
@@ -49,14 +49,16 @@ implicit none
     real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
     real(kind=C_K2),allocatable::wr(:),por(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)
+    real(kind=C_K2),allocatable::edt(:),pqdt(:)
     real(kind=C_K2),allocatable::massW(:),massE(:),mass1(:),mass2(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::gCx(:),gCy(:),gDMat(:)
+    real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
     real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
     real(kind=C_K2),allocatable::aFull(:)
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
+    real(kind=C_K2),allocatable::gRE(:),gRP(:),gRPQ(:)
 
 
     logical(kind=C_LG)::resume,presOn,absOn
@@ -76,176 +78,510 @@ implicit none
     procedure ::  setRun
     procedure ::  statMatrices
     procedure ::  dynaMatrices
-    procedure ::  destructR1
     procedure ::  CSRMatrices
+    procedure ::  destructR1    
+    procedure ::  outputXML
+    procedure ::  preInstructs
+    procedure ::  postInstructs
+    procedure ::  solveW
+    procedure ::  solveEta
+    procedure ::  solvePQ
     !procedure ::  destructor
 
   end type bsnqCase
 
 contains
 
-!!---------------------------waveLenCalc---------------------------!!
-type(waveType) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
-implicit none
 
-  !! WaveLen using dispersion relation from Airy wave-theory
-
-  integer(kind=C_K1)::iterMax
-  real(kind=C_K2)::l0,newl,oldl,x,errLim
-  real(kind=C_K2),intent(in)::inT,inD,inH,inX0,inY0,inThDeg
-
-
-  waveLenCalc%T=inT
-  waveLenCalc%d=inD
-  waveLenCalc%H=inH
-  waveLenCalc%x0=inX0
-  waveLenCalc%y0=inY0
-  waveLenCalc%thDeg=inThDeg
-  waveLenCalc%w=2d0*pi/waveLenCalc%T
-  waveLenCalc%thRad=waveLenCalc%thDeg*pi/180d0
-  waveLenCalc%csth=dcos(waveLenCalc%thRad)
-  waveLenCalc%snth=dsin(waveLenCalc%thRad)
-
-  iterMax=50000
-  errLim=1d-6
-  l0 = (grav/2d0/pi)*(waveLenCalc%T)**2
-  oldl = l0  
-  do i = 1,iterMax
-    newl = l0*dtanh(2d0*pi*(waveLenCalc%d)/oldl)
-    !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
-    x = abs(newl-oldl)
-    if (x.le.errLim) then
-      waveLenCalc%L = newl
-      exit
-    else
-      oldl = newl
-    end if
-  end do
-
-  if(i.ge.iterMax) then
-    write(*,*)
-    write(*,*)"[ERR] waveCalculator Error waveL",waveLenCalc%L
-    write(*,*)
-    waveLenCalc%L=-999
-    waveLenCalc%k=0d0
-    return
-  endif
-
-  waveLenCalc%k=2d0*pi/waveLenCalc%L
-
-end function waveLenCalc
-!!-------------------------End waveLenCalc-------------------------!!
-
-
-
-!!-----------------------------meshRead----------------------------!!
-  subroutine meshRead(b)
+!!-----------------------------setRun------------------------------!!
+  subroutine setRun(b)
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_k1)::mf
 
-    !Opening mesh file  
-    bqtxt=trim(b%probname)//'.plt'
+    !Input file open  
+    bqtxt=trim(b%probname)//'.inp'
     inquire(file=trim(bqtxt),exist=ex)
     if(ex) then
-      open(newunit=mf,file=trim(bqtxt))    
+      open(newunit=mf,file=trim(bqtxt))
     else
-      write(*,*)"[ERR] Missing mesh file"
+      write(9,*)"[ERR] Missing input file"
       stop
     endif
 
-    !!-------------------------Mesh Type 0--------------------!!
-    write(9,'(" [MSG] meshRead Unit = ",I10)')mf
-    write(9,'(" [MSG] C_K1, C_K2 = ",2I10)')C_K1,C_K2
-    read(mf,*,end=11,err=11)bqtxt
-    read(mf,*,end=11,err=11)b%nele,b%npl,b%nedg
-    read(mf,*,end=11,err=11)bqtxt
-    read(mf,*,end=11,err=11)b%nbnd,b%nbndtyp
-    write(9,'(3a15)')"Elements","Linear Nodes","Edges"
-    write(9,'(3i15)')b%nele,b%npl,b%nedg
-    write(9,'(2a15)')"Bnd","BndTypes"
-    write(9,'(2i15)')b%nbnd,b%nbndtyp
-
-    !Assumption regarding number of quad Nodes
-    b%npq=b%nedg
-    b%npt=b%npl+b%npq
-
-    !Nodes Read
-    allocate(b%cor(b%npt,2))
-    b%cor=-999  
-    read(mf,*,end=11,err=11)bqtxt
-    do i=1,b%npl
-      read(mf,*,end=11,err=11)b%cor(i,1),b%cor(i,2)
-    enddo
-    write(9,*)"[MSG] Nodes read done"
-    !Debug Comments
-    ! do i=1,npoinl
-    !   write(9,*)i,":",(coord(i,j),j=1,2),depth(i)
-    ! enddo
-
-    !Elements Read
-    allocate(b%conn(b%nele,6))
-    b%conn=0
-    read(mf,*,end=11,err=11)bqtxt
-    do i=1,b%nele
-      read(mf,*,end=11,err=11)b%conn(i,3),&
-        b%conn(i,1),b%conn(i,2)    
-    enddo
-    write(9,*)"[MSG] Elements read done"
-    !Debug Comments
-    ! do i=1,nelem
-    !   write(9,*)i,":",(conn(i,j),j=1,6)
-    ! enddo
-
-    !Boundaries Read
-    allocate(b%mabnd(b%nbnd,6))
-    b%mabnd=0
-    k=0;
-    do j=1,b%nbndtyp
-      read(mf,*,end=11,err=11)bqtxt
-      read(mf,*,end=11,err=11)tmpi1,tmpi2  
-      do i=k+1,k+tmpi2
-        read(mf,*,end=11,err=11)b%mabnd(i,1:3)
-        b%mabnd(i,4)=tmpi1      
-      enddo
-      k=k+tmpi2    
-    enddo
-    if(k.ne.b%nbnd) goto 14
-    write(9,*) "[MSG] Boundaries read done" 
-    ! ! Debug Comments 
-    ! do i=1,nbnd
-    !   write(9,*)i,":",(mabnd(i,j),j=1,6)
-    ! enddo
-
-    !Depth Read
-    allocate(b%dep(b%npt))
-    b%dep=-999
-    read(mf,*,end=11,err=11)bqtxt
-    do i=1,b%npl
-      read(mf,*,end=11,err=11)b%dep(i)
-    enddo
-    write(9,*) "[MSG] Depth read done"
-    !Debug Comments
-    ! do i=1,npoinl
-    !   write(9,*)i,depth(i)
-    ! enddo
+    write(9,'(" [MSG] setRun Unit = ",I10)')mf
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%resume
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%resumeFile  
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%dt     
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%endTime
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%errLim
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%maxIter
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)i
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr1
+    b%fileOut=int(tmpr1/b%dt,4)
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr1
+    b%resumeOut=int(tmpr1/b%dt,4)  
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%presOn      
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%nthrd
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpi1
+    if(tmpi1.gt.0) then
+      allocate(b%probe(0:tmpi1))
+      b%probe(0)=tmpi1
+      read(mf,*,end=81,err=81)b%probe(1:b%probe(0))
+    else
+      allocate(b%probe(0:1))
+      b%probe(0)=0
+    endif
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
+    ! waveType(T,d,H,X0,Y0,thDeg)
+    b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
+    write(*,*)b%wvIn%T,b%wvIn%L,b%wvIn%thRad
 
 
-    goto 12
-    !!-----------------------End Mesh Type 0------------------!!
-
-    11 write(9,*) "[ERR] Check mesh file format"
+    goto 82
+    81 write(9,*) "[ERR] Check input file format"
     stop
-    13 write(9,*) "[ERR] hex2dec error"
-    stop
-    14 write(9,*) "[ERR] Number of boundaries mismatch"
-    stop
-    12 close(mf)
-    write(9,*)"[MSG] Done meshRead "
+    82 close(mf)
+
+    write(9,*)"[MSG] Done setRun"
     write(9,*)
-  end subroutine meshRead
-!!---------------------------End meshRead--------------------------!!
+    
+  end subroutine setRun
+!!---------------------------End setRun----------------------------!!
+
+
+
+!!-----------------------------initMat-----------------------------!!
+  subroutine initMat(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    i=b%npl
+    j=b%npt
+    i1=b%ivl(0)
+    j1=b%ivq(0)
+
+    allocate(b%pt0(j),b%qt0(j),b%et0(i),b%tDt0(j))
+    allocate(b%pt1(j),b%qt1(j),b%et1(i),b%tDt1(j))
+    allocate(b%pr(j),b%qr(j),b%er(i),b%tDr(j))
+    allocate(b%wr(i),b%por(j))
+    allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
+
+    allocate(b%massW(i1*i),b%massE(i1*i))
+    allocate(b%mass1(j1*j),b%mass2(i1*i))    
+    allocate(b%gBs1(j1*j),b%gBs2(j1*j))
+    allocate(b%gBs3(j1*j),b%gBs4(j1*j))
+    allocate(b%gCxF(j1*i),b%gCyF(j1*i),b%gDMat(i1*i))
+    allocate(b%gBs5(i1*j),b%gBs6(i1*j))
+    allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
+    allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
+    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
+    allocate(b%aFull(b%ivf(0)*2*j))
+    allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
+    allocate(b%gRE(i),b%gRP(j),b%gRPQ(2*j))
+    allocate(b%edt(i),b%pqdt(2*j))
+
+    b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
+    b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
+    b%Sz(3)=i1*j ![6x3] ![ivl(0) * npt]
+    b%Sz(4)=j1*j ![6x6] ![ivq(0) * npt]
+    b%por=1d0
+
+    b%rTime=0d0
+    b%et0=0d0
+    b%pt0=0d0
+    b%qt0=0d0
+    b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+
+    call paralution_init(b%nthrd)    
+
+    call b%outputXML
+
+    write(9,*)"[MSG] Done initMat"
+    write(9,*)
+
+  end subroutine initMat
+!!---------------------------End initMat---------------------------!!
+
+
+
+!!---------------------------statMatrices--------------------------!!
+  subroutine statMatrices(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    call system_clock(b%sysC(5))
+    call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%Sz,b%ivl,b%ivq,&
+      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%mass1,b%mass2,&
+      b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCxF,b%gCyF,b%gDMat,&
+      b%gBs5,b%gBs6)
+    write(9,*)"[MSG] Done matrixSet1"
+
+    call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
+      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
+      b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+    write(9,*)"[MSG] Done bndIntegral1"
+
+    b%massW=b%mass2
+    b%massE=b%mass2
+    b%gBs1=b%gBs1+b%gFBs1+b%mass1
+    b%gBs2=b%gBs2+b%gFBs2
+    b%gBs3=b%gBs3+b%gFBs3
+    b%gBs4=b%gBs4+b%gFBs4+b%mass1
+
+    call dirichletBC(b%npl,b%npt,b%nbndp,b%bndP,b%bndPT,&
+      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%bndPN,b%gBs1,b%gBs2,&
+      b%gBs3,b%gBs4,b%massE)    
+    write(9,*)"[MSG] Done dirichletBC"
+
+    call b%CSRMatrices
+
+    call b%destructR1
+
+    call system_clock(b%sysC(6))
+    write(9,*)"[MSG] Done statMatrices"
+    write(9,'(" [TIM] ",F15.4)')1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+    write(9,*)
+
+  end subroutine statMatrices
+!!-------------------------End statMatrices------------------------!!
+
+
+
+!!---------------------------dynaMatrices--------------------------!!
+  subroutine dynaMatrices(b,tDr,ur,vr)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+    real(kind=C_K2),intent(in)::tDr(b%npt),ur(b%npt),vr(b%npt)
+
+    call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
+      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,tDr,&
+      ur,vr,b%gGx,b%gGy,b%gNAdv)
+
+    !write(9,*)"[MSG] Done dynaMatrices"
+    !write(9,*)
+
+  end subroutine dynaMatrices
+!!-------------------------End dynaMatrices------------------------!!
+
+
+
+!!----------------------------destructR1---------------------------!!
+  subroutine destructR1(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+    deallocate(b%gBs1,b%gBs2,b%gBs3,b%gBs4)
+    deallocate(b%p2e,b%p2p)
+    deallocate(b%aFull,b%ivf,b%linkf)
+    deallocate(b%massW,b%massE)
+
+  end subroutine destructR1
+!!--------------------------End destructR1-------------------------!!
+
+
+
+!!---------------------------preInstructs--------------------------!!
+  subroutine preInstructs(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    b%tStep=b%tStep+1
+    b%rTime=b%rTime+b%dt
+    write(9,'(" ------Time : ",I10," ",F15.6,"------")')&
+      b%tStep,b%rTime
+    call system_clock(b%sysC(3)) 
+
+    b%pt1=b%pt0
+    b%qt1=b%qt0
+    b%et1=b%et0
+    b%tDt1=b%tDt0
+
+  end subroutine preInstructs
+!!-------------------------End preInstructs------------------------!!
+
+
+
+!!--------------------------postInstructs--------------------------!!
+  subroutine postInstructs(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+
+    if(mod(b%tStep,b%fileOut).eq.0) then
+      call b%outputXML
+    endif
+
+    call system_clock(b%sysC(4))
+    tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate
+    tmpr2=1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+    write(9,301)"[SPD]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
+    write(9,*)
+    301 format('      |',a6,3F15.4)
+
+  end subroutine postInstructs
+!!------------------------End postInstructs------------------------!!
+
+
+
+!!------------------------------solveW-----------------------------!!
+  subroutine solveW(b,er)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    real(kind=C_K2),intent(in)::er(b%npl)
+
+    !b%gRE=0d0
+    do i=1,b%npl
+      k=(i-1)*b%ivl(0)
+      tmpr1=0d0
+      do j=1,b%ivl(i)
+        k2=k+j
+        i2=b%linkl(k2)
+        tmpr1=tmpr1 + (b%gDMat(k2)*er(i2))
+      enddo
+      b%gRE(i)=tmpr1
+    enddo
+
+    b%gRE=b%gRE/b%rowMaxW
+
+    call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gMW,b%gRE,b%wr,&
+      b%errLim,b%maxiter,i,tmpr1,j)
+    write(9,301)'W',j,i,tmpr1
+    301 format('      |',a6,i10,i10,e15.4)
+
+  end subroutine solveW
+!!----------------------------End solveW---------------------------!!
+
+
+
+!!-----------------------------solveEta----------------------------!!
+  subroutine solveEta(b,pr,qr,er)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
+    real(kind=C_K2),intent(in)::er(b%npl)
+
+    !b%gRE=0d0
+    do i=1,b%npl
+      k=(i-1)*b%ivq(0)
+      tmpr1=0d0
+      do j=1,b%ivq(i)
+        k2=k+j
+        i2=b%linkq(k2)
+        tmpr1=tmpr1 + (b%gCxF(k2)*pr(i2)) + (b%gCyF(k2)*qr(i2))
+      enddo
+      b%gRE(i)=tmpr1
+    enddo
+
+    b%gRE=b%gRE/b%rowMaxE
+
+    call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gME,b%gRE,b%edt,&
+      b%errLim,b%maxiter,i,tmpr1,j)
+    write(9,301)'Eta',j,i,tmpr1
+    301 format('      |',a6,i10,i10,e15.4)
+
+  end subroutine solveEta
+!!---------------------------End solveEta--------------------------!!
+
+
+
+!!-----------------------------solvePQ-----------------------------!!
+  subroutine solvePQ(b,pr,qr,pbpr,qbpr,er,wr)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
+    real(kind=C_K2),intent(in)::pbpr(b%npt),qbpr(b%npt)
+    real(kind=C_K2),intent(in)::er(b%npl),wr(b%npl)
+
+    b%gRPQ=0d0
+
+    do i=1,b%npt      
+      tmpr1=0d0
+      tmpr2=0d0
+      tmpr3=0d0
+      tmpr4=0d0
+      
+      ![6x3]
+      k=(i-1)*b%ivl(0)
+      do j=1,b%ivl(i) 
+        k2=k+j
+        i2=b%linkl(k2)        
+        
+        tmpr1=tmpr1 + (b%gGx(k2)*er(i2)) + (b%gBs5(k2)*wr(i2))
+
+        tmpr2=tmpr2 + (b%gGy(k2)*er(i2)) + (b%gBs6(k2)*wr(i2))
+      enddo
+
+      ![6x6]
+      k=(i-1)*b%ivq(0)
+      do j=1,b%ivq(i)
+        k2=k+j
+        i2=b%linkq(k2)        
+        
+        tmpr3=tmpr3 + (b%gNAdv(k2)*pbpr(i2))
+
+        tmpr4=tmpr4 + (b%gNAdv(k2)*qbpr(i2))
+      enddo
+
+      b%gRPQ(i)=b%gRPQ(i)+tmpr1+tmpr3
+      b%gRPQ(b%npt+i)=b%gRPQ(b%npt+i)+tmpr2+tmpr4
+    enddo
+
+    b%gRPQ=b%gRPQ/b%rowMaxPQ
+  
+    call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,b%gRPQ,&
+      b%pqdt,b%errLim,b%maxiter,i,tmpr1,j)
+    write(9,301)'PQ',j,i,tmpr1
+    301 format('      |',a6,i10,i10,e15.4)
+
+  end subroutine solvePQ
+!!---------------------------End solvePQ---------------------------!!
+
+
+
+!!----------------------------CSRMatrices--------------------------!!
+  subroutine CSRMatrices(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    ! Full Matrice A
+    do i=1,b%npt
+      k=(i-1)*b%ivf(0)
+      k2=(i-1)*b%ivq(0)
+      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs1(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs2(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivf(i)-1)=b%gBs2(k2+b%ivq(i))
+      b%aFull(k+b%ivf(i))=b%gBs1(k2+b%ivq(i))
+
+      k=(i+b%npt-1)*b%ivf(0)
+      k2=(i-1)*b%ivq(0)
+      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs3(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs4(k2+1:k2+b%ivq(i)-1)
+      b%aFull(k+b%ivf(i)-1)=b%gBs3(k2+b%ivq(i))
+      b%aFull(k+b%ivf(i))=b%gBs4(k2+b%ivq(i))
+    enddo
+
+    
+    ! Normalising matrices
+    b%rowMaxW=0d0
+    b%rowMaxE=0d0
+    b%rowMaxPQ=0d0
+    do i=1,b%npl
+      k=(i-1)*b%ivl(0)
+      b%rowMaxW(i)=b%massW(k+b%ivl(i))
+      b%rowMaxE(i)=b%massE(k+b%ivl(i))
+      b%massW(k+1:k+b%ivl(i))=b%massW(k+1:k+b%ivl(i))/b%rowMaxW(i)
+      b%massE(k+1:k+b%ivl(i))=b%massE(k+1:k+b%ivl(i))/b%rowMaxE(i)
+      if((b%rowMaxW(i).eq.0d0).or.(b%rowMaxE(i).eq.0d0))then
+        write(9,'(" [ERR] Check rowMaxE or rowMaxW, node",I10)')i
+        write(9,'(" [---] rowMaxW",E15.6)')b%rowMaxW(i)
+        write(9,'(" [---] rowMaxE",E15.6)')b%rowMaxE(i)
+        stop
+      endif
+    enddo
+    j1=2*b%npt
+    j2=b%ivf(0)
+    do i=1,j1
+      k=(i-1)*j2
+      k2=b%ivf(i)
+      b%rowMaxPQ(i)=b%aFull(k+k2)
+      b%aFull(k+1:k+k2)=b%aFull(k+1:k+k2)/b%rowMaxPQ(i)
+      if(b%rowMaxPQ(i).eq.0d0)then
+        write(9,'(" [ERR] Check rowMaxPQ, node, npt",2I10)')i,b%npt
+        write(9,'(" [---] rowMaxPQ",E15.6)')b%rowMaxPQ(i)
+        stop
+      endif
+    enddo
+
+    
+    ! Paralution CSR linear nodes
+    b%nnzl=0
+    do i=1,b%npl
+      b%nnzl=b%nnzl+b%ivl(i)
+    enddo
+
+    allocate(b%ivsl(b%npl+1),b%jvsl(b%nnzl))
+    allocate(b%gMW(b%nnzl),b%gME(b%nnzl))
+
+    i2=0
+    b%ivsl(1)=1
+    do i=1,b%npl
+      b%ivsl(i+1)=b%ivsl(i)+b%ivl(i)
+      k=(i-1)*b%ivl(0)
+      do j=1,b%ivl(i)
+        k2=b%linkl(k+j)
+        i2=i2+1
+        b%jvsl(i2)=k2
+        b%gMW(i2)=b%massW(k+j)
+        b%gME(i2)=b%massE(k+j)
+      enddo
+    enddo
+    if((i2.ne.b%nnzl).or.(b%ivsl(b%npl+1).ne.b%nnzl+1)) then
+      write(9,*)'[ERR] CSR linear nnz not correct'
+      stop
+    endif
+
+
+    ! Paralution CSR quadratic nodes
+    b%nnzf=0
+    do i=1,2*b%npt
+      b%nnzf=b%nnzf+b%ivf(i)
+    enddo
+
+    allocate(b%ivsf(2*b%npt+1),b%jvsf(b%nnzf))
+    allocate(b%gMPQ(b%nnzf))
+
+    i2=0
+    b%ivsf(1)=1
+    do i=1,2*b%npt
+      b%ivsf(i+1)=b%ivsf(i)+b%ivf(i)
+      k=(i-1)*b%ivf(0)
+      do j=1,b%ivf(i)
+        k2=b%linkf(k+j)
+        i2=i2+1
+        b%jvsf(i2)=k2
+        b%gMPQ(i2)=b%aFull(k+j)
+      enddo
+    enddo
+    if((i2.ne.b%nnzf).or.(b%ivsf(2*b%npt+1).ne.b%nnzf+1)) then
+      write(9,*)'[ERR] CSR quadratic nnz not correct'
+      stop
+    endif
+
+
+    write(9,'(" [INF] Solve Lin ",2I10)')b%npl,b%nnzl
+    write(9,'(" [INF] Solve Quad",2I10)')2*b%npt,b%nnzf
+    write(9,*)"[MSG] Done CSRMatrices"
+
+  end subroutine CSRMatrices
+!!--------------------------End CSRMatrices------------------------!!
 
 
 
@@ -353,145 +689,144 @@ end function waveLenCalc
   !!-----------------End Generate Middle Points---------------!!
 
   !!----------------------Node Connectivity-------------------!!
-  call nodeConnVSR(b%npt,b%nele,b%maxNePoi,b%maxNeEle,&
-    b%conn,b%p2p,b%p2e,b%npoisur)
-  do i=1,b%npt
-    call mergeSort(b%maxNePoi,b%npoisur(i,1),b%p2p(i,:))
-  enddo
-
-  !Finding number of linear element nbhs
-  do i=1,b%npt
-    do j=1,b%npoisur(i,1)
-      if(b%p2p(i,j).gt.b%npl) exit
-      b%npoisur(i,3)=b%npoisur(i,3)+1
+    call nodeConnVSR(b%npt,b%nele,b%maxNePoi,b%maxNeEle,&
+      b%conn,b%p2p,b%p2e,b%npoisur)
+    do i=1,b%npt
+      call mergeSort(b%maxNePoi,b%npoisur(i,1),b%p2p(i,:))
     enddo
-  enddo
 
-  !Debug Comments
-  ! do i=1,npoint
-  !   write(9,*) i,":",(poi2poi(i,j),j=1,maxNePoi)
-  ! enddo
-  ! do i=1,npoint
-  !   write(9,*) i,":",(poi2ele(i,j),j=1,maxNeEle)
-  ! enddo
-  ! do i=1,npoint
-  !   write(9,*) i,":",(npoisur(i,j),j=1,3)
-  ! enddo
-  write(9,*)"[MSG] Node Connectivity Done"
+    !Finding number of linear element nbhs
+    do i=1,b%npt
+      do j=1,b%npoisur(i,1)
+        if(b%p2p(i,j).gt.b%npl) exit
+        b%npoisur(i,3)=b%npoisur(i,3)+1
+      enddo
+    enddo
+
+    !Debug Comments
+    ! do i=1,npoint
+    !   write(9,*) i,":",(poi2poi(i,j),j=1,maxNePoi)
+    ! enddo
+    ! do i=1,npoint
+    !   write(9,*) i,":",(poi2ele(i,j),j=1,maxNeEle)
+    ! enddo
+    ! do i=1,npoint
+    !   write(9,*) i,":",(npoisur(i,j),j=1,3)
+    ! enddo
+    write(9,*)"[MSG] Node Connectivity Done"
   !!--------------------End Node Connectivity-----------------!!
 
   !!--------------------------VSR Matrices--------------------!!
-  !Storage allocations
-  allocate(b%ivl(0:b%npt),b%ivq(0:b%npt))  
-  b%ivl(0)=maxval(b%npoisur(:,3))+1
-  b%ivq(0)=maxval(b%npoisur(:,1))+1
-  allocate(b%linkl(b%ivl(0)*b%npt),b%linkq(b%ivq(0)*b%npt))
-  b%linkl=0
-  b%linkq=0
+    !Storage allocations
+    allocate(b%ivl(0:b%npt),b%ivq(0:b%npt))  
+    b%ivl(0)=maxval(b%npoisur(:,3))+1
+    b%ivq(0)=maxval(b%npoisur(:,1))+1
+    allocate(b%linkl(b%ivl(0)*b%npt),b%linkq(b%ivq(0)*b%npt))
+    b%linkl=0
+    b%linkq=0
 
-  !IV matrix linear and quadratic
-  do i=1,b%npl
-    b%ivl(i)=b%npoisur(i,3)+1
-  enddo
-  do i=b%npl+1,b%npt
-    b%ivl(i)=b%npoisur(i,3)
-  enddo
-  ! write(9,*) ivl
-
-  do i=1,b%npt
-    b%ivq(i)=b%npoisur(i,1)+1
-  enddo
-  ! write(9,*) ivq
-
-  !link matrix linear
-  do i=1,b%npl
-    k=(i-1)*b%ivl(0)
-    do j=1,b%npoisur(i,3)
-      b%linkl(k+j)=b%p2p(i,j)
+    !IV matrix linear and quadratic
+    do i=1,b%npl
+      b%ivl(i)=b%npoisur(i,3)+1
     enddo
-    b%linkl(k+b%ivl(i))=i
-  enddo
-  do i=b%npl+1,b%npt
-    k=(i-1)*b%ivl(0)
-    do j=1,b%npoisur(i,3)
-      b%linkl(k+j)=b%p2p(i,j)
-    enddo    
-  enddo
-  ! do i=1,npoint
-  !   k=(i-1)*ivl(0)
-  !   write(9,*) i,":",(linkl(k+j),j=1,ivl(i))
-  ! enddo
-
-  !link matrix quadratic
-  do i=1,b%npt
-    k=(i-1)*b%ivq(0)
-    do j=1,b%npoisur(i,1)
-      b%linkq(k+j)=b%p2p(i,j)
+    do i=b%npl+1,b%npt
+      b%ivl(i)=b%npoisur(i,3)
     enddo
-    b%linkq(k+b%ivq(i))=i
-  enddo
-  ! write(9,*)linkq
+    ! write(9,*) ivl
 
-  ! Full Matrices ivFull and linkf
-  allocate(b%ivf(0:2*b%npt))
-  b%ivf(0)=2*b%ivq(0)
-  allocate(b%linkf(b%ivf(0)*2*b%npt))
-  do i=1,b%npt
-    b%ivf(i)=2*b%ivq(i)
-    b%ivf(b%npt+i)=2*b%ivq(i)
-  enddo
-  
-  do i=1,b%npt
-    k=(i-1)*b%ivf(0)
-    b%linkf(k+1:k+b%npoisur(i,1))=b%p2p(i,1:b%npoisur(i,1))
-    b%linkf(k+b%npoisur(i,1)+1:k+(2*b%npoisur(i,1)))=b%npt &
-      + b%p2p(i,1:b%npoisur(i,1))
-    b%linkf(k+b%ivf(i)-1)=b%npt+i
-    b%linkf(k+b%ivf(i))=i
+    do i=1,b%npt
+      b%ivq(i)=b%npoisur(i,1)+1
+    enddo
+    ! write(9,*) ivq
 
-    k=(i+b%npt-1)*b%ivf(0)
-    b%linkf(k+1:k+b%npoisur(i,1))=b%p2p(i,1:b%npoisur(i,1))
-    b%linkf(k+b%npoisur(i,1)+1:k+(2*b%npoisur(i,1)))=b%npt &
-      + b%p2p(i,1:b%npoisur(i,1))
-    b%linkf(k+b%ivf(i)-1)=i
-    b%linkf(k+b%ivf(i))=b%npt+i
-  enddo
+    !link matrix linear
+    do i=1,b%npl
+      k=(i-1)*b%ivl(0)
+      do j=1,b%npoisur(i,3)
+        b%linkl(k+j)=b%p2p(i,j)
+      enddo
+      b%linkl(k+b%ivl(i))=i
+    enddo
+    do i=b%npl+1,b%npt
+      k=(i-1)*b%ivl(0)
+      do j=1,b%npoisur(i,3)
+        b%linkl(k+j)=b%p2p(i,j)
+      enddo    
+    enddo
+    ! do i=1,npoint
+    !   k=(i-1)*ivl(0)
+    !   write(9,*) i,":",(linkl(k+j),j=1,ivl(i))
+    ! enddo
 
-  write(9,*)"[MSG] VSR storage matrices done"
+    !link matrix quadratic
+    do i=1,b%npt
+      k=(i-1)*b%ivq(0)
+      do j=1,b%npoisur(i,1)
+        b%linkq(k+j)=b%p2p(i,j)
+      enddo
+      b%linkq(k+b%ivq(i))=i
+    enddo
+    ! write(9,*)linkq
+
+    ! Full Matrices ivFull and linkf
+    allocate(b%ivf(0:2*b%npt))
+    b%ivf(0)=2*b%ivq(0)
+    allocate(b%linkf(b%ivf(0)*2*b%npt))
+    do i=1,b%npt
+      b%ivf(i)=2*b%ivq(i)
+      b%ivf(b%npt+i)=2*b%ivq(i)
+    enddo
+    
+    do i=1,b%npt
+      k=(i-1)*b%ivf(0)
+      b%linkf(k+1:k+b%npoisur(i,1))=b%p2p(i,1:b%npoisur(i,1))
+      b%linkf(k+b%npoisur(i,1)+1:k+(2*b%npoisur(i,1)))=b%npt &
+        + b%p2p(i,1:b%npoisur(i,1))
+      b%linkf(k+b%ivf(i)-1)=b%npt+i
+      b%linkf(k+b%ivf(i))=i
+
+      k=(i+b%npt-1)*b%ivf(0)
+      b%linkf(k+1:k+b%npoisur(i,1))=b%p2p(i,1:b%npoisur(i,1))
+      b%linkf(k+b%npoisur(i,1)+1:k+(2*b%npoisur(i,1)))=b%npt &
+        + b%p2p(i,1:b%npoisur(i,1))
+      b%linkf(k+b%ivf(i)-1)=i
+      b%linkf(k+b%ivf(i))=b%npt+i
+    enddo
+
+    write(9,*)"[MSG] VSR storage matrices done"
   !!-----------------------End VSR Matrices-------------------!!
 
   !!---------------------Jacobian and Normals-----------------!!
-  ! ShapeFnc Gauss-points JacobianQuad
-  allocate(b%invJ(b%nele,5),b%bndS(b%nbnd,3))
-  call jacbInvLin(b%npt,b%nele,b%conn,b%cor,b%invJ)      
-  ! Priniting area using linear and quad jacb
-  ! do iel=1,nelem
-  !   tmpr1=invJ(iel,5)/2d0
-  !   tmpr2=0d0
-  !   do i=1,nGP
-  !     tmpr2=tmpr2+gpW(i)*jacb(iel)%D(i)
-  !   enddo
-  !   !if(abs(tmpr2-tmpr1).lt.1e-10)cycle
-  !   write(*,'(i10,3f15.8)')iel,tmpr1,tmpr2,abs(tmpr2-tmpr1)    
-  ! enddo  
-  ! stop
+    allocate(b%invJ(b%nele,5),b%bndS(b%nbnd,3))
+    call jacbInvLin(b%npt,b%nele,b%conn,b%cor,b%invJ)      
+    ! Priniting area using linear and quad jacb
+    ! do iel=1,nelem
+    !   tmpr1=invJ(iel,5)/2d0
+    !   tmpr2=0d0
+    !   do i=1,nGP
+    !     tmpr2=tmpr2+gpW(i)*jacb(iel)%D(i)
+    !   enddo
+    !   !if(abs(tmpr2-tmpr1).lt.1e-10)cycle
+    !   write(*,'(i10,3f15.8)')iel,tmpr1,tmpr2,abs(tmpr2-tmpr1)    
+    ! enddo  
+    ! stop
 
-  ! Boundary side normals
-  call bndSideInfo(b%npl,b%npt,b%nele,b%nbnd,b%cor,b%mabnd,&
-    b%bndS)
-  ! do i=1,nbnd
-  !   write(9,*)i,":",bndSide(i,:),mabnd(i,1:5)
-  ! enddo  
+    ! Boundary side normals
+    call bndSideInfo(b%npl,b%npt,b%nele,b%nbnd,b%cor,b%mabnd,&
+      b%bndS)
+    ! do i=1,nbnd
+    !   write(9,*)i,":",bndSide(i,:),mabnd(i,1:5)
+    ! enddo  
 
-  !Boundary Node Normal
-  allocate(b%bndPN(b%npt,2))
-  call bndNodeNormal(b%npl,b%npt,b%nele,b%nbnd,b%cor,b%mabnd,&
-    b%bndS,b%bndPN)
-  ! do i=1,npoint
-  !   write(9,*)i,":",bndNormal(i,1),bndNormal(i,2)
-  ! enddo
-  write(9,*)"[MSG] Done femInit"
-  write(9,*)
+    !Boundary Node Normal
+    allocate(b%bndPN(b%npt,2))
+    call bndNodeNormal(b%npl,b%npt,b%nele,b%nbnd,b%cor,b%mabnd,&
+      b%bndS,b%bndPN)
+    ! do i=1,npoint
+    !   write(9,*)i,":",bndNormal(i,1),bndNormal(i,2)
+    ! enddo
+    write(9,*)"[MSG] Done femInit"
+    write(9,*)
   !!----------------End Jacobian and Normals------------------!!
 
   end subroutine femInit
@@ -499,313 +834,204 @@ end function waveLenCalc
 
 
 
-!!-----------------------------setRun------------------------------!!
-  subroutine setRun(b)
+!!-----------------------------meshRead----------------------------!!
+  subroutine meshRead(b)
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::mf
 
-    !Input file open  
-    bqtxt=trim(b%probname)//'.inp'
+    call system_clock(b%sysC(9),b%sysC(10))
+    b%sysRate=real(b%sysC(10),C_K2)
+    write(9,'(" [MSG] sysRate = ",F20.4)')b%sysRate    
+
+    !Opening mesh file  
+    bqtxt=trim(b%probname)//'.plt'
     inquire(file=trim(bqtxt),exist=ex)
     if(ex) then
-      open(newunit=mf,file=trim(bqtxt))
+      open(newunit=mf,file=trim(bqtxt))    
     else
-      write(9,*)"[ERR] Missing input file"
+      write(*,*)"[ERR] Missing mesh file"
       stop
     endif
 
-    write(9,'(" [MSG] setRun Unit = ",I10)')mf
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%resume
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%resumeFile  
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%dt     
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%nTSteps  
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%errLim
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%maxIter
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)i
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr1
-    b%fileOut=int(tmpr1/b%dt,4)
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr1
-    b%resumeOut=int(tmpr1/b%dt,4)  
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%presOn      
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)b%nthrd
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpi1
-    if(tmpi1.gt.0) then
-      allocate(b%probe(0:tmpi1))
-      b%probe(0)=tmpi1
-      read(mf,*,end=81,err=81)b%probe(1:b%probe(0))
-    else
-      allocate(b%probe(0:1))
-      b%probe(0)=0
-    endif
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
-    ! waveType(T,d,H,X0,Y0,thDeg)
-    b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
-    write(*,*)b%wvIn%T,b%wvIn%L,b%wvIn%thRad
+    !!-------------------------Mesh Type 0--------------------!!
+    write(9,'(" [MSG] meshRead Unit = ",I10)')mf
+    write(9,'(" [MSG] C_K1, C_K2 = ",2I10)')C_K1,C_K2
+    read(mf,*,end=11,err=11)bqtxt
+    read(mf,*,end=11,err=11)b%nele,b%npl,b%nedg
+    read(mf,*,end=11,err=11)bqtxt
+    read(mf,*,end=11,err=11)b%nbnd,b%nbndtyp
+    write(9,'(3a15)')"Elements","Linear Nodes","Edges"
+    write(9,'(3i15)')b%nele,b%npl,b%nedg
+    write(9,'(2a15)')"Bnd","BndTypes"
+    write(9,'(2i15)')b%nbnd,b%nbndtyp
+
+    !Assumption regarding number of quad Nodes
+    b%npq=b%nedg
+    b%npt=b%npl+b%npq
+
+    !Nodes Read
+    allocate(b%cor(b%npt,2))
+    b%cor=-999  
+    read(mf,*,end=11,err=11)bqtxt
+    do i=1,b%npl
+      read(mf,*,end=11,err=11)b%cor(i,1),b%cor(i,2)
+    enddo
+    write(9,*)"[MSG] Nodes read done"
+    !Debug Comments
+    ! do i=1,npoinl
+    !   write(9,*)i,":",(coord(i,j),j=1,2),depth(i)
+    ! enddo
+
+    !Elements Read
+    allocate(b%conn(b%nele,6))
+    b%conn=0
+    read(mf,*,end=11,err=11)bqtxt
+    do i=1,b%nele
+      read(mf,*,end=11,err=11)b%conn(i,3),&
+        b%conn(i,1),b%conn(i,2)    
+    enddo
+    write(9,*)"[MSG] Elements read done"
+    !Debug Comments
+    ! do i=1,nelem
+    !   write(9,*)i,":",(conn(i,j),j=1,6)
+    ! enddo
+
+    !Boundaries Read
+    allocate(b%mabnd(b%nbnd,6))
+    b%mabnd=0
+    k=0;
+    do j=1,b%nbndtyp
+      read(mf,*,end=11,err=11)bqtxt
+      read(mf,*,end=11,err=11)tmpi1,tmpi2  
+      do i=k+1,k+tmpi2
+        read(mf,*,end=11,err=11)b%mabnd(i,1:3)
+        b%mabnd(i,4)=tmpi1      
+      enddo
+      k=k+tmpi2    
+    enddo
+    if(k.ne.b%nbnd) goto 14
+    write(9,*) "[MSG] Boundaries read done" 
+    ! ! Debug Comments 
+    ! do i=1,nbnd
+    !   write(9,*)i,":",(mabnd(i,j),j=1,6)
+    ! enddo
+
+    !Depth Read
+    allocate(b%dep(b%npt))
+    b%dep=-999
+    read(mf,*,end=11,err=11)bqtxt
+    do i=1,b%npl
+      read(mf,*,end=11,err=11)b%dep(i)
+    enddo
+    write(9,*) "[MSG] Depth read done"
+    !Debug Comments
+    ! do i=1,npoinl
+    !   write(9,*)i,depth(i)
+    ! enddo
 
 
-    goto 82
-    81 write(9,*) "[ERR] Check input file format"
+    goto 12
+    !!-----------------------End Mesh Type 0------------------!!
+
+    11 write(9,*) "[ERR] Check mesh file format"
     stop
-    82 close(mf)
-
-    write(9,*)"[MSG] Done setRun"
+    13 write(9,*) "[ERR] hex2dec error"
+    stop
+    14 write(9,*) "[ERR] Number of boundaries mismatch"
+    stop
+    12 close(mf)
+    write(9,*)"[MSG] Done meshRead "
     write(9,*)
+  end subroutine meshRead
+!!---------------------------End meshRead--------------------------!!
+
+
+
+!!----------------------------outputXML----------------------------!!
+  subroutine outputXML(b)
+  implicit none
+
+    class(bsnqCase),intent(in)::b    
+
+    write(bqtxt,'(I15)')int(b%rTime*1000)
+    bqtxt=adjustl(bqtxt)
+    bqtxt="Output/"//trim(b%probname)//"_"//trim(bqtxt)//".vtu"
+    open(newunit=mf,file=trim(bqtxt))
+
+    write(mf,'(a)')'<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'
+    write(mf,'(T3,a)')'<UnstructuredGrid>'
+    write(mf,'(T5,a,i10,a,i10,a)')'<Piece NumberOfPoints="',b%npl,'" NumberOfCells="',b%nele,'">'
+
+    ! PointData
+    write(mf,'(T5,a)')'<PointData Scalars="eta" Vectors="vel">'
     
-  end subroutine setRun
-!!---------------------------End setRun----------------------------!!
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="eta" format="ascii">'
+    write(mf,*)b%et0
+    write(mf,'(T7,a)')'</DataArray>'
 
+    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
+    ! write(mf,*)etaMax-etaMin
+    ! write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="depth" format="ascii">'
+    write(mf,*)-b%dep(1:b%npl)
+    write(mf,'(T7,a)')'</DataArray>'
 
-!!-----------------------------initMat-----------------------------!!
-  subroutine initMat(b)
-  implicit none
+    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="porH" format="ascii">'
+    ! write(mf,*)porH-depth(1:npoinl)
+    ! write(mf,'(T7,a)')'</DataArray>'
 
-    class(bsnqCase),intent(inout)::b
-
-    i=b%npl
-    j=b%npt
-    i1=b%ivl(0)
-    j1=b%ivq(0)
-
-    allocate(b%pt0(j),b%qt0(j),b%et0(i),b%tDt0(j))
-    allocate(b%pt1(j),b%qt1(j),b%et1(i),b%tDt1(j))
-    allocate(b%pr(j),b%qr(j),b%er(i),b%tDr(j))
-    allocate(b%wr(i),b%por(j))
-    allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
-
-    allocate(b%massW(i1*i),b%massE(i1*i))
-    allocate(b%mass1(j1*j),b%mass2(i1*i))    
-    allocate(b%gBs1(j1*j),b%gBs2(j1*j))
-    allocate(b%gBs3(j1*j),b%gBs4(j1*j))
-    allocate(b%gCx(j1*i),b%gCy(j1*i),b%gDMat(i1*i))
-    allocate(b%gBs5(i1*j),b%gBs6(i1*j))
-    allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
-    allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
-    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
-    allocate(b%aFull(b%ivf(0)*2*j))
-    allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
-
-    b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
-    b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
-    b%Sz(3)=i1*j ![6x3] ![ivl(0) * npt]
-    b%Sz(4)=j1*j ![6x6] ![ivq(0) * npt]
-    b%por=1d0
-
-    b%rTime=0d0
-    b%et0=0d0
-    b%pt0=0d0
-    b%qt0=0d0
-
-    call system_clock(b%sysC(1),b%sysC(2))
-    b%sysRate=real(b%sysC(2),C_K2)
-
-    write(9,*)"[MSG] Done initMat"
-    write(9,*)
-
-  end subroutine initMat
-!!---------------------------End initMat---------------------------!!
-
-
-
-!!---------------------------statMatrices--------------------------!!
-  subroutine statMatrices(b)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b    
-
-    call system_clock(b%sysC(5))
-    call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%Sz,b%ivl,b%ivq,&
-      b%linkl,b%linkq,b%invJ,b%dep,b%por,b%mass1,b%mass2,&
-      b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCx,b%gCy,b%gDMat,&
-      b%gBs5,b%gBs6)
-    write(9,*)"[MSG] Done matrixSet1"
-
-    call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
-      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
-      b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
-    write(9,*)"[MSG] Done bndIntegral1"
-
-    b%massW=b%mass2
-    b%massE=b%mass2
-    b%gBs1=b%gBs1+b%gFBs1+b%mass1
-    b%gBs2=b%gBs2+b%gFBs2
-    b%gBs3=b%gBs3+b%gFBs3
-    b%gBs4=b%gBs4+b%gFBs4+b%mass1
-
-    call dirichletBC(b%npl,b%npt,b%nbndp,b%bndP,b%bndPT,&
-      b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%bndPN,b%gBs1,b%gBs2,&
-      b%gBs3,b%gBs4,b%massE)    
-    write(9,*)"[MSG] Done dirichletBC"
-
-    call b%CSRMatrices
-
-    call b%destructR1
-
-    call system_clock(b%sysC(6))
-    write(9,*)"[MSG] Done statMatrices"
-    write(9,'(" [TIM] ",F15.4)')1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
-    write(9,*)
-
-  end subroutine statMatrices
-!!-------------------------End statMatrices------------------------!!
-
-
-
-!!---------------------------dynaMatrices--------------------------!!
-  subroutine dynaMatrices(b)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b    
-
-    call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
-      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,b%tDr,&
-      b%ur,b%vr,b%gGx,b%gGy,b%gNAdv)
-
-    write(9,*)"[MSG] Done dynaMatrices"
-    write(9,*)
-
-  end subroutine dynaMatrices
-!!-------------------------End dynaMatrices------------------------!!
-
-
-
-!!----------------------------CSRMatrices--------------------------!!
-  subroutine CSRMatrices(b)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b    
-
-    ! Full Matrice A
-    do i=1,b%npt
-      k=(i-1)*b%ivf(0)
-      k2=(i-1)*b%ivq(0)
-      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs1(k2+1:k2+b%ivq(i)-1)
-      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs2(k2+1:k2+b%ivq(i)-1)
-      b%aFull(k+b%ivf(i)-1)=b%gBs2(k2+b%ivq(i))
-      b%aFull(k+b%ivf(i))=b%gBs1(k2+b%ivq(i))
-
-      k=(i+b%npt-1)*b%ivf(0)
-      k2=(i-1)*b%ivq(0)
-      b%aFull(k+1:k+b%ivq(i)-1)=b%gBs3(k2+1:k2+b%ivq(i)-1)
-      b%aFull(k+b%ivq(i):k+b%ivf(i)-2)=b%gBs4(k2+1:k2+b%ivq(i)-1)
-      b%aFull(k+b%ivf(i)-1)=b%gBs3(k2+b%ivq(i))
-      b%aFull(k+b%ivf(i))=b%gBs4(k2+b%ivq(i))
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
+    do i=1,b%npl
+      write(mf,*)b%pt0(i),b%qt0(i),0
     enddo
-
+    write(mf,'(T7,a)')'</DataArray>'
     
-    ! Normalising matrices
-    b%rowMaxW=0d0
-    b%rowMaxE=0d0
-    b%rowMaxPQ=0d0
+    write(mf,'(T5,a)')'</PointData>'
+
+
+    ! CellData
+    write(mf,'(T5,a)')'<CellData>'
+    write(mf,'(T5,a)')'</CellData>'
+
+
+    ! Mesh
+    write(mf,'(T5,a)')'<Points>'
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="Points" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      k=(i-1)*b%ivl(0)
-      b%rowMaxW(i)=b%massW(k+b%ivl(i))
-      b%rowMaxE(i)=b%massE(k+b%ivl(i))
-      b%massW(k+1:k+b%ivl(i))=b%massW(k+1:k+b%ivl(i))/b%rowMaxW(i)
-      b%massE(k+1:k+b%ivl(i))=b%massE(k+1:k+b%ivl(i))/b%rowMaxE(i)
+      write(mf,*)b%cor(i,:),0
     enddo
-    j1=2*b%npt
-    j2=b%ivf(0)
-    do i=1,j1
-      k=(i-1)*j2
-      k2=b%ivf(i)
-      b%rowMaxPQ(i)=b%aFull(k+k2)
-      b%aFull(k+1:k+k2)=b%aFull(k+1:k+k2)/b%rowMaxPQ(i)
+    write(mf,'(T7,a)')'</DataArray>'
+    write(mf,'(T5,a)')'</Points>'
+
+    write(mf,'(T5,a)')'<Cells>'
+    write(mf,'(T7,a)')'<DataArray type="Int32" Name="connectivity" format="ascii">'  
+    do i=1,b%nele
+      write(mf,*)b%conn(i,1:3)-1
     enddo
-
-    
-    ! Paralution CSR linear nodes
-    b%nnzl=0
-    do i=1,b%npl
-      b%nnzl=b%nnzl+b%ivl(i)
+    write(mf,'(T7,a)')'</DataArray>'
+    write(mf,'(T7,a)')'<DataArray type="Int32" Name="offsets" format="ascii">'  
+    do i=1,b%nele
+      write(mf,*)3*i
     enddo
-
-    allocate(b%ivsl(b%npl+1),b%jvsl(b%nnzl))
-    allocate(b%gMW(b%nnzl),b%gME(b%nnzl))
-
-    i2=0
-    b%ivsl(1)=1
-    do i=1,b%npl
-      b%ivsl(i+1)=b%ivsl(i)+b%ivl(i)
-      k=(i-1)*b%ivl(0)
-      do j=1,b%ivl(i)
-        k2=b%linkl(k+j)
-        i2=i2+1
-        b%jvsl(i2)=k2
-        b%gMW(i2)=b%massW(k+j)
-        b%gME(i2)=b%massE(k+j)
-      enddo
+    write(mf,'(T7,a)')'</DataArray>'
+    write(mf,'(T7,a)')'<DataArray type="UInt8" Name="types" format="ascii">'  
+    do i=1,b%nele
+      write(mf,*)5
     enddo
-    if((i2.ne.b%nnzl).or.(b%ivsl(b%npl+1).ne.b%nnzl+1)) then
-      write(9,*)'[ERR] CSR linear nnz not correct'
-      stop
-    endif
+    write(mf,'(T7,a)')'</DataArray>'
+    write(mf,'(T5,a)')'</Cells>'
 
+    write(mf,'(T5,a)')'</Piece>'
+    write(mf,'(T3,a)')'</UnstructuredGrid>'
+    write(mf,'(a)')'</VTKFile>'
+    close(mf)
 
-    ! Paralution CSR quadratic nodes
-    b%nnzf=0
-    do i=1,2*b%npt
-      b%nnzf=b%nnzf+b%ivf(i)
-    enddo
+    write(9,*)
+    write(9,'(" [MSG] OutXML at ",F15.4)')b%rTime
+    write(9,*)
 
-    allocate(b%ivsf(2*b%npt+1),b%jvsf(b%nnzf))
-    allocate(b%gMPQ(b%nnzf))
-
-    i2=0
-    b%ivsf(1)=1
-    do i=1,2*b%npt
-      b%ivsf(i+1)=b%ivsf(i)+b%ivf(i)
-      k=(i-1)*b%ivf(0)
-      do j=1,b%ivf(i)
-        k2=b%linkf(k+j)
-        i2=i2+1
-        b%jvsf(i2)=k2
-        b%gMPQ(i2)=b%aFull(k+j)
-      enddo
-    enddo
-    if((i2.ne.b%nnzf).or.(b%ivsf(2*b%npt+1).ne.b%nnzf+1)) then
-      write(9,*)'[ERR] CSR quadratic nnz not correct'
-      stop
-    endif
-
-
-    write(9,'(" [INF] Solve Lin ",2I10)')b%npl,b%nnzl
-    write(9,'(" [INF] Solve Quad",2I10)')2*b%npt,b%nnzf
-    write(9,*)"[MSG] Done CSRMatrices"
-
-  end subroutine CSRMatrices
-!!--------------------------End CSRMatrices------------------------!!
-
-
-
-!!----------------------------destructR1---------------------------!!
-  subroutine destructR1(b)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b    
-
-    deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
-    deallocate(b%gBs1,b%gBs2,b%gBs3,b%gBs4)
-    deallocate(b%p2e,b%p2p)
-    deallocate(b%aFull,b%ivf,b%linkf)
-
-  end subroutine destructR1
-!!--------------------------End destructR1-------------------------!!
+  end subroutine outputXML
+!!--------------------------End outputXML--------------------------!!
 end module bsnqModule
