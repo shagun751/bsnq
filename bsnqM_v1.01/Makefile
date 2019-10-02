@@ -42,18 +42,18 @@ paralution_fortran.o: $(PARA_CONV)
 	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
 
 clean:
-	rm -rf *.vtk *.dat *.o *.mod Output 
+	rm -rf *.dat Output 
 	mkdir Output
 
-clean2:
-	rm -rf *.dat *.mod Output 
+cleanAll:
+	rm -rf *.dat *.o *.mod Output 
 	mkdir Output
 
 rmout:
 	rm -rf Output
 	mkdir Output
 	
-run: clean2 default	
+run: clean default	
 	./bsnq rect2D
 	cat rect2D.rout
 

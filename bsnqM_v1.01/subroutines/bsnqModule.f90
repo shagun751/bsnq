@@ -153,7 +153,13 @@ contains
     read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
     ! waveType(T,d,H,X0,Y0,thDeg)
     b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
-    write(*,*)b%wvIn%T,b%wvIn%L,b%wvIn%thRad
+    write(9,'(" [INF] ",3A15)')'T','L','d'
+    write(9,'(" [---] ",3F15.6)')b%wvIn%T,b%wvIn%L,b%wvIn%d
+    write(9,'(" [INF] At 10 WavePeriods")')
+    write(9,'(" [---] ",3A15)')'Eta','P','Q'
+    call b%wvIn%getEta(b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)
+    call b%wvIn%getPQ(4*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr2,tmpr3)
+    write(9,'(" [---] ",3F15.6)')tmpr1,tmpr2,tmpr3
 
 
     goto 82
