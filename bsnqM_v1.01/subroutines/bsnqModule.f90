@@ -340,7 +340,7 @@ contains
     call system_clock(b%sysC(4))
     tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate
     tmpr2=b%sysT(1)
-    write(9,301)"[SPD]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
+    write(9,301)"[TIL]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
     write(9,*)
     301 format('      |',a6,3F15.4)
 
@@ -1151,4 +1151,5 @@ contains
 
   end subroutine outputXML
 !!--------------------------End outputXML--------------------------!!
+
 end module bsnqModule

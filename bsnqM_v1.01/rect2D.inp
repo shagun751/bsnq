@@ -6,7 +6,7 @@ Q) Resume file name (Mention the path in between quotes)
 Q) Time-step (s)
 0.02
 Q) Run Time (s)
-4.0
+10.0
 
 Q) Error limit
 1e-6

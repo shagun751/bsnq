@@ -16,7 +16,7 @@ implicit none
   real(kind=C_K2),intent(inout)::gBs3(Sz(4)),gBs4(Sz(4))
   real(kind=C_K2),intent(inout)::massE(Sz(1))
 
-  !BndCond vel eta SemiDirect
+  !! BndCond vel eta SemiDirect
   do i=1,nbndp
     i1=bndP(i)
     j1=bndPT(i)
