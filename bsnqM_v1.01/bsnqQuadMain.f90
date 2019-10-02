@@ -89,10 +89,16 @@ implicit none
     bq%pbpr=bq%pt1/bq%por
     bq%qbpr=bq%qt1/bq%por    
     call bq%dynaMatrices(bq%tDt1,bq%ur,bq%vr)
-    call bq%solveW(bq%et1)
-    call bq%solveEta(bq%pbpr,bq%qbpr,bq%et1)
-    call bq%solvePQ(bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%er,bq%wr)
+    call bq%solveAll(bq%pt1,bq%qt1,bq%et1,&
+      bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%et1,0)
     !!----------End Predictor----------!!
+
+    !!------------Corrector------------!!
+    ! bq%ur=bq%pr/bq%tDr
+    ! bq%vr=bq%qr/bq%tDr
+    ! bq%pbpr=bq%pr/bq%por
+    ! bq%qbpr=bq%qr/bq%por    
+    !!----------End Corrector----------!!
 
     call bq%postInstructs
 

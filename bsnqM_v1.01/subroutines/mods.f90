@@ -43,6 +43,8 @@ implicit none
     real(kind=C_K2)::T,d,H,L,k,w
     real(kind=C_K2)::x0,y0
     real(kind=C_K2)::thDeg,thRad,csth,snth      
+  ! contains
+  !   procedure ::  getEta
   end type waveType
 
   interface waveType
@@ -102,6 +104,26 @@ contains
 
   end function waveLenCalc
 !!-----------------------End waveLenCalc-----------------------!!
+
+
+
+! !!---------------------------getEta----------------------------!!
+!   subroutine getEtaDt(b,rTime,x,y,eta)
+!   implicit none
+
+!     class(waveType),intent(in)::b
+
+!     !integer(kind=C_K1)::
+
+!     real(kind=C_K2),intent(in)::rTime,x,y
+!     real(kind=C_K2),intent(out)::eta
+!     real(kind=C_K2)::dx,dy
+
+!     eta
+
+!   end subroutine getEtaDt
+! !!-------------------------End getEta--------------------------!!
+
 
 end module airyWaveModule
 !!-----------------------End airyWaveModule------------------------!!

@@ -39,12 +39,12 @@ use bsnqGlobVars
   end interface
   
   integer(kind=C_K1),intent(in)::np,nnz,maxIter
-  integer(kind=C_K1),intent(in),target::iv(np+1),jv(nnz)
+  integer(kind=C_INT),intent(in),target::iv(np+1),jv(nnz)
   integer(kind=C_K1),intent(out)::iter,ier
   real(kind=C_K2),intent(in)::errLim  
-  real(kind=C_K2),intent(in),target::gA(nnz),gB(np)  
-  real(kind=C_K2),intent(out)::resnorm
-  real(kind=C_K2),intent(out),target::gX(np)
+  real(kind=C_DOUBLE),intent(in),target::gA(nnz),gB(np)  
+  real(kind=C_DOUBLE),intent(out),target::gX(np)
+  real(kind=C_K2),intent(out)::resnorm  
 
   call paralution_fortran_solve_csr(np,np,nnz,&
     'GMRES' // C_NULL_CHAR, &

@@ -33,12 +33,12 @@ implicit none
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
     integer(kind=C_K1)::maxIter,fileOut,resumeOut    
     integer(kind=C_K1)::nnzl,nnzf,tStep
-    integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)
-    integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
+    integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
     integer(kind=C_K1),allocatable::bndPT(:),probe(:)
-    integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)        
-    integer(kind=C_K1),allocatable::ivf(:),linkf(:)    
+    integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)            
+    integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
+    integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
 
     real(kind=C_K2)::dt,errLim,rTime,endTime
     real(kind=C_K2)::sysRate,sysT(10)
@@ -47,28 +47,30 @@ implicit none
     real(kind=C_K2),allocatable::pt0(:),qt0(:),et0(:),tDt0(:)
     real(kind=C_K2),allocatable::pt1(:),qt1(:),et1(:),tDt1(:)
     real(kind=C_K2),allocatable::pr(:),qr(:),er(:),tDr(:)
-    real(kind=C_K2),allocatable::wr(:),por(:)
-    real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)
-    real(kind=C_K2),allocatable::edt(:),pqdt(:)
-    real(kind=C_K2),allocatable::massW(:),massE(:),mass1(:),mass2(:)
-    real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
+    real(kind=C_K2),allocatable::por(:)
+    real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
+    real(kind=C_K2),allocatable::mass1(:),mass2(:)    
+    real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
+    real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
+    real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
+    real(kind=C_DOUBLE),allocatable::edt(:),pqdt(:),wr(:)
+    real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
+    real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
+
+    !! Deallocated in destructR1
+    integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
+    integer(kind=C_K1),allocatable::ivf(:),linkf(:)  
+    real(kind=C_K2),allocatable::massW(:),massE(:)
     real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
     real(kind=C_K2),allocatable::aFull(:)
-    real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
-    real(kind=C_K2),allocatable::gRE(:),gRP(:),gRPQ(:)
-
-
-    logical(kind=C_LG)::resume,presOn,absOn
-
-    type(waveType)::wvIn
 
     integer(kind=8)::sysC(10)
-    integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
-    integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
-    real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
+    logical(kind=C_LG)::resume,presOn,absOn
+    type(waveType)::wvIn
+    
+    
 
   contains    
 
@@ -83,9 +85,7 @@ implicit none
     procedure ::  outputXML
     procedure ::  preInstructs
     procedure ::  postInstructs
-    procedure ::  solveW
-    procedure ::  solveEta
-    procedure ::  solvePQ
+    procedure ::  solveAll
     !procedure ::  destructor
 
   end type bsnqCase
@@ -194,7 +194,7 @@ contains
     allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
     allocate(b%aFull(b%ivf(0)*2*j))
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
-    allocate(b%gRE(i),b%gRP(j),b%gRPQ(2*j))
+    allocate(b%gRE(i),b%gRPQ(2*j))
     allocate(b%edt(i),b%pqdt(2*j))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
@@ -292,7 +292,6 @@ contains
     class(bsnqCase),intent(inout)::b    
 
     deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
-    deallocate(b%gBs1,b%gBs2,b%gBs3,b%gBs4)
     deallocate(b%p2e,b%p2p)
     deallocate(b%aFull,b%ivf,b%linkf)
     deallocate(b%massW,b%massE)
@@ -310,7 +309,7 @@ contains
 
     b%tStep=b%tStep+1
     b%rTime=b%rTime+b%dt
-    write(9,'(" ------Time : ",I10," ",F15.6,"------")')&
+    write(9,'(" ------Time : ",I10," ",F20.6,"------")')&
       b%tStep,b%rTime
     call system_clock(b%sysC(3)) 
 
@@ -347,13 +346,28 @@ contains
 
 
 
-!!------------------------------solveW-----------------------------!!
-  subroutine solveW(b,er)
+!!-----------------------------solveAll----------------------------!!
+  subroutine solveAll(b,pt1,qt1,et1,pr,qr,pbpr,qbpr,er,step)
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    real(kind=C_K2),intent(in)::er(b%npl)
+    integer(kind=C_K1),intent(in)::step
+    real(kind=C_K2),intent(in)::pt1(b%npt),qt1(b%npt)
+    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
+    real(kind=C_K2),intent(in)::pbpr(b%npt),qbpr(b%npt)
+    real(kind=C_K2),intent(in)::et1(b%npl),er(b%npl)
+    real(kind=C_K2)::tc1,tc2,dt
 
+    if(step.eq.0)then ! Predictor
+      tc1=1d0
+      tc2=0d0
+    elseif(step.eq.1)then ! Corrector
+      tc1=0.5d0
+      tc2=0.5d0
+    endif
+    dt=b%dt
+
+    !!------------------solveW-----------------!!
     !b%gRE=0d0
     do i=1,b%npl
       k=(i-1)*b%ivl(0)
@@ -361,7 +375,7 @@ contains
       do j=1,b%ivl(i)
         k2=k+j
         i2=b%linkl(k2)
-        tmpr1=tmpr1 + (b%gDMat(k2)*er(i2))
+        tmpr1=tmpr1 + ( b%gDMat(k2)*er(i2) )
       enddo
       b%gRE(i)=tmpr1
     enddo
@@ -371,56 +385,56 @@ contains
     call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gMW,b%gRE,b%wr,&
       b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'W',j,i,tmpr1
-    301 format('      |',a6,i10,i10,e15.4)
-
-  end subroutine solveW
-!!----------------------------End solveW---------------------------!!
+    !!----------------End solveW---------------!!    
 
 
-
-!!-----------------------------solveEta----------------------------!!
-  subroutine solveEta(b,pr,qr,er)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b
-    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
-    real(kind=C_K2),intent(in)::er(b%npl)
-
+    !!-----------------solveEta----------------!!
     !b%gRE=0d0
     do i=1,b%npl
-      k=(i-1)*b%ivq(0)
       tmpr1=0d0
+      tmpr2=0d0
+
+      ![3x6]
+      k=(i-1)*b%ivq(0)      
       do j=1,b%ivq(i)
         k2=k+j
         i2=b%linkq(k2)
-        tmpr1=tmpr1 + (b%gCxF(k2)*pr(i2)) + (b%gCyF(k2)*qr(i2))
+        tmpr1=tmpr1 + tc1*dt*( (b%gCxF(k2)*pr(i2)) &
+            + (b%gCyF(k2)*qr(i2)) )
       enddo
-      b%gRE(i)=tmpr1
+
+      ![3x3]
+      k=(i-1)*b%ivl(0)      
+      do j=1,b%ivl(i)
+        k2=k+j
+        i2=b%linkl(k2)
+        tmpr2=tmpr2 + ( b%mass2(k2)*(tc1*et1(i2) + tc2*er(i2)) )
+      enddo
+
+      b%gRE(i)=tmpr1 + tmpr2
     enddo
+
+    ! !! Dirichlet BC
+    ! do i=1,b%nbndp
+    !   i2=b%bndP(i)
+    !   j2=b%bndPT(i)
+    !   if(j2.eq.11)then
+
+    !   elseif(j2.eq.14)then
+    !     b%gRE(i2)=0d0
+    !   endif
+    ! enddo
 
     b%gRE=b%gRE/b%rowMaxE
 
     call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gME,b%gRE,b%edt,&
       b%errLim,b%maxiter,i,tmpr1,j)
-    write(9,301)'Eta',j,i,tmpr1
-    301 format('      |',a6,i10,i10,e15.4)
-
-  end subroutine solveEta
-!!---------------------------End solveEta--------------------------!!
+    write(9,301)'Eta',j,i,tmpr1    
+    !!---------------End solveEta--------------!!
 
 
-
-!!-----------------------------solvePQ-----------------------------!!
-  subroutine solvePQ(b,pr,qr,pbpr,qbpr,er,wr)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b
-    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
-    real(kind=C_K2),intent(in)::pbpr(b%npt),qbpr(b%npt)
-    real(kind=C_K2),intent(in)::er(b%npl),wr(b%npl)
-
-    b%gRPQ=0d0
-
+    !!-----------------solvePQ-----------------!!
+    !b%gRPQ=0d0
     do i=1,b%npt      
       tmpr1=0d0
       tmpr2=0d0
@@ -433,9 +447,11 @@ contains
         k2=k+j
         i2=b%linkl(k2)        
         
-        tmpr1=tmpr1 + (b%gGx(k2)*er(i2)) + (b%gBs5(k2)*wr(i2))
+        tmpr1=tmpr1 + tc1*dt*( (b%gGx(k2)*er(i2)) &
+          + (b%gBs5(k2)*b%wr(i2)) )
 
-        tmpr2=tmpr2 + (b%gGy(k2)*er(i2)) + (b%gBs6(k2)*wr(i2))
+        tmpr2=tmpr2 + tc1*dt*( (b%gGy(k2)*er(i2)) &
+          + (b%gBs6(k2)*b%wr(i2)) )
       enddo
 
       ![6x6]
@@ -444,13 +460,17 @@ contains
         k2=k+j
         i2=b%linkq(k2)        
         
-        tmpr3=tmpr3 + (b%gNAdv(k2)*pbpr(i2))
+        tmpr3=tmpr3 + ( b%gBs1(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
+            + b%gBs2(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
+          + tc1*dt*( b%gNAdv(k2)*pbpr(i2) )
 
-        tmpr4=tmpr4 + (b%gNAdv(k2)*qbpr(i2))
+        tmpr4=tmpr4 + ( b%gBs3(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
+            + b%gBs4(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
+          + tc1*dt*( (b%gNAdv(k2)*qbpr(i2)) )
       enddo
 
-      b%gRPQ(i)=b%gRPQ(i)+tmpr1+tmpr3
-      b%gRPQ(b%npt+i)=b%gRPQ(b%npt+i)+tmpr2+tmpr4
+      b%gRPQ(i)=tmpr1+tmpr3
+      b%gRPQ(b%npt+i)=tmpr2+tmpr4
     enddo
 
     b%gRPQ=b%gRPQ/b%rowMaxPQ
@@ -458,10 +478,12 @@ contains
     call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,b%gRPQ,&
       b%pqdt,b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'PQ',j,i,tmpr1
+    !!---------------End solvePQ---------------!!
+
     301 format('      |',a6,i10,i10,e15.4)
 
-  end subroutine solvePQ
-!!---------------------------End solvePQ---------------------------!!
+  end subroutine solveAll
+!!---------------------------End solveAll--------------------------!!
 
 
 

@@ -31,7 +31,7 @@ implicit none
       gBs4(k+1:k+k1-1)=0d0      
       gBs3(k+1:k+k1)=0d0
     
-    elseif(j1.eq.12)then
+    elseif(j1.eq.13)then
       if(abs(bndPN(i1,1)).gt.0.1)then
         gBs1(k+k1)=1d0
         gBs1(k+1:k+k1-1)=0d0
