@@ -1,5 +1,5 @@
-!!---------------------------dirichletBC---------------------------!!
-subroutine dirichletBC(npl,npt,nbndp,bndP,bndPT,Sz,ivl,ivq,&
+!!---------------------------diriBCMass----------------------------!!
+subroutine diriBCMass(npl,npt,nbndp,bndP,bndPT,Sz,ivl,ivq,&
  linkl,linkq,bndPN,gBs1,gBs2,gBs3,gBs4,massE)
 use bsnqGlobVars
 implicit none
@@ -59,5 +59,5 @@ implicit none
     endif
   enddo
 
-end subroutine dirichletBC
-!!-------------------------End dirichletBC-------------------------!!
+end subroutine diriBCMass
+!!-------------------------End diriBCMass--------------------------!!

@@ -40,11 +40,13 @@ use bsnqGlobVars
 implicit none
 
   type, public :: waveType    
-    real(kind=C_K2)::T,d,H,L,k,w
+    real(kind=C_K2)::T,d,H,L,w
     real(kind=C_K2)::x0,y0
+    real(kind=C_K2)::k,kx,ky
     real(kind=C_K2)::thDeg,thRad,csth,snth      
-  ! contains
-  !   procedure ::  getEta
+  contains
+    procedure ::  getEta
+    procedure ::  getPQ
   end type waveType
 
   interface waveType
@@ -101,28 +103,56 @@ contains
     endif
 
     waveLenCalc%k=2d0*pi/waveLenCalc%L
+    waveLenCalc%kx=waveLenCalc%k*waveLenCalc%csth
+    waveLenCalc%ky=waveLenCalc%k*waveLenCalc%snth
 
   end function waveLenCalc
 !!-----------------------End waveLenCalc-----------------------!!
 
 
 
-! !!---------------------------getEta----------------------------!!
-!   subroutine getEtaDt(b,rTime,x,y,eta)
-!   implicit none
+!!---------------------------getEta----------------------------!!
+  subroutine getEta(b,rTime,x,y,eta)
+  implicit none
 
-!     class(waveType),intent(in)::b
+    class(waveType),intent(in)::b
 
-!     !integer(kind=C_K1)::
+    !integer(kind=C_K1)::
 
-!     real(kind=C_K2),intent(in)::rTime,x,y
-!     real(kind=C_K2),intent(out)::eta
-!     real(kind=C_K2)::dx,dy
+    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2)::dx,dy
 
-!     eta
+    dx=(x-b%x0)
+    dy=(y-b%y0)
+    eta=b%H/2d0 * dsin(b%kx*dx + b%ky*dy - b%w*rTime)
 
-!   end subroutine getEtaDt
-! !!-------------------------End getEta--------------------------!!
+  end subroutine getEta
+!!-------------------------End getEta--------------------------!!
+
+
+
+!!----------------------------getPQ----------------------------!!
+  subroutine getPQ(b,rTime,x,y,p,q)
+  implicit none
+
+    class(waveType),intent(in)::b
+
+    !integer(kind=C_K1)::
+
+    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(out)::p,q
+    real(kind=C_K2)::dx,dy
+
+    dx=(x-b%x0)
+    dy=(y-b%y0)
+    p=b%H/2d0 * b%w / b%k * b%csth &
+      * dsin(b%kx*dx + b%ky*dy - b%w*rTime)
+    q=b%H/2d0 * b%w / b%k * b%snth &
+      * dsin(b%kx*dx + b%ky*dy - b%w*rTime)
+
+  end subroutine getPQ
+!!--------------------------End getPQ--------------------------!!
 
 
 end module airyWaveModule

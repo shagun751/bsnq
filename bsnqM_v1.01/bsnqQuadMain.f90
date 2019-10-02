@@ -90,14 +90,21 @@ implicit none
     bq%qbpr=bq%qt1/bq%por    
     call bq%dynaMatrices(bq%tDt1,bq%ur,bq%vr)
     call bq%solveAll(bq%pt1,bq%qt1,bq%et1,&
-      bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%et1,0)
+      bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%et1,0,&
+      bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
+    call bq%updateSoln
     !!----------End Predictor----------!!
 
     !!------------Corrector------------!!
-    ! bq%ur=bq%pr/bq%tDr
-    ! bq%vr=bq%qr/bq%tDr
-    ! bq%pbpr=bq%pr/bq%por
-    ! bq%qbpr=bq%qr/bq%por    
+    bq%ur=bq%pt0/bq%tDt0
+    bq%vr=bq%qt0/bq%tDt0
+    bq%pbpr=bq%pt0/bq%por
+    bq%qbpr=bq%qt0/bq%por    
+    call bq%dynaMatrices(bq%tDt0,bq%ur,bq%vr)
+    call bq%solveAll(bq%pt1,bq%qt1,bq%et1,&
+      bq%pt0,bq%qt0,bq%pbpr,bq%qbpr,bq%et0,1,&
+      bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
+    call bq%updateSoln
     !!----------End Corrector----------!!
 
     call bq%postInstructs
