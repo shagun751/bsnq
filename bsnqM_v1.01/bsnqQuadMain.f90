@@ -58,7 +58,9 @@ use bsnqModule
 implicit none
 
 !!--------------------------Declarations---------------------------!!
-  type(bsnqCase)::bq
+  integer(kind=C_K1)::iCor
+
+  type(bsnqCase)::bq  
   character(len=C_KSTR)::bqtxt
 !!------------------------End Declarations-------------------------!!
   

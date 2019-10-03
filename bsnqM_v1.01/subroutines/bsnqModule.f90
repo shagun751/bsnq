@@ -161,6 +161,8 @@ contains
     b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
     write(9,'(" [INF] ",3A15)')'T','L','d'
     write(9,'(" [---] ",3F15.6)')b%wvIn%T,b%wvIn%L,b%wvIn%d
+    write(9,'(" [INF] ",A15)')'kh'
+    write(9,'(" [---] ",F15.6)')b%wvIn%k*b%wvIn%d
     write(9,'(" [INF] At 10 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
     call b%wvIn%getEta(b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)

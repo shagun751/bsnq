@@ -25,7 +25,7 @@ continued from bsnq\_par\_v8.36
 - [x] FEM Initialisations
 - [ ] Wave probes
 - [x] Inlet wave characteristics
-- [ ] Absorbance coeffs
+- [x] Absorbance coeffs
 - [ ] Porosity initialisation
 - [x] Mass matrices
 - [x] Stationary matrix set 1
@@ -37,6 +37,7 @@ continued from bsnq\_par\_v8.36
 - [ ] Neumann BC for eta
 - [ ] Time Stepping - Try Adam-bashforth first
 - [x] Time Stepping - Predictor Corrector
+- [ ] Time Stepping - RK2
 - [ ] Bottom shear 
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
