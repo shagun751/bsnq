@@ -36,8 +36,8 @@ continued from bsnq\_par\_v8.36
 - [x] Conversion to CSR form
 - [ ] Neumann BC for eta
 - [ ] Time-stepping : Try Adam-bashforth first
-- [x] Time-stepping : Predictor Corrector
-- [ ] Time-stepping : RK2
+- [ ] Time-stepping : Predictor Corrector
+- [x] Time-stepping : RK2
 - [ ] Bottom shear 
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength

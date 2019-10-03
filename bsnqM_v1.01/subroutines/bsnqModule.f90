@@ -42,7 +42,7 @@ implicit none
     integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
 
-    real(kind=C_K2)::dt,errLim,rTime,endTime
+    real(kind=C_K2)::dt,errLim,endTime,rTt0,rTt1
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
@@ -243,7 +243,7 @@ contains
       enddo  
     endif
 
-    b%rTime=0d0
+    b%rTt0=0d0
     b%et0=0d0
     b%pt0=0d0
     b%qt0=0d0
@@ -348,9 +348,10 @@ contains
     class(bsnqCase),intent(inout)::b    
 
     b%tStep=b%tStep+1
-    b%rTime=b%rTime+b%dt
+    b%rTt1=b%rTt0
+    b%rTt0=b%rTt0+b%dt
     write(9,'(" ------Time : ",I10," ",F20.6,"------")')&
-      b%tStep,b%rTime
+      b%tStep,b%rTt0
     call system_clock(b%sysC(3)) 
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector
@@ -388,19 +389,17 @@ contains
 
 
 !!-----------------------------solveAll----------------------------!!
-  subroutine solveAll(b,pt1,qt1,et1,pr,qr,pbpr,qbpr,er,step,&
+  subroutine solveAll(b,rkTime,pr,qr,pbpr,qbpr,er,&
     gXW,gXE,gXPQ,gRE,gRPQ)
   implicit none
 
-    class(bsnqCase),intent(in)::b
-    integer(kind=C_K1),intent(in)::step
-    real(kind=C_K2),intent(in)::pt1(b%npt),qt1(b%npt)
+    class(bsnqCase),intent(in)::b    
     real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
     real(kind=C_K2),intent(in)::pbpr(b%npt),qbpr(b%npt)
-    real(kind=C_K2),intent(in)::et1(b%npl),er(b%npl)
+    real(kind=C_K2),intent(in)::er(b%npl),rkTime
     real(kind=C_DOUBLE),intent(out)::gXW(b%npl),gXE(b%npl),gRE(b%npl)
     real(kind=C_DOUBLE),intent(out)::gXPQ(2*b%npt),gRPQ(2*b%npt)
-    real(kind=C_K2)::tc1,tc2,tc3,dt
+    real(kind=C_K2)::dt,absC
 
     !!  [Note] : 
     !!  Remeber everything is passed by reference
@@ -411,15 +410,6 @@ contains
     !!  So modify the bq%et1 only after the entire computation
     !!  with its old values is done. Till then store it in bq%er
 
-
-    ! tc3 is for absorbance
-    if(step.eq.0)then ! Predictor
-      tc1=1d0   ! for et1
-      tc2=0d0   ! for er      
-    elseif(step.eq.1)then ! Corrector
-      tc1=0.5d0 ! for et1
-      tc2=0.5d0 ! for er         
-    endif
     dt=b%dt
 
     !!------------------solveW-----------------!!
@@ -448,15 +438,15 @@ contains
     do i=1,b%npl
       tmpr1=0d0
       tmpr2=0d0
-      tc3=-dt*tc1*b%absC(i)
+      absC=-b%absC(i)
 
       ![3x6]
       k=(i-1)*b%ivq(0)      
       do j=1,b%ivq(i)
         k2=k+j
         i2=b%linkq(k2)
-        tmpr1=tmpr1 + tc1*dt*( (b%gCxF(k2)*pr(i2)) &
-            + (b%gCyF(k2)*qr(i2)) )
+        tmpr1=tmpr1 + (b%gCxF(k2)*pr(i2)) &
+            + (b%gCyF(k2)*qr(i2))
       enddo
 
       ![3x3]
@@ -464,11 +454,10 @@ contains
       do j=1,b%ivl(i)
         k2=k+j
         i2=b%linkl(k2)
-        tmpr2=tmpr2 + ( b%mass2(k2)*(tc1*et1(i2) &
-            + (tc2+tc3)*er(i2)) )
+        tmpr2=tmpr2 + ( absC*b%mass2(k2)*er(i2) )
       enddo
 
-      gRE(i)=tmpr1 + tmpr2
+      gRE(i)=dt*( tmpr1 + tmpr2 )
     enddo
 
     call b%diriBCEta(gRE)
@@ -493,7 +482,7 @@ contains
       tmpr2=0d0
       tmpr3=0d0
       tmpr4=0d0
-      tc3=-dt*tc1*b%absC(i)
+      absC=-b%absC(i)
       
       ![6x3]
       k=(i-1)*b%ivl(0)
@@ -501,11 +490,11 @@ contains
         k2=k+j
         i2=b%linkl(k2)        
         
-        tmpr1=tmpr1 + tc1*dt*( (b%gGx(k2)*er(i2)) &
-          + (b%gBs5(k2)*gXW(i2)) )
+        tmpr1=tmpr1 + (b%gGx(k2)*er(i2)) &
+          + (b%gBs5(k2)*gXW(i2))
 
-        tmpr2=tmpr2 + tc1*dt*( (b%gGy(k2)*er(i2)) &
-          + (b%gBs6(k2)*gXW(i2)) )
+        tmpr2=tmpr2 + (b%gGy(k2)*er(i2)) &
+          + (b%gBs6(k2)*gXW(i2))
       enddo
 
       ![6x6]
@@ -514,19 +503,15 @@ contains
         k2=k+j
         i2=b%linkq(k2)        
         
-        tmpr3=tmpr3 + ( b%gBs1(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
-            + b%gBs2(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
-          + tc1*dt*( b%gNAdv(k2)*pbpr(i2) ) &
-          + tc3*( b%mass1(k2)*pr(i2) )
+        tmpr3=tmpr3 + ( b%gNAdv(k2)*pbpr(i2) &
+          + absC*b%mass1(k2)*pr(i2) )
 
-        tmpr4=tmpr4 + ( b%gBs3(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
-            + b%gBs4(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
-          + tc1*dt*( (b%gNAdv(k2)*qbpr(i2)) ) &
-          + tc3*( b%mass1(k2)*qr(i2) )
+        tmpr4=tmpr4 + ( b%gNAdv(k2)*qbpr(i2) &
+          + absC*b%mass1(k2)*qr(i2) )
       enddo
 
-      gRPQ(i)=tmpr1+tmpr3
-      gRPQ(b%npt+i)=tmpr2+tmpr4
+      gRPQ(i)=dt*( tmpr1 + tmpr3 )
+      gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )
     enddo
     
     call b%diriBCPQ(gRPQ)    
@@ -549,17 +534,29 @@ contains
 
 
 !!----------------------------updateSoln---------------------------!!
-  subroutine updateSoln(b)
+  subroutine updateSoln(b,step)
   implicit none
 
     class(bsnqCase),intent(inout)::b
+    integer(kind=C_K1),intent(in)::step
 
     b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
-    b%et0=b%gXE
-    b%pt0=b%gXPQ(1:b%npt)
-    b%qt0=b%gXPQ(b%npt+1:2*b%npt)
-    b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
-    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+
+    if(step.eq.1)then
+      b%et0 = b%et1 + b%gXE/2d0
+      b%pt0 = b%pt1 + b%gXPQ(1:b%npt)/2d0
+      b%qt0 = b%qt1 + b%gXPQ(b%npt+1:2*b%npt)/2d0
+      b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
+      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+    
+    elseif(step.eq.2)then
+      b%et0 = b%et1 + b%gXE
+      b%pt0 = b%pt1 + b%gXPQ(1:b%npt)
+      b%qt0 = b%qt1 + b%gXPQ(b%npt+1:2*b%npt)
+      b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
+      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+      
+    endif
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!
@@ -579,8 +576,9 @@ contains
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
       if(j2.eq.11)then
-        call b%wvIn%getEta(b%rTime,b%cor(i2,1),b%cor(i2,2),tmpr1)         
-        mat(i2)=tmpr1
+        call b%wvIn%getEta(b%rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
+        call b%wvIn%getEta(b%rTt1,b%cor(i2,1),b%cor(i2,2),tmpr2)
+        mat(i2)=tmpr1-tmpr2
 
       elseif(j2.eq.14)then
         mat(i2)=0d0
@@ -604,10 +602,12 @@ contains
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(j2.eq.11)then
-        call b%wvIn%getPQ(b%rTime,b%cor(i2,1),b%cor(i2,2),&
+        call b%wvIn%getPQ(b%rTt0,b%cor(i2,1),b%cor(i2,2),&
           tmpr1,tmpr2)         
-        mat(i2)=tmpr1
-        mat(b%npt+i2)=tmpr2
+        call b%wvIn%getPQ(b%rTt1,b%cor(i2,1),b%cor(i2,2),&
+          tmpr3,tmpr4)
+        mat(i2)=tmpr1-tmpr3
+        mat(b%npt+i2)=tmpr2-tmpr4
 
       elseif((j2.eq.12).or.(j2.eq.14))then
         mat(i2)=0d0
@@ -1117,7 +1117,7 @@ contains
 
     class(bsnqCase),intent(in)::b    
 
-    write(bqtxt,'(I15)')int(b%rTime*1000)
+    write(bqtxt,'(I15)')int(b%rTt0*1000)
     bqtxt=adjustl(bqtxt)
     bqtxt="Output/"//trim(b%probname)//"_"//trim(bqtxt)//".vtu"
     open(newunit=mf,file=trim(bqtxt))
@@ -1195,7 +1195,7 @@ contains
     write(mf,'(a)')'</VTKFile>'
     close(mf)
 
-    write(9,'(" [MSG] OutXML at ",F15.4)')b%rTime
+    write(9,'(" [MSG] OutXML at ",F15.4)')b%rTt0
 
   end subroutine outputXML
 !!--------------------------End outputXML--------------------------!!

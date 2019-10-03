@@ -58,7 +58,7 @@ use bsnqModule
 implicit none
 
 !!--------------------------Declarations---------------------------!!
-  integer(kind=C_K1)::iCor
+  real(kind=C_K2)::rTime
 
   type(bsnqCase)::bq  
   character(len=C_KSTR)::bqtxt
@@ -81,33 +81,35 @@ implicit none
   call bq%initMat
   call bq%statMatrices  
   
-  do while(bq%rTime.lt.bq%endTime)    
+  do while(bq%rTt0.lt.bq%endTime)    
 
     call bq%preInstructs
 
-    !!------------Predictor------------!!
+    !!-------------RK2 S1--------------!!
     bq%ur=bq%pt1/bq%tDt1
     bq%vr=bq%qt1/bq%tDt1
     bq%pbpr=bq%pt1/bq%por
-    bq%qbpr=bq%qt1/bq%por    
+    bq%qbpr=bq%qt1/bq%por   
+    rTime=bq%rTt1
     call bq%dynaMatrices(bq%tDt1,bq%ur,bq%vr)
-    call bq%solveAll(bq%pt1,bq%qt1,bq%et1,&
-      bq%pt1,bq%qt1,bq%pbpr,bq%qbpr,bq%et1,0,&
+    call bq%solveAll(rTime,bq%pt1,bq%qt1,&
+      bq%pbpr,bq%qbpr,bq%et1,&
       bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
-    call bq%updateSoln
-    !!----------End Predictor----------!!
+    call bq%updateSoln(1)
+    !!-----------End RK2 S1------------!!
 
-    !!------------Corrector------------!!
+    !!-------------RK2 S2--------------!!
     bq%ur=bq%pt0/bq%tDt0
     bq%vr=bq%qt0/bq%tDt0
     bq%pbpr=bq%pt0/bq%por
-    bq%qbpr=bq%qt0/bq%por    
+    bq%qbpr=bq%qt0/bq%por 
+    rTime=(bq%rTt1 + bq%rTt0)/2d0   
     call bq%dynaMatrices(bq%tDt0,bq%ur,bq%vr)
-    call bq%solveAll(bq%pt1,bq%qt1,bq%et1,&
-      bq%pt0,bq%qt0,bq%pbpr,bq%qbpr,bq%et0,1,&
+    call bq%solveAll(rTime,bq%pt0,bq%qt0,&
+      bq%pbpr,bq%qbpr,bq%et0,&
       bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
-    call bq%updateSoln
-    !!----------End Corrector----------!!
+    call bq%updateSoln(2)
+    !!-----------End RK2 S2------------!!
 
     call bq%postInstructs
 
