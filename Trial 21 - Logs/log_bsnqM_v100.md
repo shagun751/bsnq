@@ -67,6 +67,13 @@ continued from bsnq\_par\_v8.36
 - bsnqGlobVars  
   - Datatypes and constants only
 
+#### Observations : Time-stepping : RK2
+This too does not work! Similar problems as Predictor-corrector
+
+Now I have two options:  
+1. Try RK4. In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 value. Therefore there is some hope that RK4 might work
+1. AdamBash-3-Explicit. I should test with this to ensure that the results atleast work with this coz it used to work earlier. If it does not then please check the changes you have made [here](#predCorNote1)
+
 #### Observations : Time-stepping : Predictor-Corrector
 The predictor-corrector time-stepping had working in the GWCE (Generalised Wave Continuity) equation model pretty well as shown in Dresback(2004). We ourselves had found good results with this time-stepping in our 9-noded FEM-GWCE model, where the oscillations at lower depth and near boundaries were removed. With those results in mind, I tried to implement the algorithm in Bsnq equation. 
 
@@ -78,7 +85,12 @@ I wrote the code *bsnqM_v1.0.f90* under the *predCor* branch of GitHub repo <htt
 
 All the derivations for this are available in the notebook I bought in UK.
 
-There I can conclude that either I didnt apply predictor-corrector properly (unlikely) or the method does not work for this equation (probable). I will try RK2 and RK4. Lets hope that works better than this.
+Therefore, I can conclude that either I didnt apply predictor-corrector properly (less-likely) or the method does not work for this equation (more-likely). I will try RK2 and RK4. Lets hope that works better than this.
+
+<a name="predCorNote1"/>
+There are another two differences to keep in mind in these version:  
+- I have calculated the advection term assuming u = P/(h + &eta;) as 6 point variable, where I interpolate the value of (h + &eta;) at the middle nodes.
+- I have not done Gauss divergence for the *Bs5* and *Bs6* terms.
 
 -----------------------------------------------
 
