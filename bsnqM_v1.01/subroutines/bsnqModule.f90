@@ -1,6 +1,7 @@
 module bsnqModule
 use bsnqGlobVars
 use airyWaveModule
+use outAbsModule
 implicit none
 
   interface
@@ -51,7 +52,7 @@ implicit none
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
-    real(kind=C_K2),allocatable::gBs5(:),gBs6(:)
+    real(kind=C_K2),allocatable::gBs5(:),gBs6(:),absC(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
@@ -69,6 +70,7 @@ implicit none
     integer(kind=8)::sysC(10)
     logical(kind=C_LG)::resume,presOn,absOn
     type(waveType)::wvIn
+    type(absTyp),allocatable::absOb(:)
     
     
 
@@ -117,24 +119,27 @@ contains
     read(mf,*,end=81,err=81)b%resume
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%resumeFile  
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%dt     
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%endTime
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%errLim
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%maxIter
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)i
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1
     b%fileOut=int(tmpr1/b%dt,4)
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1
     b%resumeOut=int(tmpr1/b%dt,4)  
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%presOn      
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%nthrd
     read(mf,*,end=81,err=81)bqtxt
@@ -147,6 +152,7 @@ contains
       allocate(b%probe(0:1))
       b%probe(0)=0
     endif
+
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
     read(mf,*,end=81,err=81)bqtxt
@@ -160,6 +166,23 @@ contains
     call b%wvIn%getEta(b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)
     call b%wvIn%getPQ(4*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr2,tmpr3)
     write(9,'(" [---] ",3F15.6)')tmpr1,tmpr2,tmpr3
+
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%absOn
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpi1    
+    if(b%absOn.and.(tmpi1.le.0))then
+      write(9,'(" [ERR] Improper number of absorbance layer")')
+      stop
+    endif
+    if(tmpi1.gt.0)then
+      allocate(b%absOb(tmpi1))
+      do i=1,tmpi1
+        read(mf,*,end=81,err=81)tmpi2,tmpr1,tmpr2,tmpr3
+        b%absOb(i)=absTyp(tmpi1,tmpi2,tmpr1,tmpr2,tmpr3)
+      enddo
+    endif
 
 
     goto 82
@@ -197,7 +220,7 @@ contains
     allocate(b%gBs1(j1*j),b%gBs2(j1*j))
     allocate(b%gBs3(j1*j),b%gBs4(j1*j))
     allocate(b%gCxF(j1*i),b%gCyF(j1*i),b%gDMat(i1*i))
-    allocate(b%gBs5(i1*j),b%gBs6(i1*j))
+    allocate(b%gBs5(i1*j),b%gBs6(i1*j),b%absC(j))
     allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
     allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
     allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
@@ -210,6 +233,13 @@ contains
     b%Sz(3)=i1*j ![6x3] ![ivl(0) * npt]
     b%Sz(4)=j1*j ![6x6] ![ivq(0) * npt]
     b%por=1d0
+    
+    b%absC=0d0
+    if(b%absOn)then
+      do i=1,b%absOb(1)%N
+        call b%absOb(i)%calcAbsC(b%npt,b%cor,b%absC)
+      enddo  
+    endif
 
     b%rTime=0d0
     b%et0=0d0
@@ -368,7 +398,7 @@ contains
     real(kind=C_K2),intent(in)::et1(b%npl),er(b%npl)
     real(kind=C_DOUBLE),intent(out)::gXW(b%npl),gXE(b%npl),gRE(b%npl)
     real(kind=C_DOUBLE),intent(out)::gXPQ(2*b%npt),gRPQ(2*b%npt)
-    real(kind=C_K2)::tc1,tc2,dt
+    real(kind=C_K2)::tc1,tc2,tc3,dt
 
     !!  [Note] : 
     !!  Remeber everything is passed by reference
@@ -380,12 +410,13 @@ contains
     !!  with its old values is done. Till then store it in bq%er
 
 
+    ! tc3 is for absorbance
     if(step.eq.0)then ! Predictor
-      tc1=1d0
-      tc2=0d0
+      tc1=1d0   ! for et1
+      tc2=0d0   ! for er      
     elseif(step.eq.1)then ! Corrector
-      tc1=0.5d0
-      tc2=0.5d0
+      tc1=0.5d0 ! for et1
+      tc2=0.5d0 ! for er         
     endif
     dt=b%dt
 
@@ -415,6 +446,7 @@ contains
     do i=1,b%npl
       tmpr1=0d0
       tmpr2=0d0
+      tc3=-dt*tc1*b%absC(i)
 
       ![3x6]
       k=(i-1)*b%ivq(0)      
@@ -430,7 +462,8 @@ contains
       do j=1,b%ivl(i)
         k2=k+j
         i2=b%linkl(k2)
-        tmpr2=tmpr2 + ( b%mass2(k2)*(tc1*et1(i2) + tc2*er(i2)) )
+        tmpr2=tmpr2 + ( b%mass2(k2)*(tc1*et1(i2) &
+            + (tc2+tc3)*er(i2)) )
       enddo
 
       gRE(i)=tmpr1 + tmpr2
@@ -458,6 +491,7 @@ contains
       tmpr2=0d0
       tmpr3=0d0
       tmpr4=0d0
+      tc3=-dt*tc1*b%absC(i)
       
       ![6x3]
       k=(i-1)*b%ivl(0)
@@ -480,11 +514,13 @@ contains
         
         tmpr3=tmpr3 + ( b%gBs1(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
             + b%gBs2(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
-          + tc1*dt*( b%gNAdv(k2)*pbpr(i2) )
+          + tc1*dt*( b%gNAdv(k2)*pbpr(i2) ) &
+          + tc3*( b%mass1(k2)*pr(i2) )
 
         tmpr4=tmpr4 + ( b%gBs3(k2)*(tc1*pt1(i2) + tc2*pr(i2)) &
             + b%gBs4(k2)*(tc1*qt1(i2) + tc2*qr(i2)) ) &
-          + tc1*dt*( (b%gNAdv(k2)*qbpr(i2)) )
+          + tc1*dt*( (b%gNAdv(k2)*qbpr(i2)) ) &
+          + tc3*( b%mass1(k2)*qr(i2) )
       enddo
 
       gRPQ(i)=tmpr1+tmpr3
@@ -1092,15 +1128,19 @@ contains
     write(mf,'(T5,a)')'<PointData Scalars="eta" Vectors="vel">'
     
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="eta" format="ascii">'
-    write(mf,*)b%et0
+    write(mf,'(E20.10)')b%et0
     write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
     ! write(mf,*)etaMax-etaMin
     ! write(mf,'(T7,a)')'</DataArray>'
 
+    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
+    ! write(mf,*)b%absC(1:b%npl)
+    ! write(mf,'(T7,a)')'</DataArray>'
+
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="depth" format="ascii">'
-    write(mf,*)-b%dep(1:b%npl)
+    write(mf,'(E20.10)')-b%dep(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="porH" format="ascii">'
@@ -1109,7 +1149,7 @@ contains
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      write(mf,*)b%pt0(i),b%qt0(i),0
+      write(mf,'(3E20.10)')b%pt0(i),b%qt0(i),0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     
@@ -1125,7 +1165,7 @@ contains
     write(mf,'(T5,a)')'<Points>'
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="Points" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      write(mf,*)b%cor(i,:),0
+      write(mf,'(3E20.10)')b%cor(i,:),0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T5,a)')'</Points>'
@@ -1133,17 +1173,17 @@ contains
     write(mf,'(T5,a)')'<Cells>'
     write(mf,'(T7,a)')'<DataArray type="Int32" Name="connectivity" format="ascii">'  
     do i=1,b%nele
-      write(mf,*)b%conn(i,1:3)-1
+      write(mf,'(3I12)')b%conn(i,1:3)-1
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T7,a)')'<DataArray type="Int32" Name="offsets" format="ascii">'  
     do i=1,b%nele
-      write(mf,*)3*i
+      write(mf,'(I12)')3*i
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T7,a)')'<DataArray type="UInt8" Name="types" format="ascii">'  
     do i=1,b%nele
-      write(mf,*)5
+      write(mf,'(I12)')5
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T5,a)')'</Cells>'

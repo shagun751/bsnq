@@ -6,14 +6,12 @@ Q) Resume file name (Mention the path in between quotes)
 Q) Time-step (s)
 0.02
 Q) Run Time (s)
-10.0
+40.0
 
 Q) Error limit
 1e-6
 Q) Maximum number of iterations for GMRES solver
 50000
-Q) Dichlet BC method (1-Penalty | 2-SemDirect)
-2
 
 Q) Output file interval (s)
 0.5
@@ -36,9 +34,9 @@ Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)
 .true.
-Q) Regions (Num; Type | Lim | length) (Type: 1234 -> NWSE)
+Q) Regions (Num; Type | Lim | length | waveT) (Type: 1234 -> NWSE)
 1
-4 30 6.576
+4 30 6.576 2
 
 Q) Porous layer definition
 Q) Enable? (.true. / .false.)

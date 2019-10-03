@@ -33,7 +33,6 @@ end module bsnqGlobVars
 
 
 
-
 !!-------------------------airyWaveModule--------------------------!!
 module airyWaveModule
 use bsnqGlobVars
@@ -156,3 +155,87 @@ contains
 
 end module airyWaveModule
 !!-----------------------End airyWaveModule------------------------!!
+
+
+
+!!--------------------------outAbsModule---------------------------!!
+module outAbsModule
+use bsnqGlobVars
+implicit none
+
+  type, public :: absTyp
+    integer(kind=C_K1)::N,typ
+    real(kind=C_K2)::x0,l,c1,wT
+  contains
+    procedure ::  calcAbsC
+  end type absTyp
+
+  interface absTyp
+    procedure ::  initAbsTyp    
+  end interface absTyp
+
+contains
+
+!!--------------------------initAbsTyp-------------------------!!
+  function initAbsTyp(N,typ,x0,l,wT) result(b)
+  implicit none
+    
+    integer(kind=C_K1),intent(in)::N,typ
+    real(kind=C_K2),intent(in)::x0,l,wT    
+    type(absTyp)::b    
+
+    b%N=N
+    b%typ=typ
+    b%x0=x0
+    b%l=l
+    b%wT=wT
+    b%c1=30d0/wT/(dexp(1d0)-1d0)    
+
+  end function initAbsTyp
+!!------------------------End initAbsTyp-----------------------!!
+
+
+
+!!---------------------------calcAbsC--------------------------!!
+  subroutine calcAbsC(b,npt,cor,absC)
+  implicit none
+
+    class(absTyp),intent(in)::b
+    integer(kind=C_K1),intent(in)::npt
+    integer(kind=C_K1)::i,ix
+
+    real(kind=C_K2),intent(in)::cor(npt,2)
+    real(kind=C_K2),intent(inout)::absC(npt)
+    real(kind=C_K2)::x,dc,dx
+
+    select case(b%typ)
+      case(1)
+        ix=2
+        dc=1d0
+
+      case(2)
+        ix=1
+        dc=-1d0
+
+      case(3)
+        ix=2
+        dc=-1d0
+
+      case(4)
+        ix=1
+        dc=1d0
+
+    end select
+
+    do i=1,npt
+      dx=dc*(cor(i,ix)-b%x0)/b%l
+      if(dx.gt.0d0)then
+        absC(i)=b%c1*(dexp(dx**2)-1d0)
+      endif
+    enddo
+
+  end subroutine calcAbsC
+!!-------------------------End calcAbsC------------------------!!
+
+end module outAbsModule
+!!------------------------End outAbsModule-------------------------!!
