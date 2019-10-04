@@ -95,6 +95,8 @@ implicit none
     procedure ::  preInstructs
     procedure ::  postInstructs
     procedure ::  solveAll
+    procedure ::  diriBCEtaDiff
+    procedure ::  diriBCPQDiff
     procedure ::  diriBCEta
     procedure ::  diriBCPQ
     procedure ::  updateSoln
@@ -170,10 +172,10 @@ contains
     write(9,'(" [---] ",3F15.6)')b%wvIn%T,b%wvIn%L,b%wvIn%d
     write(9,'(" [INF] ",A15)')'kh'
     write(9,'(" [---] ",F15.6)')b%wvIn%k*b%wvIn%d
-    write(9,'(" [INF] At 10 WavePeriods")')
+    write(9,'(" [INF] At 2.25 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call b%wvIn%getEta(b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)
-    call b%wvIn%getPQ(4*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr2,tmpr3)
+    call b%wvIn%getEta(2.25d0*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)
+    call b%wvIn%getPQ(2.25d0*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr2,tmpr3)
     write(9,'(" [---] ",3F15.6)')tmpr1,tmpr2,tmpr3
 
     read(mf,*,end=81,err=81)bqtxt
@@ -415,8 +417,25 @@ contains
 
     endif
 
+    !! Forcing Dirichlet BC
+    call b%diriBCEta(b%tOb(0)%e,b%tOb(0)%rtm)
+    call b%diriBCPQ(b%tOb(0)%p,b%tOb(0)%q,b%tOb(0)%rtm)
+    
     b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
     call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
+
+    ! do i=1,b%nbndp
+    !   j2=b%bndPT(i)
+    !   if(j2.eq.11)then
+    !     i2=b%bndP(i)
+    !     call b%wvIn%getEta(b%tOb(0)%rtm,b%cor(i2,1),b%cor(i2,2),tmpr1)
+    !     call b%wvIn%getEta(b%tOb(1)%rtm,b%cor(i2,1),b%cor(i2,2),tmpr2)
+    !     write(9,302)"InWv",b%tOb(0)%rtm,b%tOb(0)%e(i2),&
+    !       b%tOb(0)%p(i2),b%tOb(0)%q(i2)
+    !     write(9,302)"InEt",b%tOb(1)%e(i2),tmpr1,tmpr2,tmpr1-tmpr2
+    !     exit
+    !   endif
+    ! enddo
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
@@ -428,6 +447,7 @@ contains
     write(9,301)"[TIL]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
     write(9,*)
     301 format('      |',a6,3F15.4)
+    302 format('      |',a6,4F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!
@@ -506,7 +526,7 @@ contains
       gRE(i)=dt*( tmpr1 + tmpr2 )
     enddo
 
-    call b%diriBCEta(gRE, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCEtaDiff(gRE, b%tOb(0)%rtm, b%tOb(1)%rtm)
     
     gRE=gRE/b%rowMaxE
 
@@ -517,7 +537,7 @@ contains
     call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gME,gRE,gXE,&
       b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'Eta',j,i,tmpr1    
-    call b%diriBCEta(gXE, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCEtaDiff(gXE, b%tOb(0)%rtm, b%tOb(1)%rtm)
     !!---------------End solveEta--------------!!
 
 
@@ -560,7 +580,7 @@ contains
       gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )
     enddo
     
-    call b%diriBCPQ(gRPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCPQDiff(gRPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
 
     gRPQ=gRPQ/b%rowMaxPQ
     
@@ -568,7 +588,7 @@ contains
     call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,gRPQ,&
       gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'PQ',j,i,tmpr1
-    call b%diriBCPQ(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
     call system_clock(sysC(2))
     !!---------------End solvePQ---------------!!
 
@@ -597,7 +617,71 @@ contains
 
 
 !!----------------------------diriBCEta----------------------------!!
-  subroutine diriBCEta(b,mat,rTt0,rTt1)
+  subroutine diriBCEta(b,mat,rTt0)
+  implicit none
+
+    class(bsnqCase),intent(in)::b
+    real(kind=C_K2),intent(in)::rTt0
+    real(kind=C_K2),intent(inout)::mat(b%npl)    
+
+    !! Note : Consistent with SemiDirect only
+    do i=1,b%nbndp
+      i2=b%bndP(i)
+      j2=b%bndPT(i)
+      if(i2.gt.b%npl)cycle !Linear only
+      if(j2.eq.11)then
+        call b%wvIn%getEta(rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
+        mat(i2)=tmpr1
+
+      elseif(j2.eq.14)then
+        mat(i2)=0d0
+
+      endif
+    enddo
+  end subroutine diriBCEta
+!!--------------------------End diriBCEta--------------------------!!
+
+
+
+!!----------------------------diriBCPQ-----------------------------!!
+  subroutine diriBCPQ(b,p,q,rTt0)
+  implicit none
+
+    class(bsnqCase),intent(in)::b
+    real(kind=C_K2),intent(in)::rTt0
+    real(kind=C_K2),intent(inout)::p(b%npt),q(b%npt)
+
+    !! Note : Consistent with SemiDirect only
+    do i=1,b%nbndp
+      i2=b%bndP(i)
+      j2=b%bndPT(i)
+      if(j2.eq.11)then
+        call b%wvIn%getPQ(rTt0,b%cor(i2,1),b%cor(i2,2),&
+          tmpr1,tmpr2)         
+        p(i2)=tmpr1
+        q(i2)=tmpr2
+
+      elseif((j2.eq.12).or.(j2.eq.14))then
+        p(i2)=0d0
+        q(i2)=0d0
+
+      elseif(j1.eq.13)then
+        if(abs(b%bndPN(i1,1)).gt.0.1)then
+          p(i2)=0d0
+        endif
+        if(abs(b%bndPN(i1,2)).gt.0.1)then
+          q(i2)=0d0
+        endif
+
+      endif
+    enddo
+  end subroutine diriBCPQ
+!!--------------------------End diriBCPQ---------------------------!!
+
+
+
+!!--------------------------diriBCEtaDiff--------------------------!!
+  subroutine diriBCEtaDiff(b,mat,rTt0,rTt1)
   implicit none
 
     class(bsnqCase),intent(in)::b
@@ -619,13 +703,13 @@ contains
 
       endif
     enddo
-  end subroutine diriBCEta
-!!--------------------------End diriBCEta--------------------------!!
+  end subroutine diriBCEtaDiff
+!!------------------------End diriBCEtaDiff------------------------!!
 
 
 
-!!----------------------------diriBCPQ-----------------------------!!
-  subroutine diriBCPQ(b,mat,rTt0,rTt1)
+!!--------------------------diriBCPQDiff---------------------------!!
+  subroutine diriBCPQDiff(b,mat,rTt0,rTt1)
   implicit none
 
     class(bsnqCase),intent(in)::b
@@ -658,8 +742,8 @@ contains
 
       endif
     enddo
-  end subroutine diriBCPQ
-!!--------------------------End diriBCPQ---------------------------!!
+  end subroutine diriBCPQDiff
+!!------------------------End diriBCPQDiff-------------------------!!
 
 
 
