@@ -43,7 +43,7 @@ continued from bsnq\_par\_v8.36
 - [x] WaveType class with constructor for waveLength
 - [x] Paraview XML output
 - [x] Improved Makefile - to reduce compilation time by grouping regular files in a header
-- [x] *bsnqVars* class for storing P, Q, &eta; totDep and time values
+- [x] *bsnqVars* class for storing P, Q, &eta;, totDep and time values
 
 #### Matrices with correct signs
 - [x] Mass M1 and M2
