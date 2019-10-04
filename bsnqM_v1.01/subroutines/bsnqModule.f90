@@ -42,7 +42,7 @@ implicit none
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
     integer(kind=C_K1)::maxIter,fileOut,resumeOut    
-    integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb
+    integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb,nSOb
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
     integer(kind=C_K1),allocatable::bndPT(:),probe(:)
@@ -77,7 +77,7 @@ implicit none
     logical(kind=C_LG)::resume,presOn,absOn
     type(waveType)::wvIn
     type(absTyp),allocatable::absOb(:)
-    type(bsnqVars),allocatable::tOb(:)
+    type(bsnqVars),allocatable::tOb(:),sOb(:)
     
     
 
@@ -254,6 +254,12 @@ contains
       call b%tOb(i)%initBsnqVars(b%npl,b%npt)
     enddo
 
+    b%nSOb=3
+    allocate(b%sOb(b%nSOb))
+    do i=1,b%nSOb
+      call b%sOb(i)%initBsnqVars(b%npl,b%npt)
+    enddo    
+
     b%tOb(0)%rtm=0d0
     b%tOb(0)%e=0d0
     b%tOb(0)%p=0d0
@@ -366,6 +372,14 @@ contains
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector
 
+    do i=b%nSOb,2,-1
+      b%sOb(i)%rtm = b%sOb(i-1)%rtm
+      b%sOb(i)%e = b%sOb(i-1)%e
+      b%sOb(i)%p = b%sOb(i-1)%p
+      b%sOb(i)%q = b%sOb(i-1)%q
+      b%sOb(i)%tD = b%sOb(i-1)%tD
+    enddo
+
     do i=b%nTOb-1,1,-1
       b%tOb(i)%rtm = b%tOb(i-1)%rtm
       b%tOb(i)%e = b%tOb(i-1)%e
@@ -386,6 +400,23 @@ contains
 
     class(bsnqCase),intent(inout)::b    
 
+    if(b%tStep.ge.3)then
+      b%tOb(0)%e = b%tOb(1)%e + 1d0/12d0 * &
+        ( 23d0*b%sOb(1)%e - 16d0*b%sOb(2)%e + 5d0*b%sOb(3)%e )
+      b%tOb(0)%p = b%tOb(1)%p + 1d0/12d0 * &
+        ( 23d0*b%sOb(1)%p - 16d0*b%sOb(2)%p + 5d0*b%sOb(3)%p )
+      b%tOb(0)%q = b%tOb(1)%q + 1d0/12d0 * &
+        ( 23d0*b%sOb(1)%q - 16d0*b%sOb(2)%q + 5d0*b%sOb(3)%q )
+    
+    else
+      b%tOb(0)%e = b%tOb(1)%e + b%sOb(1)%e
+      b%tOb(0)%p = b%tOb(1)%p + b%sOb(1)%p
+      b%tOb(0)%q = b%tOb(1)%q + b%sOb(1)%q
+
+    endif
+
+    b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
@@ -549,29 +580,16 @@ contains
 
 
 !!----------------------------updateSoln---------------------------!!
-  subroutine updateSoln(b,step)
+  subroutine updateSoln(b)
   implicit none
 
-    class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1),intent(in)::step
+    class(bsnqCase),intent(inout)::b    
 
     b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
 
-    if(step.eq.1)then
-      b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
-      b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
-      b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
-      b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
-      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
-    
-    elseif(step.eq.2)then
-      b%tOb(0)%e = b%tOb(1)%e + b%gXE
-      b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)
-      b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)
-      b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
-      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
-      
-    endif
+    b%sOb(1)%e = b%gXE
+    b%sOb(1)%p = b%gXPQ(1:b%npt)
+    b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!
@@ -1226,8 +1244,8 @@ contains
     integer(kind=C_K1),intent(in)::npl,npt
     logical(kind=C_LG)::tmp
 
-    tmp=allocated(b%e).and.allocated(b%p).and.&
-      allocated(b%q).and.allocated(b%tD)
+    tmp=allocated(b%e).or.allocated(b%p).or.&
+      allocated(b%q).or.allocated(b%tD)    
     if(tmp)then
       write(9,'(" [ERR] Already allocated bsnqVars")')
       stop

@@ -85,7 +85,7 @@ implicit none
 
     call bq%preInstructs
 
-    !!-------------RK2 S1--------------!!
+    !!------------AdBs3E S1------------!!
     bq%ur = bq%tOb(1)%p / bq%tOb(1)%tD
     bq%vr = bq%tOb(1)%q / bq%tOb(1)%tD
     bq%pbpr = bq%tOb(1)%p / bq%por
@@ -95,21 +95,8 @@ implicit none
     call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
       bq%pbpr, bq%qbpr, bq%tOb(1)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
-    call bq%updateSoln(1)
-    !!-----------End RK2 S1------------!!
-
-    !!-------------RK2 S2--------------!!
-    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
-    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
-    bq%pbpr = bq%tOb(0)%p / bq%por
-    bq%qbpr = bq%tOb(0)%q / bq%por 
-    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
-    call bq%dynaMatrices(bq%tOb(0)%tD, bq%ur, bq%vr)
-    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
-      bq%pbpr, bq%qbpr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
-    call bq%updateSoln(2)
-    !!-----------End RK2 S2------------!!
+    call bq%updateSoln
+    !!----------End AdBs3E S1----------!!
 
     call bq%postInstructs
 
