@@ -366,7 +366,7 @@ contains
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector
 
-    do i=1,b%nTOb-1
+    do i=b%nTOb-1,1,-1
       b%tOb(i)%rtm = b%tOb(i-1)%rtm
       b%tOb(i)%e = b%tOb(i-1)%e
       b%tOb(i)%p = b%tOb(i-1)%p
@@ -1235,6 +1235,10 @@ contains
     allocate(b%e(npl),b%p(npt),b%q(npt),b%tD(npt))
     b%npl=npl
     b%npt=npt
+    b%e=0d0
+    b%p=0d0
+    b%q=0d0
+    b%tD=0d0
 
   end subroutine initBsnqVars
 !!------------------------End initBsnqVars-------------------------!!
