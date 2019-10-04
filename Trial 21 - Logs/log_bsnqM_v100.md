@@ -83,6 +83,11 @@ It was also noted in this version that there is a need to force the DirichletBC.
 ##### Update
 I tested with the old advection term calculation and there almost no differnce in the results between the results calculated using the new *fem_N6i_du6N6jdx()* and the old *nAdvMat()*.
 
+##### Update-2
+I tested with the old *Bs5* *Bs6* terms. This too is not the cause for the increased amplitude. I however testes without doing the boundary integral in that equation but I dont think thats too important.  
+I think now that its only the inlet BC.  
+Another possibility is me not applying the Neumann BC explicitly for &eta;.
+
 
 #### Observations : Time-stepping : RK2
 This too does not work! Similar problems as Predictor-corrector
