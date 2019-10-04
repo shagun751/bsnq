@@ -20,6 +20,7 @@ continued from bsnq\_par\_v8.36
 - It is also required to make it easier to couple with other codes, especially such as MLPG\_R code.
 - FEM analytical integrals as general functions so that they can be used later in other code. Check file *femAnalyticalTri_vx.x.f90*
 
+
 #### List of Work
 - [x] Mesh input (Type0)
 - [x] FEM Initialisations
@@ -45,6 +46,7 @@ continued from bsnq\_par\_v8.36
 - [x] Improved Makefile - to reduce compilation time by grouping regular files in a header
 - [x] *bsnqVars* class for storing P, Q, &eta;, totDep and time values
 
+
 #### Matrices with correct signs
 - [x] Mass M1 and M2
 - [x] Bs1, Bs2, Bs3, Bs4
@@ -53,6 +55,7 @@ continued from bsnq\_par\_v8.36
 - [x] Bs5, Bs6
 - [x] Advection matrix with porosity removed
 - [x] Hydrostatic pressure matrix
+
 
 #### Modular structure
 - bsnqModule
@@ -69,6 +72,7 @@ continued from bsnq\_par\_v8.36
 - bsnqGlobVars  
   - Datatypes and constants only
 
+
 #### Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.
 
@@ -76,12 +80,17 @@ The code now is stable like before. However the solution has higher amplitude th
 
 It was also noted in this version that there is a need to force the DirichletBC. The Dirichlet type BC are applied to &Delta;P, &Delta;Q and &Delta;&eta; while solving for the system of linear equations. This however does not ensure that after time-stepping the solution would match the required Dirichlet solution. So now I am forcing the dirichlet BC. However despite me correcting this I am getting slightly higher amplitude than expected. Hopefully this is not the reason behind it, but it is possible.
 
+##### Update
+I tested with the old advection term calculation and there almost no differnce in the results between the results calculated using the new *fem_N6i_du6N6jdx()* and the old *nAdvMat()*.
+
+
 #### Observations : Time-stepping : RK2
 This too does not work! Similar problems as Predictor-corrector
 
 Now I have two options:  
 1. Try RK4. In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 value. Therefore there is some hope that RK4 might work
 1. AdamBash-3-Explicit. I should test with this to ensure that the results atleast work with this coz it used to work earlier. If it does not then please check the changes you have made [here](#predCorNote1)
+
 
 #### Observations : Time-stepping : Predictor-Corrector
 The predictor-corrector time-stepping had working in the GWCE (Generalised Wave Continuity) equation model pretty well as shown in Dresback(2004). We ourselves had found good results with this time-stepping in our 9-noded FEM-GWCE model, where the oscillations at lower depth and near boundaries were removed. With those results in mind, I tried to implement the algorithm in Bsnq equation. 
@@ -103,6 +112,7 @@ There are another two differences to keep in mind in these version:
 - I have not done Gauss divergence for the *Bs5* and *Bs6* terms.
 
 -----------------------------------------------
+
 
 ### References
 1. Sørensen, O. R., Schäffer, H. A., & Sørensen, L. S. (2004). Boussinesq-type modelling using an unstructured finite element technique. Coastal Engineering, 50(4), 181–198. [DOI](https://doi.org/10.1016/j.coastaleng.2003.10.005)
