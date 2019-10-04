@@ -706,8 +706,8 @@ end interface
 
   !!------------Solitary Wave Inititalisation------------!!
   ! ! ! Solitary wave fnc2
-  ! tmpr1=0.5d0
-  ! tmpr2=0.02d0
+  ! tmpr1=0.45d0
+  ! tmpr2=0.045d0
   ! !depth=tmpr1
   ! tmpr3=dsqrt(grav*(tmpr1+tmpr2))
   ! tmpr4=dsqrt(3*tmpr2/(4*(tmpr1**3)))
