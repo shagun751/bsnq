@@ -81,33 +81,33 @@ implicit none
   call bq%initMat
   call bq%statMatrices  
   
-  do while(bq%rTt0.lt.bq%endTime)    
+  do while(bq%tOb(0)%rtm .lt. bq%endTime)  
 
     call bq%preInstructs
 
     !!-------------RK2 S1--------------!!
-    bq%ur=bq%pt1/bq%tDt1
-    bq%vr=bq%qt1/bq%tDt1
-    bq%pbpr=bq%pt1/bq%por
-    bq%qbpr=bq%qt1/bq%por   
-    rTime=bq%rTt1
-    call bq%dynaMatrices(bq%tDt1,bq%ur,bq%vr)
-    call bq%solveAll(rTime,bq%pt1,bq%qt1,&
-      bq%pbpr,bq%qbpr,bq%et1,&
-      bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
+    bq%ur = bq%tOb(1)%p / bq%tOb(1)%tD
+    bq%vr = bq%tOb(1)%q / bq%tOb(1)%tD
+    bq%pbpr = bq%tOb(1)%p / bq%por
+    bq%qbpr = bq%tOb(1)%q / bq%por   
+    rTime=bq%tOb(1)%rtm
+    call bq%dynaMatrices(bq%tOb(1)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
+      bq%pbpr, bq%qbpr, bq%tOb(1)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
     call bq%updateSoln(1)
     !!-----------End RK2 S1------------!!
 
     !!-------------RK2 S2--------------!!
-    bq%ur=bq%pt0/bq%tDt0
-    bq%vr=bq%qt0/bq%tDt0
-    bq%pbpr=bq%pt0/bq%por
-    bq%qbpr=bq%qt0/bq%por 
-    rTime=(bq%rTt1 + bq%rTt0)/2d0   
-    call bq%dynaMatrices(bq%tDt0,bq%ur,bq%vr)
-    call bq%solveAll(rTime,bq%pt0,bq%qt0,&
-      bq%pbpr,bq%qbpr,bq%et0,&
-      bq%gXW,bq%gXE,bq%gXPQ,bq%gRE,bq%gRPQ)
+    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
+    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
+    bq%pbpr = bq%tOb(0)%p / bq%por
+    bq%qbpr = bq%tOb(0)%q / bq%por 
+    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
+    call bq%dynaMatrices(bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
+      bq%pbpr, bq%qbpr, bq%tOb(0)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
     call bq%updateSoln(2)
     !!-----------End RK2 S2------------!!
 

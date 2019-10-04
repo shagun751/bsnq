@@ -27,6 +27,14 @@ implicit none
   character(len=C_KSTR)::bqtxt  
   logical(kind=C_LG)::ex  
 
+  type, public :: bsnqVars
+    integer(kind=C_K1)::npl,npt
+    real(kind=C_K2)::rtm
+    real(kind=C_K2),allocatable::p(:),q(:),e(:),tD(:)
+  contains
+    procedure ::  initBsnqVars
+  end type bsnqVars
+
   
   type, public :: bsnqCase
     
@@ -34,7 +42,7 @@ implicit none
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
     integer(kind=C_K1)::maxIter,fileOut,resumeOut    
-    integer(kind=C_K1)::nnzl,nnzf,tStep
+    integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
     integer(kind=C_K1),allocatable::bndPT(:),probe(:)
@@ -42,12 +50,10 @@ implicit none
     integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
 
-    real(kind=C_K2)::dt,errLim,endTime,rTt0,rTt1
+    real(kind=C_K2)::dt,errLim,endTime,rTime
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
-    real(kind=C_K2),allocatable::pt0(:),qt0(:),et0(:),tDt0(:)
-    real(kind=C_K2),allocatable::pt1(:),qt1(:),et1(:),tDt1(:)
     real(kind=C_K2),allocatable::por(:)    
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
@@ -71,6 +77,7 @@ implicit none
     logical(kind=C_LG)::resume,presOn,absOn
     type(waveType)::wvIn
     type(absTyp),allocatable::absOb(:)
+    type(bsnqVars),allocatable::tOb(:)
     
     
 
@@ -211,8 +218,6 @@ contains
     i1=b%ivl(0)
     j1=b%ivq(0)
 
-    allocate(b%pt0(j),b%qt0(j),b%et0(i),b%tDt0(j))
-    allocate(b%pt1(j),b%qt1(j),b%et1(i),b%tDt1(j))
     allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
     allocate(b%por(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
@@ -243,12 +248,18 @@ contains
       enddo  
     endif
 
-    b%rTt0=0d0
-    b%et0=0d0
-    b%pt0=0d0
-    b%qt0=0d0
-    b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
-    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+    b%nTOb=2
+    allocate(b%tOb(0:b%nTOb-1))
+    do i=0,b%nTOb-1
+      call b%tOb(i)%initBsnqVars(b%npl,b%npt)
+    enddo
+
+    b%tOb(0)%rtm=0d0
+    b%tOb(0)%e=0d0
+    b%tOb(0)%p=0d0
+    b%tOb(0)%q=0d0
+    b%tOb(0)%tD(1:b%npl)=b%dep(1:b%npl)+b%tOb(0)%e
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
 
     call paralution_init(b%nthrd)    
 
@@ -347,18 +358,22 @@ contains
 
     class(bsnqCase),intent(inout)::b    
 
-    b%tStep=b%tStep+1
-    b%rTt1=b%rTt0
-    b%rTt0=b%rTt0+b%dt
+    b%tStep=b%tStep+1    
+    b%rTime=b%rTime+b%dt
     write(9,'(" ------Time : ",I10," ",F20.6,"------")')&
-      b%tStep,b%rTt0
+      b%tStep,b%rTime
     call system_clock(b%sysC(3)) 
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector
-    b%pt1=b%pt0
-    b%qt1=b%qt0
-    b%et1=b%et0
-    b%tDt1=b%tDt0
+
+    do i=1,b%nTOb-1
+      b%tOb(i)%rtm = b%tOb(i-1)%rtm
+      b%tOb(i)%e = b%tOb(i-1)%e
+      b%tOb(i)%p = b%tOb(i-1)%p
+      b%tOb(i)%q = b%tOb(i-1)%q
+      b%tOb(i)%tD = b%tOb(i-1)%tD
+    enddo
+    b%tOb(0)%rtm=b%rTime
 
   end subroutine preInstructs
 !!-------------------------End preInstructs------------------------!!
@@ -460,7 +475,7 @@ contains
       gRE(i)=dt*( tmpr1 + tmpr2 )
     enddo
 
-    call b%diriBCEta(gRE)
+    call b%diriBCEta(gRE, b%tOb(0)%rtm, b%tOb(1)%rtm)
     
     gRE=gRE/b%rowMaxE
 
@@ -471,7 +486,7 @@ contains
     call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gME,gRE,gXE,&
       b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'Eta',j,i,tmpr1    
-    call b%diriBCEta(gXE)
+    call b%diriBCEta(gXE, b%tOb(0)%rtm, b%tOb(1)%rtm)
     !!---------------End solveEta--------------!!
 
 
@@ -514,7 +529,7 @@ contains
       gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )
     enddo
     
-    call b%diriBCPQ(gRPQ)    
+    call b%diriBCPQ(gRPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
 
     gRPQ=gRPQ/b%rowMaxPQ
     
@@ -522,7 +537,7 @@ contains
     call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,gRPQ,&
       gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'PQ',j,i,tmpr1
-    call b%diriBCPQ(gXPQ)    
+    call b%diriBCPQ(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
     call system_clock(sysC(2))
     !!---------------End solvePQ---------------!!
 
@@ -543,18 +558,18 @@ contains
     b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
 
     if(step.eq.1)then
-      b%et0 = b%et1 + b%gXE/2d0
-      b%pt0 = b%pt1 + b%gXPQ(1:b%npt)/2d0
-      b%qt0 = b%qt1 + b%gXPQ(b%npt+1:2*b%npt)/2d0
-      b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
-      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+      b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
+      b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
+      b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
+      b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
     
     elseif(step.eq.2)then
-      b%et0 = b%et1 + b%gXE
-      b%pt0 = b%pt1 + b%gXPQ(1:b%npt)
-      b%qt0 = b%qt1 + b%gXPQ(b%npt+1:2*b%npt)
-      b%tDt0(1:b%npl)=b%dep(1:b%npl)+b%et0
-      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tDt0)        
+      b%tOb(0)%e = b%tOb(1)%e + b%gXE
+      b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)
+      b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)
+      b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+      call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
       
     endif
 
@@ -564,11 +579,12 @@ contains
 
 
 !!----------------------------diriBCEta----------------------------!!
-  subroutine diriBCEta(b,mat)
+  subroutine diriBCEta(b,mat,rTt0,rTt1)
   implicit none
 
     class(bsnqCase),intent(in)::b
-    real(kind=C_K2),intent(inout)::mat(b%npl)
+    real(kind=C_K2),intent(in)::rTt0,rTt1
+    real(kind=C_K2),intent(inout)::mat(b%npl)    
 
     !! Note : Consistent with SemiDirect only
     do i=1,b%nbndp
@@ -576,8 +592,8 @@ contains
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
       if(j2.eq.11)then
-        call b%wvIn%getEta(b%rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
-        call b%wvIn%getEta(b%rTt1,b%cor(i2,1),b%cor(i2,2),tmpr2)
+        call b%wvIn%getEta(rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
+        call b%wvIn%getEta(rTt1,b%cor(i2,1),b%cor(i2,2),tmpr2)
         mat(i2)=tmpr1-tmpr2
 
       elseif(j2.eq.14)then
@@ -591,10 +607,11 @@ contains
 
 
 !!----------------------------diriBCPQ-----------------------------!!
-  subroutine diriBCPQ(b,mat)
+  subroutine diriBCPQ(b,mat,rTt0,rTt1)
   implicit none
 
     class(bsnqCase),intent(in)::b
+    real(kind=C_K2),intent(in)::rTt0,rTt1
     real(kind=C_K2),intent(inout)::mat(2*b%npt)
 
     !! Note : Consistent with SemiDirect only
@@ -602,9 +619,9 @@ contains
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(j2.eq.11)then
-        call b%wvIn%getPQ(b%rTt0,b%cor(i2,1),b%cor(i2,2),&
+        call b%wvIn%getPQ(rTt0,b%cor(i2,1),b%cor(i2,2),&
           tmpr1,tmpr2)         
-        call b%wvIn%getPQ(b%rTt1,b%cor(i2,1),b%cor(i2,2),&
+        call b%wvIn%getPQ(rTt1,b%cor(i2,1),b%cor(i2,2),&
           tmpr3,tmpr4)
         mat(i2)=tmpr1-tmpr3
         mat(b%npt+i2)=tmpr2-tmpr4
@@ -753,8 +770,8 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_k1)::nbndpoi
-    integer(kind=C_k1),allocatable::tempia(:,:)
+    integer(kind=C_K1)::nbndpoi
+    integer(kind=C_K1),allocatable::tempia(:,:)
     
     b%maxNePoi=maxNePoi
     b%maxNeEle=maxNeEle
@@ -1115,9 +1132,9 @@ contains
   subroutine outputXML(b)
   implicit none
 
-    class(bsnqCase),intent(in)::b    
+    class(bsnqCase),intent(in)::b 
 
-    write(bqtxt,'(I15)')int(b%rTt0*1000)
+    write(bqtxt,'(I15)')int(b%tOb(0)%rtm*1000)
     bqtxt=adjustl(bqtxt)
     bqtxt="Output/"//trim(b%probname)//"_"//trim(bqtxt)//".vtu"
     open(newunit=mf,file=trim(bqtxt))
@@ -1130,7 +1147,7 @@ contains
     write(mf,'(T5,a)')'<PointData Scalars="eta" Vectors="vel">'
     
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="eta" format="ascii">'
-    write(mf,'(E20.10)')b%et0
+    write(mf,'(E20.10)')b%tOb(0)%e
     write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
@@ -1151,7 +1168,7 @@ contains
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      write(mf,'(3E20.10)')b%pt0(i),b%qt0(i),0
+      write(mf,'(3E20.10)')b%tOb(0)%p(i), b%tOb(0)%q(i), 0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     
@@ -1195,9 +1212,31 @@ contains
     write(mf,'(a)')'</VTKFile>'
     close(mf)
 
-    write(9,'(" [MSG] OutXML at ",F15.4)')b%rTt0
+    write(9,'(" [MSG] OutXML at ",F15.4)')b%tOb(0)%rtm
 
   end subroutine outputXML
 !!--------------------------End outputXML--------------------------!!
+
+!!--------------------------initBsnqVars---------------------------!!
+  subroutine initBsnqVars(b,npl,npt)
+  use bsnqGlobVars
+  implicit none
+
+    class(bsnqVars),intent(inout)::b
+    integer(kind=C_K1),intent(in)::npl,npt
+    logical(kind=C_LG)::tmp
+
+    tmp=allocated(b%e).and.allocated(b%p).and.&
+      allocated(b%q).and.allocated(b%tD)
+    if(tmp)then
+      write(9,'(" [ERR] Already allocated bsnqVars")')
+      stop
+    endif
+    allocate(b%e(npl),b%p(npt),b%q(npt),b%tD(npt))
+    b%npl=npl
+    b%npt=npt
+
+  end subroutine initBsnqVars
+!!------------------------End initBsnqVars-------------------------!!
 
 end module bsnqModule

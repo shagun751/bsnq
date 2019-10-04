@@ -42,6 +42,8 @@ continued from bsnq\_par\_v8.36
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
 - [x] Paraview XML output
+- [x] Improved Makefile - to reduce compilation time by grouping regular files in a header
+- [x] *bsnqVars* class for storing P, Q, &eta; totDep and time values
 
 #### Matrices with correct signs
 - [x] Mass M1 and M2
@@ -89,6 +91,7 @@ Therefore, I can conclude that either I didnt apply predictor-corrector properly
 
 <a name="predCorNote1"/>
 There are another two differences to keep in mind in these version:  
+
 - I have calculated the advection term assuming u = P/(h + &eta;) as 6 point variable, where I interpolate the value of (h + &eta;) at the middle nodes.
 - I have not done Gauss divergence for the *Bs5* and *Bs6* terms.
 

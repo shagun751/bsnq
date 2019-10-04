@@ -14,12 +14,15 @@ PARA_INC=-I$(PARA_PATH)/build/inc
 COMPILER=ifort
 
 MAIN=bsnqQuadMain
+HEADER=bsnqQuadHeader
 
-OBJ=paralution_fortran.o $(MAIN).f90
+OBJ=paralution_fortran.o $(HEADER).o $(MAIN).f90
 
 SUBS=\
-subroutines/mods.f90 \
 subroutines/bsnqModule.f90 \
+
+SUBS2=\
+subroutines/mods.f90 \
 subroutines/geometry_v1.0.f90 \
 subroutines/mergeSort.f90 \
 subroutines/nodeConnAll.f90 \
@@ -28,15 +31,17 @@ subroutines/matrixSet2.f90 \
 subroutines/femAnalyticalTri_v1.0.f90 \
 subroutines/bndIntegral.f90 \
 subroutines/bndCondition_v1.0.f90 \
-subroutines/solver_v1.0.f90
-#subroutines/miscOps_v1.0.f90
+subroutines/solver_v1.0.f90 
 	
-default: $(OBJ)
+default: $(SUBS) $(OBJ)
 	mkdir -p Output Resume
-	$(COMPILER) -o bsnq $(SUBS) $(OBJ) $(PARA_LIB) $(PARA_FLAGS)
+	$(COMPILER) -o bsnq $^ $(PARA_LIB) $(PARA_FLAGS)
 	
 # $(MAIN).o: $(MAIN).f90
 # 	ifort $(PARA_FLAGS) -c $(MAIN).f90 $(SUBS)
+
+$(HEADER).o: subroutines/$(HEADER).f90 $(SUBS2)
+	$(COMPILER) -c $< $(PARA_FLAGS)
 
 paralution_fortran.o: $(PARA_CONV)
 	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
