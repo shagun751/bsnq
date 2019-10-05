@@ -62,6 +62,7 @@ implicit none
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
+    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -236,6 +237,7 @@ contains
     allocate(b%aFull(b%ivf(0)*2*j))
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
     allocate(b%gRE(i),b%gRPQ(2*j))
+    allocate(b%etaMax(i),b%etaMin(i))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
@@ -271,6 +273,8 @@ contains
     ! call solitIC(b%npl, b%npt, b%cor, &
     !   b%tOb(0)%e, b%tOb(0)%p, b%tOb(0)%q)
     
+    b%etaMin=b%tOb(0)%e
+    b%etaMax=b%tOb(0)%e
     call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
 
     call paralution_init(b%nthrd)    
@@ -428,6 +432,12 @@ contains
     b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
     call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
 
+    do i=1,b%npl
+      tmpr1=b%tOb(0)%e(i)
+      if(b%etaMin(i).gt.tmpr1) b%etaMin(i)=tmpr1
+      if(b%etaMax(i).lt.tmpr1) b%etaMax(i)=tmpr1
+    enddo
+
     ! do i=1,b%nbndp
     !   j2=b%bndPT(i)
     !   if(j2.eq.11)then
@@ -443,6 +453,12 @@ contains
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
+    endif
+
+    tmpr1=b%wvIn%T
+    if(mod(b%rTime,2*tmpr1).lt.0.1*tmpr1)then
+      b%etaMin=b%tOb(0)%e
+      b%etaMax=b%tOb(0)%e
     endif
 
     call system_clock(b%sysC(4))
@@ -1299,9 +1315,9 @@ end subroutine solitIC
     write(mf,'(E20.10)')b%tOb(0)%e
     write(mf,'(T7,a)')'</DataArray>'
 
-    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
-    ! write(mf,*)etaMax-etaMin
-    ! write(mf,'(T7,a)')'</DataArray>'
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
+    write(mf,'(E20.10)')b%etaMax-b%etaMin
+    write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
     ! write(mf,*)b%absC(1:b%npl)
