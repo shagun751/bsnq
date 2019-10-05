@@ -1,5 +1,5 @@
 subroutine bndIntegral1(npl,npt,nele,nbnd,conn,mabnd,Sz,ivl,ivq,&
-  linkl,linkq,invJ,bndS,dep,gFPP,gFPQ,gFQP,gFQQ)
+  linkl,linkq,invJ,bndS,dep,gFPP,gFPQ,gFQP,gFQQ,gFW)
 use bsnqGlobVars
 implicit none
 
@@ -9,16 +9,17 @@ implicit none
   integer(kind=C_K1),intent(in)::linkl(Sz(3))
   integer(kind=C_K1),intent(in)::linkq(Sz(4))
   integer(kind=C_K1),intent(in)::mabnd(nbnd,6)
-  integer(kind=C_K1)::i,j,k,ele,en(6),gRow,gCol,lRow,lCol
+  integer(kind=C_K1)::i,j,k,ele,en(6),gRow,gCol,lRow,lCol,sTyp
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
   
   real(kind=C_K2),intent(in)::invJ(nele,5),bndS(nbnd,3),dep(npt)
   real(kind=C_K2),intent(out)::gFPP(Sz(4)),gFPQ(Sz(4))
   real(kind=C_K2),intent(out)::gFQP(Sz(4)),gFQQ(Sz(4))
+  real(kind=C_K2),intent(out)::gFW(Sz(1))
   real(kind=C_K2)::cnst(10)
   real(kind=C_K2)::nx,ny,sL
   real(kind=C_K2)::lFPP(6,6),lFPQ(6,6),tmp(6,6)
-  real(kind=C_K2)::lFQP(6,6),lFQQ(6,6)
+  real(kind=C_K2)::lFQP(6,6),lFQQ(6,6),lFW(3,3),tmp3x3(3,3)
   real(kind=C_K2)::b11,b12,b21,b22
 
 
@@ -33,6 +34,7 @@ implicit none
   gFPQ=0d0
   gFQP=0d0
   gFQQ=0d0
+  gFW=0d0
 
   do i=1,nbnd
     ele=mabnd(i,3)
@@ -45,6 +47,7 @@ implicit none
     nx=bndS(i,1)
     ny=bndS(i,2)
     sL=bndS(i,3)
+    sTyp=mabnd(i,4)    
 
     if(mabnd(i,6).eq.1) then
       call bsnqBnd12(lFPP,lFPQ,lFQP,lFQQ,cnst,b11,b12,&
@@ -55,6 +58,16 @@ implicit none
     else if(mabnd(i,6).eq.3) then
       call bsnqBnd31(lFPP,lFPQ,lFQP,lFQQ,cnst,b11,b12,&
         b21,b22,nx,ny,dep(en(1)),dep(en(2)),dep(en(3)),tmp)
+    endif
+
+    lFW=0d0
+    if((sTyp.eq.11).or.(sTyp.eq.14))then
+      call femBnd_N3i_Sc3_dN3jdx(tmp3x3,dep(en(1)),dep(en(2)),&
+        dep(en(3)),b11,b12,mabnd(i,6))
+      lFW = tmp3x3*nx*sL
+      call femBnd_N3i_Sc3_dN3jdx(tmp3x3,dep(en(1)),dep(en(2)),&
+        dep(en(3)),b21,b22,mabnd(i,6))
+      lFW = lFW + tmp3x3*ny*sL
     endif
 
     lFPP=-lFPP*sL
@@ -80,6 +93,28 @@ implicit none
         gFQQ(k+j)=gFQQ(k+j)+lFQQ(lRow,lCol)
       enddo
     enddo    
+
+    if((sTyp.eq.11).or.(sTyp.eq.14))then
+      continue
+    else
+      cycle
+    endif
+
+    !3x3
+    do lRow=1,3
+      gRow=en(lRow)
+      k=(gRow-1)*ivl(0)
+      nlinkl=linkl(k+1:k+ivl(0))
+      do lCol=1,3
+        gCol=en(lCol)
+        do j=1,ivl(gRow)
+          if(nlinkl(j).eq.gCol) goto 14
+        enddo
+        write(9,*)"[Err] node conn missing in gFW at",gRow
+        stop
+        14 gFW(k+j)=gFW(k+j) + lFW(lRow,lCol)
+      enddo
+    enddo
 
   enddo
 

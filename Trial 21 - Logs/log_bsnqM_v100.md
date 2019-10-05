@@ -81,12 +81,19 @@ The code now is stable like before. However the solution has higher amplitude th
 It was also noted in this version that there is a need to force the DirichletBC. The Dirichlet type BC are applied to &Delta;P, &Delta;Q and &Delta;&eta; while solving for the system of linear equations. This however does not ensure that after time-stepping the solution would match the required Dirichlet solution. So now I am forcing the dirichlet BC. However despite me correcting this I am getting slightly higher amplitude than expected. Hopefully this is not the reason behind it, but it is possible.
 
 ##### Update
-I tested with the old advection term calculation and there almost no differnce in the results between the results calculated using the new *fem_N6i_du6N6jdx()* and the old *nAdvMat()*.
+I tested with the old advection term calculation and there almost no differnce in the results between the results calculated using the new *fem_N6i_du6N6jdx()* and the old *nAdvMat()*.  
+Hence the new method for calculating *NAdv* is not the reason for this amplitude increase.
 
 ##### Update-2
 I tested with the old *Bs5* *Bs6* terms. This too is not the cause for the increased amplitude. I however testes without doing the boundary integral in that equation but I dont think thats too important.  
+Hence the new method for calculating *NAdv*, *Bs5* and *Bs6* is not the reason for this amplitude increase.  
 I think now that its only the inlet BC.  
 Another possibility is me not applying the Neumann BC explicitly for &eta;.
+
+##### Update-3
+**The issue of higher amplitude has now been solved!**  
+The reason was me not calculating the boundary integral term in the auxiliary variable *w* equation. It is zero for the *type-12* and *type-13* boundaries due to d&eta;/dn = 0 at those boundaries. However at *type-11* (inlet) and *type-14* (sponge layer with &eta;=0) we need to calculate this boundary integra;. I have introduced a static matric *gFW* which simply adds to *gDMat* hence there is only one time computation and no increase in the dynamic calculations.  
+The results have been compared with the old code and its matches well with even better performance at the sponge layer than before.  
 
 
 #### Observations : Time-stepping : RK2

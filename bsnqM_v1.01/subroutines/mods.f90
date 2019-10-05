@@ -153,6 +153,28 @@ contains
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
 
+
+
+!!-------------------------getEtadxdy--------------------------!!
+  subroutine getEtadxdy(b,rTime,x,y,detadx,detady)
+  implicit none
+
+    class(waveType),intent(in)::b
+
+    !integer(kind=C_K1)::
+
+    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(out)::detadx,detady
+    real(kind=C_K2)::dx,dy
+
+    dx=(x-b%x0)
+    dy=(y-b%y0)
+    detadx=b%H/2d0 * b%kx * dcos(b%kx*dx + b%ky*dy - b%w*rTime)
+    detady=b%H/2d0 * b%ky * dcos(b%kx*dx + b%ky*dy - b%w*rTime)
+
+  end subroutine getEtadxdy
+!!-----------------------End getEtadxdy------------------------!!
+
 end module airyWaveModule
 !!-----------------------End airyWaveModule------------------------!!
 

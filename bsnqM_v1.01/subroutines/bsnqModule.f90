@@ -62,7 +62,7 @@ implicit none
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)
+    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)    
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -72,7 +72,7 @@ implicit none
     integer(kind=C_K1),allocatable::ivf(:),linkf(:)  
     real(kind=C_K2),allocatable::massW(:),massE(:)
     real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
-    real(kind=C_K2),allocatable::aFull(:)
+    real(kind=C_K2),allocatable::aFull(:),gFW(:)
 
     integer(kind=8)::sysC(10)
     logical(kind=C_LG)::resume,presOn,absOn
@@ -233,7 +233,7 @@ contains
     allocate(b%gBs5(i1*j),b%gBs6(i1*j),b%absC(j))
     allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
     allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
-    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j))
+    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j),b%gFW(i1*i))
     allocate(b%aFull(b%ivf(0)*2*j))
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
     allocate(b%gRE(i),b%gRPQ(2*j))
@@ -304,7 +304,7 @@ contains
 
     call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
       b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%bndS,b%dep,&
-      b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+      b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4,b%gFW)
     write(9,*)"[MSG] Done bndIntegral1"
 
     b%massW=b%mass2
@@ -313,6 +313,7 @@ contains
     b%gBs2=b%gBs2+b%gFBs2
     b%gBs3=b%gBs3+b%gFBs3
     b%gBs4=b%gBs4+b%gFBs4+b%mass1
+    b%gDMat=b%gDMat+b%gFW
 
     call diriBCMass(b%npl,b%npt,b%nbndp,b%bndP,b%bndPT,&
       b%Sz,b%ivl,b%ivq,b%linkl,b%linkq,b%bndPN,b%gBs1,b%gBs2,&
@@ -358,7 +359,7 @@ contains
 
     class(bsnqCase),intent(inout)::b    
 
-    deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4)
+    deallocate(b%gFBs1,b%gFBs2,b%gFBs3,b%gFBs4,b%gFW)
     deallocate(b%p2e,b%p2p)
     deallocate(b%aFull,b%ivf,b%linkf)
     deallocate(b%massW,b%massE)

@@ -191,3 +191,102 @@ implicit none
     - 8d0*u4 - 12d0*u5 + 48d0*u6)
 
 end subroutine fem_N6i_du6N6jdx
+
+
+
+
+subroutine femBnd_N3i_Sc3_N3j(mat,h1,h2,h3,side)
+use bsnqGlobVars
+implicit none
+  
+  integer(kind=C_K1),intent(in)::side
+  real(kind=C_K2),intent(out)::mat(3,3)
+  real(kind=C_K2),intent(in)::h1,h2,h3
+
+  mat=0d0
+
+  if(side.eq.1)then !S12
+    mat(1,1)=h1/4d0 + h2/12d0 
+    mat(1,2)=h1/12d0 + h2/12d0
+
+    mat(2,1)=h1/12d0 + h2/12d0
+    mat(2,2)=h1/12d0 + h2/4d0 
+
+  
+  elseif(side.eq.2)then !S23
+    mat(2,2)=h2/4d0 + h3/12d0
+    mat(2,3)=h2/12d0 + h3/12d0
+
+    mat(3,2)=h2/12d0 + h3/12d0 
+    mat(3,3)=h2/12d0 + h3/4d0
+
+  
+  elseif(side.eq.3)then !S31
+    mat(1,1)=h1/4d0 + h3/12d0
+    mat(1,3)=h1/12d0 + h3/12d0
+
+    mat(3,1)=h1/12d0 + h3/12d0
+    mat(3,3)=h1/12d0 + h3/4d0
+
+
+  else
+    write(*,'(" [ERR] Wrong side number in femBnd_N3i_Sc3_N3j")')
+    stop
+  endif
+
+end subroutine femBnd_N3i_Sc3_N3j
+
+
+
+subroutine femBnd_N3i_Sc3_dN3jdx(mat,h1,h2,h3,b11,b12,side)
+use bsnqGlobVars
+implicit none
+  
+  integer(kind=C_K1),intent(in)::side
+  real(kind=C_K2),intent(out)::mat(3,3)
+  real(kind=C_K2),intent(in)::h1,h2,h3,b11,b12
+
+  mat=0d0
+
+  if(side.eq.1)then !S12
+    mat(1,1)=-((b11*h1)/3d0) - (b12*h1)/3d0 &
+      - (b11*h2)/6d0 - (b12*h2)/6d0 
+    mat(1,2)=(b11*h1)/3d0 + (b11*h2)/6d0
+    mat(1,3)=(b12*h1)/3d0 + (b12*h2)/6d0
+
+    mat(2,1)=-((b11*h1)/6d0) - (b12*h1)/6d0 &
+      - (b11*h2)/3d0 - (b12*h2)/3d0
+    mat(2,2)=(b11*h1)/6d0 + (b11*h2)/3d0
+    mat(2,3)=(b12*h1)/6d0 + (b12*h2)/3d0
+
+  
+  elseif(side.eq.2)then !S23
+    mat(2,1)=-((b11*h2)/3d0) - (b12*h2)/3d0 &
+      - (b11*h3)/6d0 - (b12*h3)/6d0
+    mat(2,2)=(b11*h2)/3d0 + (b11*h3)/6d0
+    mat(2,3)=(b12*h2)/3d0 + (b12*h3)/6d0
+
+    mat(3,1)=-((b11*h2)/6d0) - (b12*h2)/6d0 &
+      - (b11*h3)/3d0 - (b12*h3)/3d0
+    mat(3,2)=(b11*h2)/6d0 + (b11*h3)/3d0
+    mat(3,3)=(b12*h2)/6d0 + (b12*h3)/3d0
+
+  
+  elseif(side.eq.3)then !S31
+    mat(1,1)=-((b11*h1)/3d0) - (b12*h1)/3d0 &
+      - (b11*h3)/6d0 - (b12*h3)/6d0
+    mat(1,2)=(b11*h1)/3d0 + (b11*h3)/6d0
+    mat(1,3)=(b12*h1)/3d0 + (b12*h3)/6d0
+
+    mat(3,1)=-((b11*h1)/6d0) - (b12*h1)/6d0 &
+      - (b11*h3)/3d0 - (b12*h3)/3d0 
+    mat(3,2)=(b11*h1)/6d0 + (b11*h3)/3d0
+    mat(3,3)=(b12*h1)/6d0 + (b12*h3)/3d0
+
+
+  else
+    write(*,'(" [ERR] Wrong side number in femBnd_N3i_Sc3_N3j")')
+    stop
+  endif
+
+end subroutine femBnd_N3i_Sc3_dN3jdx
