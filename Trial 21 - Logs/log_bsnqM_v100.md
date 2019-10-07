@@ -76,7 +76,8 @@ continued from bsnq\_par\_v8.36
 #### Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.
 
-The code now is stable like before. However the solution has higher amplitude than the earlier solution and I do not know yet why. It could be due to the changed mentioned here [here](#predCorNote1), mainly the 6x6 treatement of the advection term. I will try and use the old advection calculation and see if that brings the solution back to normal. 
+The code now is stable like before. However the solution has higher amplitude than the earlier solution and I do not know yet why. It could be due to the changed mentioned here [here](#predCorNote1), mainly the 6x6 treatement of the advection term. I will try and use the old advection calculat
+ion and see if that brings the solution back to normal. 
 
 It was also noted in this version that there is a need to force the DirichletBC. The Dirichlet type BC are applied to &Delta;P, &Delta;Q and &Delta;&eta; while solving for the system of linear equations. This however does not ensure that after time-stepping the solution would match the required Dirichlet solution. So now I am forcing the dirichlet BC. However despite me correcting this I am getting slightly higher amplitude than expected. Hopefully this is not the reason behind it, but it is possible.
 
@@ -90,18 +91,33 @@ Hence the new method for calculating *NAdv*, *Bs5* and *Bs6* is not the reason f
 I think now that its only the inlet BC.  
 Another possibility is me not applying the Neumann BC explicitly for &eta;.
 
-##### Update-3
+##### Update-3 [2019-10-05]
 **The issue of higher amplitude has now been solved!**  
 The reason was me not calculating the boundary integral term in the auxiliary variable *w* equation. It is zero for the *type-12* and *type-13* boundaries due to d&eta;/dn = 0 at those boundaries. However at *type-11* (inlet) and *type-14* (sponge layer with &eta;=0) we need to calculate this boundary integra;. I have introduced a static matric *gFW* which simply adds to *gDMat* hence there is only one time computation and no increase in the dynamic calculations.  
 The results have been compared with the old code and its matches well with even better performance at the sponge layer than before.  
+
+##### Update-4 [2019-10-07]
+<p align="centre"> <img width='45%' src="./bsnqM_inRed_fberkFWSecP1.svg">  <img width="45%" src="./bsnqM_inRed_fberkFWSecP2.svg">  
+
+**Fig :** Wave-heights at alone different line sections. Results from *bsnqM_v1.01* in red &mdash; Results from *bsnq_par_v7.3.3* in black &mdash;. Results from FUNWAVE in black ---. Results from experiment in black &bull;.  
+</p>
+
+The new code with AdBaE3 was tested and verified using the Berkhoff shoal test case. There is a good comparison with the earlier results and with experiments as shown above. Using a time-step of 0.005s on the i5-8300H CPU with 6 cores it takes 2 hours for 9000 time-steps. I think it is slightly faster than the earlier code because I am not running additional loop for applying the Neumann BC.  
+
+<a name="newCodeChanges1"/>
+The differences from the old code are
+
+- Modular structure. Can eeasily modify to apply RK4 or any other time-stepping
+- Boundary integrals for Bsnq terms included implicitly. Old code had them as explicit terms and was using n-th time-step values to calculate boundar integrals for solution at n+1 time step.
+- Did not use Gauss divergence for Bs5 and Bs6 terms as it was unnecessary
+- I have calculated the advection term assuming u = P/(h + &eta;) as 6 point variable, where I interpolate the value of (h + &eta;) at the middle nodes.
+- The Neumann BC for &eta; is applied by making boundary integral in auxiliary variable eqn as zero for *type-12* and *type-13* boundaries. This boundary integral has to be calculated for the *type-11* and *type-14* boundaries otherwise it will create issues of increasing the amplitude of wave generated from inlet BC.
 
 
 #### Observations : Time-stepping : RK2
 This too does not work! Similar problems as Predictor-corrector
 
-Now I have two options:  
-1. Try RK4. In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 value. Therefore there is some hope that RK4 might work
-1. AdamBash-3-Explicit. I should test with this to ensure that the results atleast work with this coz it used to work earlier. If it does not then please check the changes you have made [here](#predCorNote1)
+In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 values. This is porbably the reason for the noise build up.
 
 
 #### Observations : Time-stepping : Predictor-Corrector
@@ -115,9 +131,9 @@ I wrote the code *bsnqM_v1.0.f90* under the *predCor* branch of GitHub repo <htt
 
 All the derivations for this are available in the notebook I bought in UK.
 
-Therefore, I can conclude that either I didnt apply predictor-corrector properly (less-likely) or the method does not work for this equation (more-likely). I will try RK2 and RK4. Lets hope that works better than this.
+Therefore, I can conclude that either I didnt apply predictor-corrector properly (less-likely) or the method does not work for this equation (more-likely). Given that AdBaE3 works the latter is the more likely conclusion.
 
-<a name="predCorNote1"/>
+
 There are another two differences to keep in mind in these version:  
 
 - I have calculated the advection term assuming u = P/(h + &eta;) as 6 point variable, where I interpolate the value of (h + &eta;) at the middle nodes.
