@@ -1,4 +1,4 @@
-!!---------------------- Version 1.x.x -----------------------!!
+!!------------------------ Version M 1.x.x ------------------------!!
 !!  -> Quadratic + Linear
 !!  -> Boundary - SemiDirect + Penalty + Gauss Seidel
 !!    -> 11 - Inlet - No Absorbing
@@ -6,51 +6,16 @@
 !!    -> 13 - Slip Wall - Rectangular wall only
 !!    -> 14 - Sponge - BOUSS2D approach generalised input
 !!    -> 15 - Outlet  - Not coded
-!!  -> Porosity - Energent structure only
+!!  -> Porosity - Emergent structure only (not done yet)
 !!    -> Generalised input
-!!  -> Bottom Shear
-!!  -> Turbulence
-!!  -> Pressure - v4
 !!  -> Solver - Normalised
 !!  -> Generalised input - v3
-!!  -> GMRES with guess value
-!!  -> Drichlet BndCond for eta, p, q
-!!  -> Attempting to solve the spurious oscillation issue 
-!! 	   in the sponge layers by changing 
-!!     the bndType from 12 to 14 (new)
+!!  -> GMRES
+!!  -> Dirichlet BndCond for eta, p, q
 !!  -> Paralution CSR
-!!  3.3-> Pressure defined on linear and quadratic nodes
-!!	3.5-> XML output
-!!	3.6-> Input 3
-!!  ! Porosity depth for overtopping (non Sorenson)
-!!    -> corrected turb resist coeff to 1.5 from 0.81
-!!    -> our model was tuned for 1.5
-!!  ! Smoothing Pdt Qdt after some depth to reduce osc
-!!
-!!	Version 7 ends here
-!!
-!!  mafi defintions
-!!  mafi(1)     Mesh File
-!!  mafi(2)     Paraview output
-!!  mafi(3)     Volume output
-!!  mafi(4)     <Unknown>
-!!  mafi(5)     Input file
-!!  mafi(6)     Porosity file
-!!  mafi(7)     Wave probes files
-!!------------------------------------------------------------!!
-!!	1.0->
-!!---------------------- Version 8.x.x -----------------------!!
-!!  Jan 25 2018
-!!  1000
-!!  continued from bsnq_v7.3.6
-!!  1.0   ->  Removed turbulence code
-!!        ->  Create code 9 rout file
-!!  4.0   -x  Shephard search and cubic spline weight 
-!!        ->  Speed calculation using system_clock
-!!  8.0   ->  Neumann boundary condition for etadt
-!!  21.0  ->  Removing all Kennedy breaking implementation
-!!  31.0  ->  Removed smoothing module and some bloatcode
-
+!!	-> XML output
+!!-----------------------------------------------------------------!!
+!! Time-Stepping : AdBs3E : Adam-Bashforth Explicit 3-point
 
 program boussinesqQuad
 use bsnqGlobVars
@@ -81,6 +46,7 @@ implicit none
   call bq%initMat
   call bq%statMatrices  
   
+
   do while(bq%tOb(0)%rtm .lt. bq%endTime)  
 
     call bq%preInstructs
