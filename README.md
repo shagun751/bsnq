@@ -15,15 +15,15 @@ Please check the Trial xx - Logs with the markdown file for details regarding ea
 
 #### Modular structure
 - bsnqModule
-  - type :: bsnqCase
-    - procedure ::  initMat
-    - procedure ::  meshRead
-    - procedure ::  femInit
-    - procedure ::  setRun
-    - procedure ::  statMatrices
-    - procedure ::  dynaMatrices
-    - procedure ::  destructR1
-  - type :: waveType
-    - constructor :: waveLenCalc
+    - type :: bsnqCase
+        - procedure ::  initMat
+        - procedure ::  meshRead
+        - procedure ::  femInit
+        - procedure ::  setRun
+        - procedure ::  statMatrices
+        - procedure ::  dynaMatrices
+        - procedure ::  destructR1
+    - type :: waveType
+        - constructor :: waveLenCalc
 - bsnqGlobVars  
   Datatypes and constants only

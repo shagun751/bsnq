@@ -59,18 +59,18 @@ continued from bsnq\_par\_v8.36
 
 #### Modular structure
 - bsnqModule
-  - type :: bsnqCase
-    - procedure ::  initMat
-    - procedure ::  meshRead
-    - procedure ::  femInit
-    - procedure ::  setRun
-    - procedure ::  statMatrices
-    - procedure ::  dynaMatrices
-    - procedure ::  destructR1
-  - type :: waveType
-    - constructor :: waveLenCalc
+    - type :: bsnqCase
+      - procedure ::  initMat
+      - procedure ::  meshRead
+      - procedure ::  femInit
+      - procedure ::  setRun
+      - procedure ::  statMatrices
+      - procedure ::  dynaMatrices
+      - procedure ::  destructR1
+    - type :: waveType
+      - constructor :: waveLenCalc
 - bsnqGlobVars  
-  - Datatypes and constants only
+    - Datatypes and constants only
 
 
 #### Observations : Time-stepping : AdBaE3
@@ -104,7 +104,7 @@ The results have been compared with the old code and its matches well with even 
 
 The new code with AdBaE3 was tested and verified using the Berkhoff shoal test case. There is a good comparison with the earlier results and with experiments as shown above. Using a time-step of 0.005s on the i5-8300H CPU with 6 cores it takes 2 hours for 9000 time-steps. I think it is slightly faster than the earlier code because I am not running additional loop for applying the Neumann BC.  
 
-<a name="newCodeChanges1"/>
+<a name="newCodeChanges1"></a>
 The differences from the old code are
 
 - Modular structure. Can eeasily modify to apply RK4 or any other time-stepping
