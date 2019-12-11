@@ -79,12 +79,12 @@
 
 
 !!-----------------------------solveAll----------------------------!!
-  subroutine solveAll(b,rkTime,pr,qr,pbpr,qbpr,er,&
+  subroutine solveAll(b,rkTime,pr,qr,pbpr,qbpr,presr,er,&
     gXW,gXE,gXPQ,gRE,gRPQ)
   implicit none
 
     class(bsnqCase),intent(in)::b    
-    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt)
+    real(kind=C_K2),intent(in)::pr(b%npt),qr(b%npt),presr(b%npt)
     real(kind=C_K2),intent(in)::pbpr(b%npt),qbpr(b%npt)
     real(kind=C_K2),intent(in)::er(b%npl),rkTime
     real(kind=C_DOUBLE),intent(out)::gXW(b%npl),gXE(b%npl),gRE(b%npl)
@@ -180,10 +180,10 @@
         k2=k+j
         i2=b%linkl(k2)        
         
-        tmpr1=tmpr1 + (b%gGx(k2)*er(i2)) &
+        tmpr1=tmpr1 + (b%gGx(k2)*(er(i2)+presr(i2))) &
           + (b%gBs5(k2)*gXW(i2))
 
-        tmpr2=tmpr2 + (b%gGy(k2)*er(i2)) &
+        tmpr2=tmpr2 + (b%gGy(k2)*(er(i2)+presr(i2))) &
           + (b%gBs6(k2)*gXW(i2))
       enddo
 
@@ -250,7 +250,7 @@
     allocate(b%aFull(b%ivf(0)*2*j))
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
     allocate(b%gRE(i),b%gRPQ(2*j))
-    allocate(b%etaMax(i),b%etaMin(i))
+    allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
@@ -289,6 +289,8 @@
     b%etaMin=b%tOb(0)%e
     b%etaMax=b%tOb(0)%e
     call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
+
+    b%presr=0d0
 
     call paralution_init(b%nthrd)    
 
@@ -390,11 +392,57 @@
       enddo
     endif
 
-
     goto 82
     81 write(9,*) "[ERR] Check input file format"
     stop
     82 close(mf)
+
+    
+
+    !Ship input
+    if(b%presOn)then
+      !Ship file open  
+      bqtxt=trim(b%probname)//'.pos'
+      inquire(file=trim(bqtxt),exist=ex)
+      if(ex) then
+        open(newunit=mf,file=trim(bqtxt))
+      else
+        write(9,*)"[ERR] Missing ship file"
+        stop
+      endif
+
+      read(mf,*,end=83,err=84)bqtxt
+      read(mf,*,end=83,err=84)tmpi1
+      allocate(b%sh(1:tmpi1))
+      
+      do i=1,tmpi1
+        b%sh(i)%totNShip=tmpi1
+        read(mf,*,end=83,err=84)bqtxt
+        read(mf,*,end=83,err=84)bqtxt
+        read(mf,*,end=83,err=84)b%sh(i)%cl,b%sh(i)%cb,b%sh(i)%al
+        read(mf,*,end=83,err=84)bqtxt
+        read(mf,*,end=83,err=84)b%sh(i)%L,b%sh(i)%B,b%sh(i)%T
+        read(mf,*,end=83,err=84)bqtxt
+        read(mf,*,end=83,err=84)b%sh(i)%posN        
+        read(mf,*,end=83,err=84)bqtxt
+        allocate(b%sh(i)%posData( b%sh(i)%posN, 4))
+        do j=1,b%sh(i)%posN
+          read(mf,*,end=83,err=84)b%sh(i)%posData(j,1:4)
+        enddo        
+        b%sh(i)%posI=1
+
+        if(b%endTime.gt.b%sh(i)%posData(b%sh(i)%posN,1))then
+          write(9,*)"[ERR] Insufficient ship position time information"
+          stop
+        endif    
+      enddo
+      write(9,*)"[MSG] Done shipRead"
+    endif
+
+    goto 84
+    83 write(9,*) "[ERR] Check ship file format"
+    stop
+    84 close(mf)
 
     write(9,*)"[MSG] Done setRun"
     write(9,*)

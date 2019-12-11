@@ -11,6 +11,8 @@ implicit none
   real(kind=C_K2),parameter::grav=9.81d0          
   !! PI
   real(kind=C_K2),parameter::pi=atan(1d0)*4d0       
+  real(kind=C_K2),parameter::deg2rad=pi/180d0
+  real(kind=C_K2),parameter::rad2deg=180d0/pi
   !! Water density
   real(kind=C_K2),parameter::rhoW=1000d0  
   !! Bsnq constant

@@ -59,7 +59,7 @@ implicit none
     rTime=bq%tOb(1)%rtm
     call bq%dynaMatrices(bq%tOb(1)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
-      bq%pbpr, bq%qbpr, bq%tOb(1)%e, &
+      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
     call bq%updateSoln
     !!----------End AdBs3E S1----------!!

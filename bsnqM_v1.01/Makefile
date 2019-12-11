@@ -11,8 +11,8 @@ PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
 PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
 PARA_INC=-I$(PARA_PATH)/build/inc
 
-COMPILER=ifort
-#COMPILER=gfortran
+#COMPILER=ifort
+COMPILER=gfortran
 
 ifeq ($(COMPILER),ifort)
 	MODPATH=-module subroutines
@@ -34,6 +34,7 @@ subroutines/outputXML.f90
 SUBS2=\
 subroutines/$(HEADER).f90 \
 subroutines/mods.f90 \
+subroutines/shipMod.f90 \
 subroutines/bndCondition_v1.0.f90 \
 subroutines/bndIntegral.f90 \
 subroutines/femAnalyticalTri_v1.0.f90 \

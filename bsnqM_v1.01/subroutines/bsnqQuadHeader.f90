@@ -1,4 +1,5 @@
 include 'mods.f90'
+include 'shipMod.f90'
 include 'bndCondition_v1.0.f90'
 include 'bndIntegral.f90'
 include 'femAnalyticalTri_v1.0.f90'

@@ -2,6 +2,7 @@ module bsnqModule
 use bsnqGlobVars
 use airyWaveModule
 use outAbsModule
+use shipMod
 implicit none
 
   interface
@@ -54,15 +55,15 @@ implicit none
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
-    real(kind=C_K2),allocatable::por(:)    
+    real(kind=C_K2),allocatable::por(:),presr(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:),absC(:)
-    real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)
+    real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)    
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)    
+    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -77,6 +78,7 @@ implicit none
     integer(kind=8)::sysC(10)
     logical(kind=C_LG)::resume,presOn,absOn
     type(waveType)::wvIn
+    type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
     
