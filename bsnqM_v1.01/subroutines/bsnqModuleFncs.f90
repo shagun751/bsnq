@@ -1,13 +1,22 @@
 !!---------------------------dynaMatrices--------------------------!!
-  subroutine dynaMatrices(b,tDr,ur,vr)
+  subroutine dynaMatrices(b,rkTime,tDr,ur,vr)
   implicit none
 
     class(bsnqCase),intent(inout)::b    
+    real(kind=C_K2),intent(in)::rkTime
     real(kind=C_K2),intent(in)::tDr(b%npt),ur(b%npt),vr(b%npt)
 
     call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
       b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,tDr,&
       ur,vr,b%gGx,b%gGy,b%gNAdv)
+
+    if(b%presOn)then
+      b%presr=0d0
+      do i=1,b%sh(1)%totNShip
+        call b%sh(i)%getPress(rkTime,b%npt,b%cor,b%vec6Tmp)
+        b%presr=b%presr+b%vec6Tmp
+      enddo
+    endif
 
     !write(9,*)"[MSG] Done dynaMatrices"
     !write(9,*)
@@ -235,7 +244,7 @@
     j1=b%ivq(0)
 
     allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
-    allocate(b%por(j))
+    allocate(b%por(j),b%vec6Tmp(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
 
     allocate(b%massW(i1*i),b%massE(i1*i))
@@ -348,17 +357,48 @@
 
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%nthrd
+    
+    !Probes Code
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpi1
     if(tmpi1.gt.0) then
-      allocate(b%probe(0:tmpi1))
+      allocate(b%probe(-1:tmpi1),b%probeLoc(tmpi1,4))
       b%probe(0)=tmpi1
-      read(mf,*,end=81,err=81)b%probe(1:b%probe(0))
+      
+      do i=1,tmpi1
+        read(mf,*,end=81,err=81)b%probeLoc(i,1:2)
+        tmpr1=b%probeLoc(i,1)
+        tmpr2=b%probeLoc(i,2)
+        tmpr4=1e6
+        do j=1,b%npl
+          tmpr3=(b%cor(j,1)-tmpr1)**2 + (b%cor(j,2)-tmpr2)**2
+          if(tmpr3.lt.tmpr4)then
+            tmpr4=tmpr3
+            k=j
+          endif
+        enddo
+        b%probe(i)=k
+        b%probeLoc(i,3)=b%cor(k,1)
+        b%probeLoc(i,4)=b%cor(k,2)
+      enddo
+      write(9,'(" [INF] Probe Locations")')
+      write(9,'(" [---] ",3A15)')'PrN','UserX','UserY'
+      write(9,'("       ",3A15)')' ','OutX','OutY'
+      do i=1,tmpi1
+        write(9,'(" [---] ",I15,2F15.6)')i,b%probeLoc(i,1:2)
+        write(9,'("       ",A15,2F15.6)')' ',b%probeLoc(i,3:4)
+      enddo
+      write(9,*)
+
+      bqtxt='Output/AllProbes_'//trim(b%probname)//'.dat'
+      open(newunit=b%probe(-1),file=trim(bqtxt))      
+    
     else
-      allocate(b%probe(0:1))
+      allocate(b%probe(0:1),b%probeLoc(1,4))
       b%probe(0)=0
     endif
 
+    !WaveInput Code
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
     read(mf,*,end=81,err=81)bqtxt
@@ -411,38 +451,24 @@
         stop
       endif
 
-      read(mf,*,end=83,err=84)bqtxt
-      read(mf,*,end=83,err=84)tmpi1
+      read(mf,*,end=83,err=83)bqtxt
+      read(mf,*,end=83,err=83)tmpi1
+      if(tmpi1.le.0)then
+        write(9,*)'[ERR] Invalid numer of ships'
+        stop
+      endif
       allocate(b%sh(1:tmpi1))
       
       do i=1,tmpi1
-        b%sh(i)%totNShip=tmpi1
-        read(mf,*,end=83,err=84)bqtxt
-        read(mf,*,end=83,err=84)bqtxt
-        read(mf,*,end=83,err=84)b%sh(i)%cl,b%sh(i)%cb,b%sh(i)%al
-        read(mf,*,end=83,err=84)bqtxt
-        read(mf,*,end=83,err=84)b%sh(i)%L,b%sh(i)%B,b%sh(i)%T
-        read(mf,*,end=83,err=84)bqtxt
-        read(mf,*,end=83,err=84)b%sh(i)%posN        
-        read(mf,*,end=83,err=84)bqtxt
-        allocate(b%sh(i)%posData( b%sh(i)%posN, 4))
-        do j=1,b%sh(i)%posN
-          read(mf,*,end=83,err=84)b%sh(i)%posData(j,1:4)
-        enddo        
-        b%sh(i)%posI=1
-
-        if(b%endTime.gt.b%sh(i)%posData(b%sh(i)%posN,1))then
-          write(9,*)"[ERR] Insufficient ship position time information"
-          stop
-        endif    
+        b%sh(i)=shipType(mf,tmpi1,b%endTime)            
       enddo
       write(9,*)"[MSG] Done shipRead"
-    endif
 
-    goto 84
-    83 write(9,*) "[ERR] Check ship file format"
-    stop
-    84 close(mf)
+      goto 84
+      83 write(9,*) "[ERR] Check ship file format"
+      stop
+      84 close(mf)
+    endif    
 
     write(9,*)"[MSG] Done setRun"
     write(9,*)

@@ -55,7 +55,7 @@ implicit none
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
-    real(kind=C_K2),allocatable::por(:),presr(:)
+    real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
@@ -63,7 +63,7 @@ implicit none
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)    
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::etaMax(:),etaMin(:)
+    real(kind=C_K2),allocatable::etaMax(:),etaMin(:),probeLoc(:,:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -204,6 +204,16 @@ contains
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
     endif
+
+    !Writing probes values
+    k=b%probe(-1)
+    write(k,'(F15.6)',advance='no')b%tOb(0)%rtm
+    do i=1,b%probe(0)
+      j=b%probe(i)
+      write(k,'(5F15.6)',advance='no')b%cor(j,1), b%cor(j,2),&
+        b%tOb(0)%e(j), b%tOb(0)%p(j), b%tOb(0)%q(j)
+    enddo
+    write(k,*)
 
     call system_clock(b%sysC(4))
     tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate

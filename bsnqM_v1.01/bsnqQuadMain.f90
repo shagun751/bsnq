@@ -57,7 +57,7 @@ implicit none
     bq%pbpr = bq%tOb(1)%p / bq%por
     bq%qbpr = bq%tOb(1)%q / bq%por   
     rTime=bq%tOb(1)%rtm
-    call bq%dynaMatrices(bq%tOb(1)%tD, bq%ur, bq%vr)
+    call bq%dynaMatrices(rTime,bq%tOb(1)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
@@ -69,7 +69,8 @@ implicit none
   enddo
 
   call system_clock(bq%sysC(2))
+  close(bq%probe(-1))
   write(9,*)"[MSG] boussinesqQuad End"
   write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
-  close(9)
+  close(9)  
 end program boussinesqQuad

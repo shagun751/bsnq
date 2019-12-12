@@ -8,20 +8,37 @@ continued from bsnq\_par\_v8.36
 - Quad Jacobian = Linear Jacobian for Triangle
 - Analytical Integration
 - Object Oriented Programming
-- Predictor Corrector Time-stepping
+- Modular Time-stepping formulation
 
 -----------------------------------------------
 
 ### v1.01
 
-#### Attempting
+#### Attempting-2
+- Ass mocing pressure to simulate ship-generated waves
+
+
+#### List of Work-2
+- [x] Probes - nearest point
+- [x] Moving Press - Press2 - Press val at linear nodes
+- [ ] Moving Press - Press2 - Press val at quad nodes
+- [ ] Moving Press - Press1 - Press val at linear nodes
+- [ ] Moving Press - Press1 - Press val at quad nodes
+
+
+#### Observations : shipPress : Press2 val Linear nodes
+
+
+-----------------------------------------------
+
+#### Attempting-1
 - Making the code modular so that it can be used by many
 - bsnqModule with all the required variables
 - It is also required to make it easier to couple with other codes, especially such as MLPG\_R code.
 - FEM analytical integrals as general functions so that they can be used later in other code. Check file *femAnalyticalTri_vx.x.f90*
 
 
-#### List of Work
+#### List of Work-1
 - [x] Mesh input (Type0)
 - [x] FEM Initialisations
 - [ ] Wave probes
@@ -76,8 +93,7 @@ continued from bsnq\_par\_v8.36
 #### Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.
 
-The code now is stable like before. However the solution has higher amplitude than the earlier solution and I do not know yet why. It could be due to the changed mentioned here [here](#predCorNote1), mainly the 6x6 treatement of the advection term. I will try and use the old advection calculat
-ion and see if that brings the solution back to normal. 
+The code now is stable like before. However the solution has higher amplitude than the earlier solution and I do not know yet why. It could be due to the changed mentioned here [here](#predCorNote1), mainly the 6x6 treatement of the advection term. I will try and use the old advection calculation and see if that brings the solution back to normal. 
 
 It was also noted in this version that there is a need to force the DirichletBC. The Dirichlet type BC are applied to &Delta;P, &Delta;Q and &Delta;&eta; while solving for the system of linear equations. This however does not ensure that after time-stepping the solution would match the required Dirichlet solution. So now I am forcing the dirichlet BC. However despite me correcting this I am getting slightly higher amplitude than expected. Hopefully this is not the reason behind it, but it is possible.
 
