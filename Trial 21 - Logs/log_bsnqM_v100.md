@@ -15,7 +15,7 @@ continued from bsnq\_par\_v8.36
 ### v1.01
 
 #### Attempting-2
-- Ass mocing pressure to simulate ship-generated waves
+- Add moving pressure to simulate ship-generated waves
 
 
 #### List of Work-2
@@ -27,7 +27,7 @@ continued from bsnq\_par\_v8.36
 
 
 #### Observations : shipPress : Press2 val Linear nodes
-
+This version in arounf 6.5 times faster than the previous code. This code took 23 minutes to run a 25 sec simulation case for domain 100m x 43m, water depth 2.5 constant. Ship moving at Froude = 0.7 along the midline. The earlier code took 160 minutes for the same test case.
 
 -----------------------------------------------
 
