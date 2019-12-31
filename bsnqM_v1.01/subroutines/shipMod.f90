@@ -4,7 +4,7 @@ use bsnqGlobVars
 implicit none
 
   type, public :: shipType    
-    integer(kind=C_K1)::posN,posI,totNShip
+    integer(kind=C_K1)::posN,posI,totNShip,presFnc
     real(kind=C_K2)::cl,cb,al    
     real(kind=C_K2)::L,B,T
     real(kind=C_K2),allocatable::posData(:,:)
@@ -33,7 +33,22 @@ contains
     initShip%totNShip=numShip
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)bqtxt
-    read(mf,*,end=83,err=83)initShip%cl,initShip%cb,initShip%al
+    read(mf,*,end=83,err=83)initShip%presFnc
+    select case(initShip%presFnc)
+      case (2) 
+        read(mf,*,end=83,err=83)bqtxt
+        read(mf,*,end=83,err=83)initShip%cl,initShip%cb,initShip%al
+      
+      case (3)
+        initShip%cl=0
+        initShip%cb=0
+        initShip%al=0
+      
+      case DEFAULT
+        write(9,*)'[ERR] Invalid ship type'
+        stop
+    end select
+
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%L,initShip%B,initShip%T
     read(mf,*,end=83,err=83)bqtxt
@@ -125,25 +140,38 @@ contains
     thRad=thDeg*deg2rad
 
     pres=0d0
-    rRef=(max(sh%L,sh%B)/2d0*1.2d0)**2
-    cost=dcos(thRad)
-    sint=dsin(thRad)
 
-    do i=1,npt
-      x=cor(i,1)-x0
-      y=cor(i,2)-y0
-      dr2=(x**2 + y**2)
-      if(dr2.lt.rRef)then
-        lx=(+x*cost + y*sint)/sh%L
-        ly=(-x*sint + y*cost)/sh%B
-        ! lx=(-x*cost - y*sint)/L
-        ! ly=(+x*sint - y*cost)/B
-        if(abs(lx).gt.0.5d0)cycle
-        if(abs(ly).gt.0.5d0)cycle        
-        pres(i)=sh%T*(1-sh%cl*(lx**4))*(1-sh%cb*(ly**2)) &
-          *exp(-sh%al*(ly**2))
-      endif
-    enddo
+    select case(sh%presFnc)
+      case (2)
+        rRef=(max(sh%L,sh%B)/2d0*1.2d0)**2
+        cost=dcos(thRad)
+        sint=dsin(thRad)
+
+        do i=1,npt
+          x=cor(i,1)-x0
+          y=cor(i,2)-y0
+          dr2=(x**2 + y**2)
+          if(dr2.lt.rRef)then
+            lx=(+x*cost + y*sint)/sh%L
+            ly=(-x*sint + y*cost)/sh%B
+            ! lx=(-x*cost - y*sint)/L
+            ! ly=(+x*sint - y*cost)/B
+            if(abs(lx).gt.0.5d0)cycle
+            if(abs(ly).gt.0.5d0)cycle        
+            pres(i)=sh%T*(1-sh%cl*(lx**4))*(1-sh%cb*(ly**2)) &
+              *exp(-sh%al*(ly**2))
+          endif
+        enddo
+
+      case (3)        
+        do i=1,npt
+          x=abs(cor(i,1)-x0)/sh%L
+          if(x.gt.0.5d0)cycle
+          lx=dcos(pi*x)
+          pres(i)=sh%T*lx**2
+        enddo
+
+    end select
 
   end subroutine getPress
 !!------------------------End getPress-------------------------!!

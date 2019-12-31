@@ -5,14 +5,15 @@ SWITCH_GFORTRAN_RELEASE=-Ofast
 SWITCH_GFORTRAN_O2=-O2
 SWITCH_GFORTRAN_DEBUG=-O0 -g -fbounds-check -fbacktrace
 
-PARA_PATH=$(HOME)/Programs/paralution_gcc_min
+PARA_PATH=$(HOME)/Programs/paralution_icc_min
 PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64 -cpp
+PARA_FLAGS_ICC=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64 
 PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
 PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
 PARA_INC=-I$(PARA_PATH)/build/inc
 
-#COMPILER=ifort
-COMPILER=gfortran
+COMPILER=ifort
+#COMPILER=gfortran
 
 ifeq ($(COMPILER),ifort)
 	MODPATH=-module subroutines
@@ -52,14 +53,16 @@ default: $(OBJ)
 # $(MAIN).o: $(MAIN).f90
 # 	ifort $(PARA_FLAGS) -c $(MAIN).f90 $(SUBS)
 
+#g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
+
 $(MODULE).o: $(SUBS)
 	$(COMPILER) -c $< $(PARA_FLAGS) $(MODPATH)
 
 $(HEADER).o: $(SUBS2)
 	$(COMPILER) -c $< $(PARA_FLAGS) $(MODPATH)
 
-paralution_fortran.o: $(PARA_CONV)
-	g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
+paralution_fortran.o: $(PARA_CONV)	
+	icc $(PARA_FLAGS_ICC) $(PARA_INC) -c $(PARA_CONV)
 
 clean:
 	rm -rf *.dat Output 
