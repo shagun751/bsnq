@@ -280,7 +280,7 @@
       call b%tOb(i)%initBsnqVars(b%npl,b%npt)
     enddo
 
-    b%nSOb=3
+    b%nSOb=4
     allocate(b%sOb(b%nSOb))
     do i=1,b%nSOb
       call b%sOb(i)%initBsnqVars(b%npl,b%npt)

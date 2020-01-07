@@ -124,15 +124,7 @@ contains
       b%tStep,b%rTime
     call system_clock(b%sysC(3)) 
 
-    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector
-
-    do i=b%nSOb,2,-1
-      b%sOb(i)%rtm = b%sOb(i-1)%rtm
-      b%sOb(i)%e = b%sOb(i-1)%e
-      b%sOb(i)%p = b%sOb(i-1)%p
-      b%sOb(i)%q = b%sOb(i-1)%q
-      b%sOb(i)%tD = b%sOb(i-1)%tD
-    enddo
+    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
 
     do i=b%nTOb-1,1,-1
       b%tOb(i)%rtm = b%tOb(i-1)%rtm
@@ -154,20 +146,13 @@ contains
 
     class(bsnqCase),intent(inout)::b    
 
-    if(b%tStep.ge.3)then
-      b%tOb(0)%e = b%tOb(1)%e + 1d0/12d0 * &
-        ( 23d0*b%sOb(1)%e - 16d0*b%sOb(2)%e + 5d0*b%sOb(3)%e )
-      b%tOb(0)%p = b%tOb(1)%p + 1d0/12d0 * &
-        ( 23d0*b%sOb(1)%p - 16d0*b%sOb(2)%p + 5d0*b%sOb(3)%p )
-      b%tOb(0)%q = b%tOb(1)%q + 1d0/12d0 * &
-        ( 23d0*b%sOb(1)%q - 16d0*b%sOb(2)%q + 5d0*b%sOb(3)%q )
     
-    else
-      b%tOb(0)%e = b%tOb(1)%e + b%sOb(1)%e
-      b%tOb(0)%p = b%tOb(1)%p + b%sOb(1)%p
-      b%tOb(0)%q = b%tOb(1)%q + b%sOb(1)%q
-
-    endif
+    b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
+      + 2d0*b%sOb(2)%e + 2d0*b%sOb(3)%e + b%sOb(4)%e)
+    b%tOb(0)%p = b%tOb(1)%p + 1d0/6d0*(b%sOb(1)%p &
+      + 2d0*b%sOb(2)%p + 2d0*b%sOb(3)%p + b%sOb(4)%p)
+    b%tOb(0)%q = b%tOb(1)%q + 1d0/6d0*(b%sOb(1)%q &
+      + 2d0*b%sOb(2)%q + 2d0*b%sOb(3)%q + b%sOb(4)%q)
 
     !! Forcing Dirichlet BC
     call b%diriBCEta(b%tOb(0)%e,b%tOb(0)%rtm)
@@ -228,21 +213,56 @@ contains
 
 
 
-
-
-
-
 !!----------------------------updateSoln---------------------------!!
-  subroutine updateSoln(b)
+  subroutine updateSoln(b,step)
   implicit none
 
     class(bsnqCase),intent(inout)::b    
+    integer(kind=4),intent(in)::step
 
     b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
 
-    b%sOb(1)%e = b%gXE
-    b%sOb(1)%p = b%gXPQ(1:b%npt)
-    b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)
+    select case(step)
+
+      case (1)
+        b%sOb(1)%e = b%gXE
+        b%sOb(1)%p = b%gXPQ(1:b%npt)
+        b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)        
+        
+        b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
+        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
+        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
+        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
+
+      case (2)
+        b%sOb(2)%e = b%gXE
+        b%sOb(2)%p = b%gXPQ(1:b%npt)
+        b%sOb(2)%q = b%gXPQ(b%npt+1:2*b%npt)        
+        
+        b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
+        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
+        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
+        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
+
+      case (3)
+        b%sOb(3)%e = b%gXE
+        b%sOb(3)%p = b%gXPQ(1:b%npt)
+        b%sOb(3)%q = b%gXPQ(b%npt+1:2*b%npt)        
+        
+        b%tOb(0)%e = b%tOb(1)%e + b%gXE
+        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)
+        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)
+        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
+
+      case (4)
+        b%sOb(4)%e = b%gXE
+        b%sOb(4)%p = b%gXPQ(1:b%npt)
+        b%sOb(4)%q = b%gXPQ(b%npt+1:2*b%npt)        
+
+    end select    
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!

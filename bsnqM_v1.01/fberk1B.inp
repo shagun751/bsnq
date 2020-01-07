@@ -4,7 +4,7 @@ Q) Resume file name (Mention the path in between quotes)
 'Resume/resume_rect2B_50000000.vtk'
 
 Q) Time-step (s)
-0.01
+0.025
 Q) Run Time (s)
 40.0
 
@@ -14,7 +14,7 @@ Q) Maximum number of iterations for GMRES solver
 2000
 
 Q) Output file interval (s)
-0.5
+1.0
 Q) Resume file generation interval (s)
 5.0
 
@@ -26,8 +26,8 @@ Q) Number of OpenMP Threads
 Q) Wave probes
 0
 
-Q) Inlet boundary wave time-period amplitude (s) (m)
-1 -0.0232 0.45
+Q) Inlet boundary wave Time-period Height Depth (s) (m) (m)
+1 -0.0464 0.45
 Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
 -15 0 0
 
