@@ -35,6 +35,10 @@ contains
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%presFnc
     select case(initShip%presFnc)
+      case (1)        
+        read(mf,*,end=83,err=83)bqtxt
+        read(mf,*,end=83,err=83)initShip%cl,initShip%cb
+
       case (2) 
         read(mf,*,end=83,err=83)bqtxt
         read(mf,*,end=83,err=83)initShip%cl,initShip%cb,initShip%al
@@ -134,7 +138,7 @@ contains
     
     integer(kind=C_K1)::i
     real(kind=C_K2)::x0,y0,thDeg,thRad,rRef,cost,sint
-    real(kind=C_K2)::x,y,dr2,lx,ly
+    real(kind=C_K2)::x,y,dr2,lx,ly,px,py
     
     call sh%getLoc(rTime,x0,y0,thDeg)
     thRad=thDeg*deg2rad
@@ -142,8 +146,41 @@ contains
     pres=0d0
 
     select case(sh%presFnc)
+    case (1)
+        rRef=(max(sh%L,sh%B)/2d0*1.5d0)**2
+        cost=dcos(thRad)
+        sint=dsin(thRad)
+
+        do i=1,npt
+          x=cor(i,1)-x0
+          y=cor(i,2)-y0
+          dr2=(x**2 + y**2)
+          if(dr2.lt.rRef)then
+            lx=abs(+x*cost + y*sint)/sh%L
+            ly=abs(-x*sint + y*cost)/sh%B
+            ! lx=(-x*cost - y*sint)/L
+            ! ly=(+x*sint - y*cost)/B
+            if(lx.gt.0.5d0)cycle
+            if(ly.gt.0.5d0)cycle
+            
+            if(lx.lt.0.5d0*sh%cl)then
+              px=1        
+            else
+              px=dcos(pi*(lx-0.5d0*sh%cl)/(1d0-sh%cl))      
+            endif
+            
+            if(ly.lt.0.5d0*sh%cb)then
+              py=1
+            else
+              py=dcos(pi*(ly-0.5d0*sh%cb)/(1d0-sh%cb))      
+            endif
+            
+            pres(i)=sh%T*px*px*py*py
+          endif
+        enddo
+
       case (2)
-        rRef=(max(sh%L,sh%B)/2d0*1.2d0)**2
+        rRef=(max(sh%L,sh%B)/2d0*1.5d0)**2
         cost=dcos(thRad)
         sint=dsin(thRad)
 

@@ -24,6 +24,10 @@
     write(mf,'(E20.10)')b%etaMax-b%etaMin
     write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="press" format="ascii">'
+    write(mf,'(E20.10)')b%presr(1:b%npl)
+    write(mf,'(T7,a)')'</DataArray>'
+
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
     ! write(mf,*)b%absC(1:b%npl)
     ! write(mf,'(T7,a)')'</DataArray>'

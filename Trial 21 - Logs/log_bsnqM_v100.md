@@ -22,7 +22,7 @@ continued from bsnq\_par\_v8.36
 - [x] Probes - nearest point
 - [x] Moving Press - Press2 - Press val at linear nodes
 - [ ] Moving Press - Press2 - Press val at quad nodes
-- [ ] Moving Press - Press1 - Press val at linear nodes
+- [x] Moving Press - Press1 - Press val at linear nodes
 - [ ] Moving Press - Press1 - Press val at quad nodes
 
 
@@ -41,7 +41,7 @@ This version in arounf 6.5 times faster than the previous code. This code took 2
 #### List of Work-1
 - [x] Mesh input (Type0)
 - [x] FEM Initialisations
-- [ ] Wave probes
+- [x] Wave probes - nearest node based
 - [x] Inlet wave characteristics
 - [x] Absorbance coeffs
 - [ ] Porosity initialisation
@@ -53,9 +53,10 @@ This version in arounf 6.5 times faster than the previous code. This code took 2
 - [x] Dirichlet BC
 - [x] Conversion to CSR form
 - [ ] Neumann BC for eta
-- [x] Time-stepping : Try Adam-bashforth first
-- [ ] Time-stepping : Predictor Corrector
-- [ ] Time-stepping : RK2
+- [x] Time-stepping : RK4
+- [x] Time-stepping : Adam-bashforth
+- [ ] Time-stepping : Predictor Corrector - noise
+- [ ] Time-stepping : RK2 - noise
 - [ ] Bottom shear 
 - [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
@@ -89,6 +90,15 @@ This version in arounf 6.5 times faster than the previous code. This code took 2
 - bsnqGlobVars  
     - Datatypes and constants only
 
+
+#### Observations : Time-stepping : RK4 [2020-01-08]
+- The code was modified for RK4 time-stepping with realtive ease.
+- Modifications were done to *preInstructs*, *updateSoln* and *postInstructs* functions to accomodate for RK4 time-stepping. 
+- No Other changes were required and the code was verified usiing Berkhoff Shoal test case.
+- RK4 is a single-step method where the equations are evaluated at intermediate steps but the information is then discarded and not used for other time-steps
+- AdBaE3 is a multi-step method which utilises the information of previous time-steps for calculating the current solution
+- AdBaE3 and RK4 seem to give almost identical results.
+- AdBaE3 is 3 times faster than RK4 in the current implementation for the same time-step size. However a larger time-step can be used for RK4 due to its better stability.
 
 #### Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.

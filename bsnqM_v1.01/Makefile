@@ -5,21 +5,28 @@ SWITCH_GFORTRAN_RELEASE=-Ofast
 SWITCH_GFORTRAN_O2=-O2
 SWITCH_GFORTRAN_DEBUG=-O0 -g -fbounds-check -fbacktrace
 
-PARA_PATH=$(HOME)/Programs/paralution_icc_min
-PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64 -cpp
-PARA_FLAGS_ICC=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64 
-PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
-PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
-PARA_INC=-I$(PARA_PATH)/build/inc
-
 COMPILER=ifort
 #COMPILER=gfortran
 
+TIMESTEPPING = -DTRK4      #RK4 TimeStepping
+#TIMESTEPPING = -DTADBAE3  #Adam-Bashforth Explicit 3 point
+
 ifeq ($(COMPILER),ifort)
 	MODPATH=-module subroutines
+	C_COMP=icc
+	PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64
+	PARA_PATH=$(HOME)/Programs/paralution_icc_min
 else ifeq ($(COMPILER),gfortran)
 	MODPATH=-J subroutines
+	C_COMP=g++
+	PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64
+	PARA_PATH=$(HOME)/Programs/paralution_gcc_min
 endif
+OTH_FLAGS = -cpp $(TIMESTEPPING)
+
+PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
+PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
+PARA_INC=-I$(PARA_PATH)/build/inc
 
 MAIN=bsnqQuadMain
 HEADER=bsnqQuadHeader
@@ -48,7 +55,7 @@ subroutines/solver_v1.0.f90
 	
 default: $(OBJ)
 	mkdir -p Output Resume
-	$(COMPILER) -o bsnq $(OBJ) $(PARA_LIB) $(PARA_FLAGS) $(MODPATH)
+	$(COMPILER) -o bsnq $(OBJ) $(PARA_LIB) $(PARA_FLAGS) $(MODPATH) $(OTH_FLAGS)
 	
 # $(MAIN).o: $(MAIN).f90
 # 	ifort $(PARA_FLAGS) -c $(MAIN).f90 $(SUBS)
@@ -62,7 +69,7 @@ $(HEADER).o: $(SUBS2)
 	$(COMPILER) -c $< $(PARA_FLAGS) $(MODPATH)
 
 paralution_fortran.o: $(PARA_CONV)	
-	icc $(PARA_FLAGS_ICC) $(PARA_INC) -c $(PARA_CONV)
+	$(C_COMP) $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)	
 
 clean:
 	rm -rf *.dat Output 

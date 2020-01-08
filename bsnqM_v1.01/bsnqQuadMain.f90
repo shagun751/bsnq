@@ -45,10 +45,10 @@ implicit none
   call bq%setRun  
   call bq%initMat
   call bq%statMatrices  
+
   
-
-  do while(bq%tOb(0)%rtm .lt. bq%endTime)  
-
+  do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
+  
     call bq%preInstructs
 
     !!-------------RK4 S1--------------!!
@@ -102,7 +102,7 @@ implicit none
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
     call bq%updateSoln(4)
     !!-----------End RK4 S4------------!!
-
+  
     call bq%postInstructs
 
   enddo
