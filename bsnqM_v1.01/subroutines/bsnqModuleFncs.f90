@@ -8,7 +8,7 @@
 
     call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
       b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,tDr,&
-      ur,vr,b%gGx,b%gGy,b%gNAdv)
+      ur,vr,b%gGx,b%gGy,b%gNAdv,b%gPGx,b%gPGy)
 
     if(b%presOn)then
       b%presr=0d0
@@ -189,10 +189,10 @@
         k2=k+j
         i2=b%linkl(k2)        
         
-        tmpr1=tmpr1 + (b%gGx(k2)*(er(i2)+presr(i2))) &
+        tmpr1=tmpr1 + (b%gGx(k2)*er(i2)) &
           + (b%gBs5(k2)*gXW(i2))
 
-        tmpr2=tmpr2 + (b%gGy(k2)*(er(i2)+presr(i2))) &
+        tmpr2=tmpr2 + (b%gGy(k2)*er(i2)) &
           + (b%gBs6(k2)*gXW(i2))
       enddo
 
@@ -203,9 +203,11 @@
         i2=b%linkq(k2)        
         
         tmpr3=tmpr3 + ( b%gNAdv(k2)*pbpr(i2) &
+          + (b%gPGx(k2)*presr(i2)) &
           + absC*b%mass1(k2)*pr(i2) )
 
         tmpr4=tmpr4 + ( b%gNAdv(k2)*qbpr(i2) &
+          + (b%gPGy(k2)*presr(i2)) &
           + absC*b%mass1(k2)*qr(i2) )
       enddo
 
@@ -254,6 +256,7 @@
     allocate(b%gCxF(j1*i),b%gCyF(j1*i),b%gDMat(i1*i))
     allocate(b%gBs5(i1*j),b%gBs6(i1*j),b%absC(j))
     allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
+    allocate(b%gPGx(j1*j),b%gPGy(j1*j))
     allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
     allocate(b%gFBs3(j1*j),b%gFBs4(j1*j),b%gFW(i1*i))
     allocate(b%aFull(b%ivf(0)*2*j))

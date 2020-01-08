@@ -1,5 +1,5 @@
 subroutine matrixSet2(npoinl,npoint,nelem,conn,Sz,ivl,ivq,linkl,&
-  linkq,invJ,depth,por,tDr,ur,vr,gGx,gGy,gNAdv)
+  linkq,invJ,depth,por,tDr,ur,vr,gGx,gGy,gNAdv,gPGx,gPGy)
 use bsnqGlobVars
 implicit none
 
@@ -13,16 +13,19 @@ implicit none
   real(kind=C_K2),intent(in)::invJ(nelem,5),depth(npoint)  
   real(kind=C_K2),intent(in)::por(npoint),tDr(npoint)
   real(kind=C_K2),intent(in)::ur(npoint),vr(npoint)
-  real(kind=C_K2),intent(out)::gGx(Sz(3))
-  real(kind=C_K2),intent(out)::gGy(Sz(3))      
+  real(kind=C_K2),intent(out)::gGx(Sz(3)),gPGx(Sz(4))
+  real(kind=C_K2),intent(out)::gGy(Sz(3)),gPGy(Sz(4))
   real(kind=C_K2),intent(out)::gNAdv(Sz(4))
   real(kind=C_K2)::lGx(6,3),lGy(6,3),lNAd(6,6),tmp(6,6)
-  real(kind=C_K2)::lScN3(3)
+  real(kind=C_K2)::lPGx(6,6),lPGy(6,6)
+  real(kind=C_K2)::lScN3(3),lScN6(6)
   
 
   gGx=0d0
   gGy=0d0  
   gNAdv=0d0
+  gPGx=0d0
+  gPGy=0d0
 
   do i=1,nelem
     n=conn(i,:)    
@@ -40,10 +43,19 @@ implicit none
       vr(n(4)),vr(n(5)),vr(n(6)),invJ(i,3),invJ(i,4))
     lNAd=lNAd+tmp
 
+    lScN6=grav*por(n(1:6))*tDr(n(1:6))
+    call fem_N6i_Sc6_dN6jdx(lPGx,lScN6(1),lScN6(2),lScN6(3),&
+      lScN6(4),lScN6(5),lScN6(6),invJ(i,1),invJ(i,2))
+    call fem_N6i_Sc6_dN6jdx(lPGy,lScN6(1),lScN6(2),lScN6(3),&
+      lScN6(4),lScN6(5),lScN6(6),invJ(i,3),invJ(i,4))
+
+
 
     lGx=-invJ(i,5)*lGx
     lGy=-invJ(i,5)*lGy
     lNAd=-invJ(i,5)*lNAd
+    lPGx=-invJ(i,5)*lPGx
+    lPGy=-invJ(i,5)*lPGy
     
 
     !6x6
@@ -59,6 +71,8 @@ implicit none
         write(9,*)"[Err] node conn missing in Bsnq at",gRow
         stop
         11 gNAdv(k+j)=gNAdv(k+j)+lNAd(lRow,lCol)
+        gPGx(k+j)=gPGx(k+j)+lPGx(lRow,lCol)
+        gPGy(k+j)=gPGy(k+j)+lPGy(lRow,lCol)
       enddo
     enddo
 

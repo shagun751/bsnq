@@ -45,7 +45,7 @@ subroutines/mods.f90 \
 subroutines/shipMod.f90 \
 subroutines/bndCondition_v1.0.f90 \
 subroutines/bndIntegral.f90 \
-subroutines/femAnalyticalTri_v1.0.f90 \
+subroutines/femAnalyticalTri_v1.1.f90 \
 subroutines/geometry_v1.0.f90 \
 subroutines/matrixSet1.f90 \
 subroutines/matrixSet2.f90 \

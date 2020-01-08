@@ -61,6 +61,7 @@ implicit none
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:),absC(:)
     real(kind=C_K2),allocatable::gGx(:),gGy(:),gNAdv(:)    
+    real(kind=C_K2),allocatable::gPGx(:),gPGy(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::etaMax(:),etaMin(:),probeLoc(:,:)

@@ -20,10 +20,10 @@ continued from bsnq\_par\_v8.36
 
 #### List of Work-2
 - [x] Probes - nearest point
-- [x] Moving Press - Press2 - Press val at linear nodes
-- [ ] Moving Press - Press2 - Press val at quad nodes
-- [x] Moving Press - Press1 - Press val at linear nodes
-- [ ] Moving Press - Press1 - Press val at quad nodes
+- [ ] Moving Press - Press2 - Press val at linear nodes
+- [x] Moving Press - Press2 - Press val at quad nodes
+- [ ] Moving Press - Press1 - Press val at linear nodes
+- [x] Moving Press - Press1 - Press val at quad nodes
 
 
 #### Observations : shipPress : Press2 val Linear nodes
