@@ -1,0 +1,12 @@
+Q) FileName
+fnptData.fnpt
+Q) Number of time steps (N)
+7000
+Q) Time step (s)
+0.01
+Q) Start time-step (minVal 1)
+601
+Q) Number of z points
+21
+Q) Water depth (m)
+0.7

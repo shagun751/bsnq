@@ -31,9 +31,13 @@ Q) Wave Probes
 51	6
 52	6
 
-Q) Inlet boundary wave time-period amplitude (s) (m)
+Q) Wave input type (0-file, 1-Airy)
+1
+Q) File | FileName
+none
+Q) Airy | Inlet boundary wave time-period amplitude (s) (m)
 1 -0.0232 0.45
-Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
+Q) Airy | Inlet boundary wave Cx Cy angle (m) (m) (deg)
 -15 0 0
 
 Q) Outlet Sponge layer (BOUSS2D method)

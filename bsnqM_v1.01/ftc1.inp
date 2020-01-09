@@ -27,7 +27,7 @@ Q) Wave Probes
 0
 
 Q) Wave input type (0-file, 1-Airy)
-1
+0
 Q) File | FileName
 none
 Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)

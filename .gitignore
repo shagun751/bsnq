@@ -2,5 +2,7 @@ Output/
 Resume/
 Output_*/
 *.rout
+*.fnpt
+
 
 

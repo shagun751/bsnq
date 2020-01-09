@@ -414,6 +414,10 @@
 
     !WaveInput Code
     read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)i
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
