@@ -1,4 +1,4 @@
-Q) FileName
+Q) FileName (keep extension as .fnpt for gitignore)
 fnptData.fnpt
 Q) Number of time steps (N)
 7000
