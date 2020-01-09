@@ -4,17 +4,17 @@ Q) Resume file name (Mention the path in between quotes)
 'Resume/resume_dav3_10000000.vtk'
 
 Q) Time-step (s)
-0.02
+0.04
 Q) Run Time (s)
 40.0
 
 Q) Error limit
-1e-6
+1e-5
 Q) Maximum number of iterations for GMRES solver
 50000
 
 Q) Output file interval (s)
-0.5
+1.0
 Q) Resume file generation interval (s)
 5.0
 
@@ -22,7 +22,7 @@ Q) Pressure term On? (.true. / .false.)
 .false.
 
 Q) Number of OpenMP Threads
-2
+4
 Q) Wave Probes
 0
 

@@ -50,6 +50,7 @@ implicit none
     integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)            
     integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
+    integer(kind=C_INT),allocatable::ele6x6(:,:),ele6x3(:,:)
 
     real(kind=C_K2)::dt,errLim,endTime,rTime
     real(kind=C_K2)::sysRate,sysT(10)
@@ -126,6 +127,7 @@ contains
     call system_clock(b%sysC(3)) 
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
+    b%sysT(2)=0d0 ! solveAll
 
     do i=b%nTOb-1,1,-1
       b%tOb(i)%rtm = b%tOb(i-1)%rtm
@@ -204,7 +206,9 @@ contains
     call system_clock(b%sysC(4))
     tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate
     tmpr2=b%sysT(1)
-    write(9,301)"[TIL]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
+    !write(9,301)"[TIL]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
+    write(9,301)"[TIL]",tmpr1,tmpr2/tmpr1*100d0,&
+      b%sysT(2)/tmpr1*100d0
     write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
@@ -222,7 +226,8 @@ contains
     integer(kind=4),intent(in)::step
 
     b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
-
+    b%sysT(2)=b%sysT(2)+1d0*(sysC(4)-sysC(3))/b%sysRate
+    
     select case(step)
 
       case (1)
@@ -263,7 +268,7 @@ contains
         b%sOb(4)%p = b%gXPQ(1:b%npt)
         b%sOb(4)%q = b%gXPQ(b%npt+1:2*b%npt)        
 
-    end select    
+    end select        
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!

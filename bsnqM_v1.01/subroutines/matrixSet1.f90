@@ -1,6 +1,6 @@
 subroutine matrixSet1(npoinl,npoint,nelem,conn,Sz,ivl,ivq,&
   linkl,linkq,invJ,depth,por,mass1,mass2,gBs1,gBs2,gBs3,gBs4,&
-  gCxFlux,gCyFlux,gDMat,gBs5,gBs6)
+  gCxFlux,gCyFlux,gDMat,gBs5,gBs6,ele6x6,ele6x3)
 use bsnqGlobVars
 implicit none
 
@@ -13,6 +13,8 @@ implicit none
   integer(kind=C_K1),intent(in)::conn(nelem,6)
   integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(Sz(3))
   integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(Sz(4))
+  integer(kind=C_K1),intent(out)::ele6x6(nelem,36)
+  integer(kind=C_K1),intent(out)::ele6x3(nelem,18)
   integer(kind=C_K1)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
 
@@ -137,6 +139,7 @@ implicit none
         gBs2(k+j)=gBs2(k+j)+bs2t1(lRow,lCol)
         gBs3(k+j)=gBs3(k+j)+bs3t1(lRow,lCol)
         gBs4(k+j)=gBs4(k+j)+bs4t1(lRow,lCol)        
+        ele6x6(i,(lRow-1)*6+lCol)=k+j
       enddo
     enddo
 
@@ -154,6 +157,7 @@ implicit none
         stop
         12 gBs5(k+j)=gBs5(k+j)+lBs5(lRow,lCol)
         gBs6(k+j)=gBs6(k+j)+lBs6(lRow,lCol)
+        ele6x3(i,(lRow-1)*3+lCol)=k+j
       enddo
     enddo
 

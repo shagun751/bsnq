@@ -1,5 +1,5 @@
 subroutine matrixSet2(npoinl,npoint,nelem,conn,Sz,ivl,ivq,linkl,&
-  linkq,invJ,depth,por,tDr,ur,vr,gGx,gGy,gNAdv,gPGx,gPGy)
+  linkq,invJ,ele6x6,ele6x3,depth,por,tDr,ur,vr,gGx,gGy,gNAdv,gPGx,gPGy)
 use bsnqGlobVars
 implicit none
 
@@ -7,6 +7,8 @@ implicit none
   integer(kind=C_K1),intent(in)::Sz(4),conn(nelem,6)
   integer(kind=C_K1),intent(in)::ivl(0:npoint),linkl(Sz(3))
   integer(kind=C_K1),intent(in)::ivq(0:npoint),linkq(Sz(4))
+  integer(kind=C_K1),intent(in)::ele6x6(nelem,36)
+  integer(kind=C_K1),intent(in)::ele6x3(nelem,18)
   integer(kind=C_K1)::i,j,k,i2,j2,k2,n(6),gRow,gCol,lRow,lCol
   integer(kind=C_K1)::nlinkl(ivl(0)),nlinkq(ivq(0))
 
@@ -57,41 +59,59 @@ implicit none
     lPGx=-invJ(i,5)*lPGx
     lPGy=-invJ(i,5)*lPGy
     
-
     !6x6
     do lRow=1,6
-      gRow=n(lRow)
-      k=(gRow-1)*ivq(0)
-      nlinkq=linkq(k+1:k+ivq(0))
-      do lCol=1,6
-        gCol=n(lCol)
-        do j=1,ivq(gRow)
-          if(nlinkq(j).eq.gCol) goto 11
-        enddo
-        write(9,*)"[Err] node conn missing in Bsnq at",gRow
-        stop
-        11 gNAdv(k+j)=gNAdv(k+j)+lNAd(lRow,lCol)
-        gPGx(k+j)=gPGx(k+j)+lPGx(lRow,lCol)
-        gPGy(k+j)=gPGy(k+j)+lPGy(lRow,lCol)
+      do lCol=1,6        
+        j2=ele6x6(i,(lRow-1)*6+lCol)
+        gNAdv(j2)=gNAdv(j2)+lNAd(lRow,lCol)
+        gPGx(j2)=gPGx(j2)+lPGx(lRow,lCol)
+        gPGy(j2)=gPGy(j2)+lPGy(lRow,lCol)
       enddo
     enddo
 
     !6x3
     do lRow=1,6
-      gRow=n(lRow)
-      k=(gRow-1)*ivl(0)
-      nlinkl=linkl(k+1:k+ivl(0))
-      do lCol=1,3
-        gCol=n(lCol)
-        do j=1,ivl(gRow)
-          if(nlinkl(j).eq.gCol) goto 12
-        enddo
-        write(9,*)"[Err] node conn missing in Bsnq at",gRow
-        stop
-        12 gGx(k+j)=gGx(k+j)+lGx(lRow,lCol)
-        gGy(k+j)=gGy(k+j)+lGy(lRow,lCol)
+      do lCol=1,3        
+        j2=ele6x3(i,(lRow-1)*3+lCol)
+        gGx(j2)=gGx(j2)+lGx(lRow,lCol)
+        gGy(j2)=gGy(j2)+lGy(lRow,lCol)
       enddo
     enddo
+
+    ! !6x6
+    ! do lRow=1,6
+    !   gRow=n(lRow)
+    !   k=(gRow-1)*ivq(0)
+    !   nlinkq=linkq(k+1:k+ivq(0))
+    !   do lCol=1,6
+    !     gCol=n(lCol)
+    !     do j=1,ivq(gRow)
+    !       if(nlinkq(j).eq.gCol) goto 11
+    !     enddo
+    !     write(9,*)"[Err] node conn missing in Bsnq at",gRow
+    !     stop
+    !     11 gNAdv(k+j)=gNAdv(k+j)+lNAd(lRow,lCol)
+    !     gPGx(k+j)=gPGx(k+j)+lPGx(lRow,lCol)
+    !     gPGy(k+j)=gPGy(k+j)+lPGy(lRow,lCol)
+    !   enddo
+    ! enddo
+
+    ! !6x3
+    ! do lRow=1,6
+    !   gRow=n(lRow)
+    !   k=(gRow-1)*ivl(0)
+    !   nlinkl=linkl(k+1:k+ivl(0))
+    !   do lCol=1,3
+    !     gCol=n(lCol)
+    !     do j=1,ivl(gRow)
+    !       if(nlinkl(j).eq.gCol) goto 12
+    !     enddo
+    !     write(9,*)"[Err] node conn missing in Bsnq at",gRow
+    !     stop
+    !     12 gGx(k+j)=gGx(k+j)+lGx(lRow,lCol)
+    !     gGy(k+j)=gGy(k+j)+lGy(lRow,lCol)
+    !   enddo
+    ! enddo
 
     ! !3x6    
     ! do lRow=1,3

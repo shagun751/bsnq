@@ -7,7 +7,8 @@
     real(kind=C_K2),intent(in)::tDr(b%npt),ur(b%npt),vr(b%npt)
 
     call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
-      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%dep,b%por,tDr,&
+      b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%ele6x6,b%ele6x3,&
+      b%dep,b%por,tDr,&
       ur,vr,b%gGx,b%gGy,b%gNAdv,b%gPGx,b%gPGy)
 
     if(b%presOn)then
@@ -36,7 +37,7 @@
     call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%Sz,b%ivl,b%ivq,&
       b%linkl,b%linkq,b%invJ,b%dep,b%por,b%mass1,b%mass2,&
       b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCxF,b%gCyF,b%gDMat,&
-      b%gBs5,b%gBs6)
+      b%gBs5,b%gBs6,b%ele6x6,b%ele6x3)
     write(9,*)"[MSG] Done matrixSet1"
 
     call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
@@ -109,6 +110,7 @@
     !!  So modify the bq%et1 only after the entire computation
     !!  with its old values is done. Till then store it in bq%er
 
+    call system_clock(sysC(3))
     dt=b%dt
 
     !!------------------solveW-----------------!!
@@ -176,6 +178,10 @@
 
     !!-----------------solvePQ-----------------!!    
     !gRPQ=0d0
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(i,tmpr1,tmpr2,tmpr3,tmpr4,absC,&
+      k,j,k2,i2)
+    !$OMP DO SCHEDULE(dynamic,100)
     do i=1,b%npt      
       tmpr1=0d0
       tmpr2=0d0
@@ -214,6 +220,8 @@
       gRPQ(i)=dt*( tmpr1 + tmpr3 )
       gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )
     enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
     
     call b%diriBCPQDiff(gRPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
 
@@ -226,6 +234,7 @@
     call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
     call system_clock(sysC(2))
     !!---------------End solvePQ---------------!!
+    call system_clock(sysC(4))
 
     301 format('      |',a6,i10,i10,e15.4)
 
@@ -245,6 +254,7 @@
     i1=b%ivl(0)
     j1=b%ivq(0)
 
+    !Allocations
     allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
     allocate(b%por(j),b%vec6Tmp(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
@@ -263,6 +273,7 @@
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
     allocate(b%gRE(i),b%gRPQ(2*j))
     allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
+    allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]

@@ -15,7 +15,7 @@
 !!  -> Paralution CSR
 !!	-> XML output
 !!-----------------------------------------------------------------!!
-!! Time-Stepping : AdBs3E : Adam-Bashforth Explicit 3-point
+!! Time-Stepping : RK4 
 
 program boussinesqQuad
 use bsnqGlobVars

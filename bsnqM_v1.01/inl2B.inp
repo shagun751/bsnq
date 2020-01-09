@@ -31,7 +31,7 @@ Q) Wave Probes
 51	25
 52	25
 
-Q) Inlet boundary wave time-period amplitude (s) (m)
+Q) Inlet boundary wave Time-period Height Depth (s) (m) (m)
 1 -0.0232 0.45
 Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
 -15 0 0
