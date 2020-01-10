@@ -40,7 +40,7 @@ module airyWaveModule
 use bsnqGlobVars
 implicit none
 
-  type, public :: waveType    
+  type, public :: airyType    
     real(kind=C_K2)::T,d,H,L,w
     real(kind=C_K2)::x0,y0
     real(kind=C_K2)::k,kx,ky
@@ -48,16 +48,16 @@ implicit none
   contains
     procedure ::  getEta
     procedure ::  getPQ
-  end type waveType
+  end type airyType
 
-  interface waveType
+  interface airyType
      procedure :: waveLenCalc
-  end interface waveType
+  end interface airyType
 
 contains
 
 !!-------------------------waveLenCalc-------------------------!!
-  type(waveType) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
+  type(airyType) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
   implicit none
 
     !! WaveLen using dispersion relation from Airy wave-theory
@@ -116,7 +116,7 @@ contains
   subroutine getEta(b,rTime,x,y,eta)
   implicit none
 
-    class(waveType),intent(in)::b
+    class(airyType),intent(in)::b
 
     !integer(kind=C_K1)::
 
@@ -137,7 +137,7 @@ contains
   subroutine getPQ(b,rTime,x,y,p,q)
   implicit none
 
-    class(waveType),intent(in)::b
+    class(airyType),intent(in)::b
 
     !integer(kind=C_K1)::
 
@@ -161,7 +161,7 @@ contains
   subroutine getEtadxdy(b,rTime,x,y,detadx,detady)
   implicit none
 
-    class(waveType),intent(in)::b
+    class(airyType),intent(in)::b
 
     !integer(kind=C_K1)::
 
@@ -263,3 +263,155 @@ contains
 
 end module outAbsModule
 !!------------------------End outAbsModule-------------------------!!
+
+
+
+!!-------------------------waveFileModule--------------------------!!
+module waveFileModule
+use bsnqGlobVars
+implicit none
+
+  type, public :: wvFileType        
+    character(len=256)::fileName
+    integer(kind=C_K1)::numP,posI
+    real(kind=C_K2),allocatable::data(:,:)
+  contains
+    procedure ::  initWaveFile
+    procedure ::  getEta
+    procedure ::  getPQ
+  end type wvFileType  
+
+contains
+
+!!------------------------initWaveFile-------------------------!!
+  subroutine initWaveFile(b)
+  implicit none
+
+    class(wvFileType),intent(inout)::b
+    integer(kind=C_K1)::mf,i
+    real(kind=C_K2)::tmpra(4)
+    logical::ex
+
+    inquire(file=trim(b%fileName),exist=ex)
+    if(ex) then
+      open(newunit=mf,file=trim(b%fileName))
+    else
+      write(9,*)"[ERR] Missing wave input file"
+      stop
+    endif
+
+    b%numP=0
+    do while(.true.)
+      read(mf,*,end=11,err=12)tmpra
+      b%numP=b%numP+1
+      cycle
+      11 exit
+      12 write(9,*)"[ERR] Check wave file format"
+      stop
+    enddo
+    write(9,'(" [INF] Number of wave file point = ",i10)')b%numP
+    close(mf)
+
+    allocate(b%data(b%numP,4))
+    open(newunit=mf,file=trim(b%fileName))    
+    do i=1,b%numP
+      read(mf,*,end=21,err=21)b%data(i,1:4)      
+    enddo
+    write(9,*)"[INF] Done wave file read"
+
+    b%posI=2
+
+    return
+    21 write(9,*)"[ERR] Check wave file format"
+    stop
+  end subroutine initWaveFile
+!!----------------------End initWaveFile-----------------------!!
+
+
+
+
+!!---------------------------getEta----------------------------!!
+  subroutine getEta(b,rTime,eta)
+  implicit none
+
+    class(wvFileType),intent(inout)::b
+
+    integer(kind=C_K1)::k
+
+    real(kind=C_K2),intent(in)::rTime
+    real(kind=C_K2),intent(out)::eta
+    
+    if((rTime.gt.b%data(b%numP,1)).or.&
+      (rTime.lt.b%data(1,1)))then
+      write(9,*)"[ERR] Wave query exceeds supplied time range"
+      write(9,'( "[---] ",F15.6)')rTime
+      write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
+      stop
+    endif
+
+    do while(b%data(b%posI+1,1).lt.rTime)
+      b%posI=b%posI+1
+    enddo
+
+    do while(b%data(b%posI-1,1).gt.rTime)
+      if(b%posI.eq.2)exit
+      b%posI=b%posI-1
+    enddo
+
+    k=2
+    eta=b%data(b%posI,k) &
+      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
+      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
+      * (rTime-b%data(b%posI,1))
+
+  end subroutine getEta
+!!-------------------------End getEta--------------------------!!
+
+
+
+!!----------------------------getPQ----------------------------!!
+  subroutine getPQ(b,rTime,p,q)
+  implicit none
+
+    class(wvFileType),intent(inout)::b
+
+    integer(kind=C_K1)::k
+
+    real(kind=C_K2),intent(in)::rTime
+    real(kind=C_K2),intent(out)::p,q
+    
+    if((rTime.gt.b%data(b%numP,1)).or.&
+      (rTime.lt.b%data(1,1)))then
+      write(9,*)"[ERR] Wave query exceeds supplied time range"
+      write(9,'( "[---] ",F15.6)')rTime
+      write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
+      stop
+    endif
+
+    do while(b%data(b%posI+1,1).lt.rTime)
+      b%posI=b%posI+1
+    enddo
+
+    do while(b%data(b%posI-1,1).gt.rTime)
+      if(b%posI.eq.2)exit
+      b%posI=b%posI-1
+    enddo
+
+    k=3
+    p=b%data(b%posI,k) &
+      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
+      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
+      * (rTime-b%data(b%posI,1))
+
+    k=4
+    q=b%data(b%posI,k) &
+      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
+      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
+      * (rTime-b%data(b%posI,1))
+
+  end subroutine getPQ
+!!--------------------------End getPQ--------------------------!!
+
+
+end module waveFileModule
+!!-----------------------End waveFileModule------------------------!!

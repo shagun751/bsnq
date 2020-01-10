@@ -416,13 +416,14 @@
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)i
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%wvF%fileName
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
-    ! waveType(T,d,H,X0,Y0,thDeg)
-    b%wvIn=waveType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
+    call b%wvF%initWaveFile
+    ! airyType(T,d,H,X0,Y0,thDeg)
+    b%wvIn=airyType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
     write(9,'(" [INF] ",3A15)')'T','L','d'
     write(9,'(" [---] ",3F15.6)')b%wvIn%T,b%wvIn%L,b%wvIn%d
     write(9,'(" [INF] ",A15)')'kh'

@@ -29,7 +29,7 @@ Q) Wave Probes
 Q) Wave input type (0-file, 1-Airy)
 0
 Q) File | FileName
-none
+ftc1_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)
 2 -0.015 0.4572
 Q) Airy | Inlet boundary wave Cx Cy angle (m) (m) (deg)

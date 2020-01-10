@@ -1,6 +1,7 @@
 module bsnqModule
 use bsnqGlobVars
 use airyWaveModule
+use waveFileModule
 use outAbsModule
 use shipMod
 implicit none
@@ -79,7 +80,8 @@ implicit none
 
     integer(kind=8)::sysC(10)
     logical(kind=C_LG)::resume,presOn,absOn
-    type(waveType)::wvIn
+    type(airyType)::wvIn
+    type(wvFileType)::wvF
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
