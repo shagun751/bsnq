@@ -1,6 +1,5 @@
 module bsnqModule
 use bsnqGlobVars
-use airyWaveModule
 use waveFileModule
 use outAbsModule
 use shipMod
@@ -53,7 +52,7 @@ implicit none
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
     integer(kind=C_INT),allocatable::ele6x6(:,:),ele6x3(:,:)
 
-    real(kind=C_K2)::dt,errLim,endTime,rTime
+    real(kind=C_K2)::dt,errLim,endTime,rTime,wvHReset
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
@@ -79,8 +78,7 @@ implicit none
     real(kind=C_K2),allocatable::aFull(:),gFW(:)
 
     integer(kind=8)::sysC(10)
-    logical(kind=C_LG)::resume,presOn,absOn
-    type(airyType)::wvIn
+    logical(kind=C_LG)::resume,presOn,absOn    
     type(wvFileType)::wvF
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
@@ -189,11 +187,13 @@ contains
       call b%outputXML
     endif
 
-    tmpr1=b%wvIn%T
-    if(mod(b%rTime,2*tmpr1).lt.0.1*tmpr1)then
+    tmpr1=b%wvHReset
+    if(mod(b%rTime,tmpr1).lt.0.05*tmpr1)then
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
     endif
+
+    !write(201,*)
 
     !Writing probes values
     k=b%probe(-1)
@@ -324,17 +324,17 @@ contains
   subroutine diriBCEta(b,mat,rTt0)
   implicit none
 
-    class(bsnqCase),intent(in)::b
+    class(bsnqCase),intent(in)::b    
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::mat(b%npl)    
 
     !! Note : Consistent with SemiDirect only
+    call b%wvF%getEta(rTt0,tmpr1)    
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
-      if(j2.eq.11)then
-        call b%wvIn%getEta(rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
+      if(j2.eq.11)then        
         mat(i2)=tmpr1
 
       elseif(j2.eq.14)then
@@ -351,17 +351,16 @@ contains
   subroutine diriBCPQ(b,p,q,rTt0)
   implicit none
 
-    class(bsnqCase),intent(in)::b
+    class(bsnqCase),intent(in)::b    
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::p(b%npt),q(b%npt)
 
     !! Note : Consistent with SemiDirect only
+    call b%wvF%getPQ(rTt0,tmpr1,tmpr2)    
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
-      if(j2.eq.11)then
-        call b%wvIn%getPQ(rTt0,b%cor(i2,1),b%cor(i2,2),&
-          tmpr1,tmpr2)         
+      if(j2.eq.11)then        
         p(i2)=tmpr1
         q(i2)=tmpr2
 
@@ -393,13 +392,14 @@ contains
     real(kind=C_K2),intent(inout)::mat(b%npl)    
 
     !! Note : Consistent with SemiDirect only
+    call b%wvF%getEta(rTt0,tmpr1)
+    call b%wvF%getEta(rTt1,tmpr2)
+    !write(201,'(3F15.6)',advance='no')rTt0,tmpr1,tmpr2
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
-      if(j2.eq.11)then
-        call b%wvIn%getEta(rTt0,b%cor(i2,1),b%cor(i2,2),tmpr1)
-        call b%wvIn%getEta(rTt1,b%cor(i2,1),b%cor(i2,2),tmpr2)
+      if(j2.eq.11)then        
         mat(i2)=tmpr1-tmpr2
 
       elseif(j2.eq.14)then
@@ -421,14 +421,13 @@ contains
     real(kind=C_K2),intent(inout)::mat(2*b%npt)
 
     !! Note : Consistent with SemiDirect only
+    call b%wvF%getPQ(rTt0,tmpr1,tmpr2)         
+    call b%wvF%getPQ(rTt1,tmpr3,tmpr4)
+    !write(201,'(2F15.6)',advance='no')tmpr1,tmpr3
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
-      if(j2.eq.11)then
-        call b%wvIn%getPQ(rTt0,b%cor(i2,1),b%cor(i2,2),&
-          tmpr1,tmpr2)         
-        call b%wvIn%getPQ(rTt1,b%cor(i2,1),b%cor(i2,2),&
-          tmpr3,tmpr4)
+      if(j2.eq.11)then        
         mat(i2)=tmpr1-tmpr3
         mat(b%npt+i2)=tmpr2-tmpr4
 

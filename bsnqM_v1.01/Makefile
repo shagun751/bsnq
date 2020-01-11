@@ -72,11 +72,11 @@ paralution_fortran.o: $(PARA_CONV)
 	$(C_COMP) $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)	
 
 clean:
-	rm -rf *.dat Output 
+	rm -rf Output 
 	mkdir Output
 
 cleanAll:
-	rm -rf *.dat *.o subroutines/*.mod *.mod Output bsnq 
+	rm -rf *.o subroutines/*.mod *.mod Output bsnq 
 	mkdir Output
 
 rmout:

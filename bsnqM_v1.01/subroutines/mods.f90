@@ -277,6 +277,7 @@ implicit none
     real(kind=C_K2),allocatable::data(:,:)
   contains
     procedure ::  initWaveFile
+    procedure ::  initAiryFile
     procedure ::  getEta
     procedure ::  getPQ
   end type wvFileType  
@@ -329,17 +330,65 @@ contains
 
 
 
+!!------------------------initAiryFile-------------------------!!
+  subroutine initAiryFile(b,dt,inTotT,inT,inD,inH)
+  use airyWaveModule
+  implicit none
+
+    class(wvFileType),intent(inout)::b
+    integer(kind=C_K1)::i
+    real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt
+    real(kind=C_K2)::t,eta,p,q,totT
+    type(airyType)::wv    
+
+    ! airyType(T,d,H,X0,Y0,thDeg)
+    wv=airyType(inT,inD,inH,0d0,0d0,0d0)
+
+    write(9,'(" [INF] ",3A15)')'T','L','d'
+    write(9,'(" [---] ",3F15.6)')wv%T,wv%L,wv%d
+    write(9,'(" [INF] ",A15)')'kh'
+    write(9,'(" [---] ",F15.6)')wv%k*wv%d
+    write(9,'(" [INF] At 2.25 WavePeriods")')
+    write(9,'(" [---] ",3A15)')'Eta','P','Q'
+    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,p,q)
+    write(9,'(" [---] ",3F15.6)')eta,p,q
+
+    totT=1.2d0*inTotT
+    b%numP=floor(totT/dt)+2
+
+    allocate(b%data(b%numP,4))
+    do i=0,b%numP-1
+      t=i*dt
+      call wv%getEta(t,0d0,0d0,eta)
+      call wv%getPQ(t,0d0,0d0,p,q)
+      b%data(i+1,1)=t
+      b%data(i+1,2)=eta
+      b%data(i+1,3)=p
+      b%data(i+1,4)=q
+      !write(201,'(4F15.6)')b%data(i+1,1:4)
+    enddo    
+
+    b%posI=2
+
+  end subroutine initAiryFile
+!!----------------------End initAiryFile-----------------------!!
+
+
+
 
 !!---------------------------getEta----------------------------!!
   subroutine getEta(b,rTime,eta)
   implicit none
 
-    class(wvFileType),intent(inout)::b
+    class(wvFileType),intent(in)::b
 
-    integer(kind=C_K1)::k
+    integer(kind=C_K1)::k,posI
 
     real(kind=C_K2),intent(in)::rTime
     real(kind=C_K2),intent(out)::eta
+
+    posI=2
     
     if((rTime.gt.b%data(b%numP,1)).or.&
       (rTime.lt.b%data(1,1)))then
@@ -349,20 +398,20 @@ contains
       stop
     endif
 
-    do while(b%data(b%posI+1,1).lt.rTime)
-      b%posI=b%posI+1
+    do while(b%data(posI+1,1).lt.rTime)
+      posI=posI+1
     enddo
 
-    do while(b%data(b%posI-1,1).gt.rTime)
-      if(b%posI.eq.2)exit
-      b%posI=b%posI-1
-    enddo
+    ! do while(b%data(posI-1,1).gt.rTime)
+    !   if(posI.eq.2)exit
+    !   posI=posI-1
+    ! enddo
 
     k=2
-    eta=b%data(b%posI,k) &
-      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
-      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
-      * (rTime-b%data(b%posI,1))
+    eta=b%data(posI,k) &
+      + (b%data(posI+1,k)-b%data(posI-1,k)) &
+      / (b%data(posI+1,1)-b%data(posI-1,1)) &
+      * (rTime-b%data(posI,1))
 
   end subroutine getEta
 !!-------------------------End getEta--------------------------!!
@@ -373,12 +422,14 @@ contains
   subroutine getPQ(b,rTime,p,q)
   implicit none
 
-    class(wvFileType),intent(inout)::b
+    class(wvFileType),intent(in)::b
 
-    integer(kind=C_K1)::k
+    integer(kind=C_K1)::k,posI
 
     real(kind=C_K2),intent(in)::rTime
     real(kind=C_K2),intent(out)::p,q
+
+    posI=2
     
     if((rTime.gt.b%data(b%numP,1)).or.&
       (rTime.lt.b%data(1,1)))then
@@ -388,26 +439,26 @@ contains
       stop
     endif
 
-    do while(b%data(b%posI+1,1).lt.rTime)
-      b%posI=b%posI+1
+    do while(b%data(posI+1,1).lt.rTime)
+      posI=posI+1
     enddo
 
-    do while(b%data(b%posI-1,1).gt.rTime)
-      if(b%posI.eq.2)exit
-      b%posI=b%posI-1
-    enddo
+    ! do while(b%data(posI-1,1).gt.rTime)
+    !   if(posI.eq.2)exit
+    !   posI=posI-1
+    ! enddo
 
     k=3
-    p=b%data(b%posI,k) &
-      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
-      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
-      * (rTime-b%data(b%posI,1))
+    p=b%data(posI,k) &
+      + (b%data(posI+1,k)-b%data(posI-1,k)) &
+      / (b%data(posI+1,1)-b%data(posI-1,1)) &
+      * (rTime-b%data(posI,1))
 
     k=4
-    q=b%data(b%posI,k) &
-      + (b%data(b%posI+1,k)-b%data(b%posI-1,k)) &
-      / (b%data(b%posI+1,1)-b%data(b%posI-1,1)) &
-      * (rTime-b%data(b%posI,1))
+    q=b%data(posI,k) &
+      + (b%data(posI+1,k)-b%data(posI-1,k)) &
+      / (b%data(posI+1,1)-b%data(posI-1,1)) &
+      * (rTime-b%data(posI,1))
 
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!

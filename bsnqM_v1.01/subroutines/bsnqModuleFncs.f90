@@ -364,7 +364,9 @@
     b%fileOut=int(tmpr1/b%dt,4)
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1
-    b%resumeOut=int(tmpr1/b%dt,4)  
+    b%resumeOut=int(tmpr1/b%dt,4)
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%wvHReset
 
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%presOn      
@@ -419,20 +421,14 @@
     read(mf,*,end=81,err=81)b%wvF%fileName
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
-    read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr4,tmpr5,tmpr6
-    call b%wvF%initWaveFile
-    ! airyType(T,d,H,X0,Y0,thDeg)
-    b%wvIn=airyType(tmpr1,tmpr3,tmpr2,tmpr4,tmpr5,tmpr6)
-    write(9,'(" [INF] ",3A15)')'T','L','d'
-    write(9,'(" [---] ",3F15.6)')b%wvIn%T,b%wvIn%L,b%wvIn%d
-    write(9,'(" [INF] ",A15)')'kh'
-    write(9,'(" [---] ",F15.6)')b%wvIn%k*b%wvIn%d
-    write(9,'(" [INF] At 2.25 WavePeriods")')
-    write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call b%wvIn%getEta(2.25d0*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr1)
-    call b%wvIn%getPQ(2.25d0*b%wvIn%T,b%wvIn%x0,b%wvIn%y0,tmpr2,tmpr3)
-    write(9,'(" [---] ",3F15.6)')tmpr1,tmpr2,tmpr3
+    select case (i)
+      case(0)
+        call b%wvF%initWaveFile
+      
+      case (1)
+        ! initAiryFile(dt,totTime,inT,inD,inH)
+        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,tmpr2)
+    end select    
 
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)bqtxt

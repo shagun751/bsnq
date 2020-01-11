@@ -17,6 +17,8 @@ Q) Output file interval (s)
 1.0
 Q) Resume file generation interval (s)
 5.0
+Q) Wave-height reset time (s)
+4
 
 Q) Pressure term On? (.true. / .false.)
 .true.
@@ -37,8 +39,6 @@ Q) File | FileName
 none
 Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)
 1 -0.0232 0.45
-Q) Airy | Inlet boundary wave Cx Cy angle (m) (m) (deg)
--15 0 0
 
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)
