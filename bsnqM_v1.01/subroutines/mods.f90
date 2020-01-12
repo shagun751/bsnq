@@ -276,6 +276,7 @@ implicit none
     integer(kind=C_K1)::numP,posI
     real(kind=C_K2),allocatable::data(:,:)
   contains
+    procedure ::  chkWaveFileInput
     procedure ::  initWaveFile
     procedure ::  initAiryFile
     procedure ::  getEta
