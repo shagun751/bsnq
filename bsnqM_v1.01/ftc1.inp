@@ -4,7 +4,7 @@ Q) Resume file name (Mention the path in between quotes)
 'Resume/resume_dav3_10000000.vtk'
 
 Q) Time-step (s)
-0.04
+0.02
 Q) Run Time (s)
 40.0
 
@@ -27,17 +27,17 @@ Q) Number of OpenMP Threads
 4
 Q) Wave Probes
 4
-3.928 2
-4.178 2
-4.428 2
+8.928 2
+9.178 2
+9.428 2
 8.9   2
 
 Q) Wave input type (0-file, 1-Airy)
 0
 Q) File | FileName
-ftc1_wav.dat
+vsrMonoC1_T1p5_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)
-0.95 -0.1 0.7
+1.5 -0.1 0.7
 
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)

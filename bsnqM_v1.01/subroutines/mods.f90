@@ -398,7 +398,7 @@ contains
       stop
     endif
 
-    do while(b%data(posI+1,1).lt.rTime)
+    do while(b%data(posI+1,1).le.rTime)
       posI=posI+1
     enddo
 
@@ -412,6 +412,8 @@ contains
       + (b%data(posI+1,k)-b%data(posI-1,k)) &
       / (b%data(posI+1,1)-b%data(posI-1,1)) &
       * (rTime-b%data(posI,1))
+
+    !write(222,'(3F20.6)')rTime,b%data(posI,1),rTime-b%data(posI,1)
 
   end subroutine getEta
 !!-------------------------End getEta--------------------------!!
@@ -439,7 +441,7 @@ contains
       stop
     endif
 
-    do while(b%data(posI+1,1).lt.rTime)
+    do while(b%data(posI+1,1).le.rTime)
       posI=posI+1
     enddo
 
@@ -462,6 +464,34 @@ contains
 
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
+
+
+
+!!----------------------chkWaveFileInput-----------------------!!
+  subroutine chkWaveFileInput(b,rT0,rT1,dt)
+  implicit none
+
+    class(wvFileType),intent(in)::b
+
+    integer(kind=C_K1)::i,j,mf,nT
+
+    real(kind=C_K2),intent(in)::rT0,rT1,dt
+    real(kind=C_K2)::eta,p,q,t
+
+    open(newunit=mf,file='chkWaveFileInput.dat')
+
+    nT=floor((rT1-rT0)/dt)+1
+    do i=0,nT
+      t=rT0+i*dt
+      call b%getEta(t,eta)
+      call b%getPQ(t,p,q)
+      write(mf,'(4F20.8)')t,eta,p,q
+    enddo
+    close(mf)
+
+
+  end subroutine chkWaveFileInput
+!!--------------------End chkWaveFileInput---------------------!!
 
 
 end module waveFileModule
