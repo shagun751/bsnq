@@ -4,7 +4,7 @@ Q) Resume file name (Mention the path in between quotes)
 'Resume/resume_dav3_10000000.vtk'
 
 Q) Time-step (s)
-0.02
+0.01
 Q) Run Time (s)
 40.0
 
@@ -35,7 +35,7 @@ Q) Wave Probes
 Q) Wave input type (0-file, 1-Airy)
 0
 Q) File | FileName
-vsrMonoC1_T1p5_wav.dat
+vsrMonoC2_T2p0_dt0p005_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)
 1.5 -0.1 0.7
 
@@ -44,7 +44,7 @@ Q) Enable? (.true. / .false.)
 .true.
 Q) Regions (Num; Type | Lim | length | waveT) (Type: 1234 -> NWSE)
 1
-4 30 20 1.5
+4 30 20 2.0
 
 Q) Porous layer definition
 Q) Enable? (.true. / .false.)
