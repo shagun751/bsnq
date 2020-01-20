@@ -36,8 +36,10 @@ Q) Wave input type (0-file, 1-Airy)
 0
 Q) File | FileName
 vsrMonoC2_T2p0_dt0p005_wav.dat
-Q) Airy | Inlet boundary wave Time-period Height Depth (s) (m) (m)
-1.5 -0.1 0.7
+Q) Airy | Inlet boundary wave Time-period Height (s) (m)
+1.5 -0.1 
+Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
+0.7 0
 
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)

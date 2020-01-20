@@ -332,18 +332,18 @@ contains
 
 
 !!------------------------initAiryFile-------------------------!!
-  subroutine initAiryFile(b,dt,inTotT,inT,inD,inH)
+  subroutine initAiryFile(b,dt,inTotT,inT,inD,inH,inAng)
   use airyWaveModule
   implicit none
 
     class(wvFileType),intent(inout)::b
     integer(kind=C_K1)::i
-    real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt
+    real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
     real(kind=C_K2)::t,eta,p,q,totT
     type(airyType)::wv    
 
     ! airyType(T,d,H,X0,Y0,thDeg)
-    wv=airyType(inT,inD,inH,0d0,0d0,0d0)
+    wv=airyType(inT,inD,inH,0d0,0d0,inAng)
 
     write(9,'(" [INF] ",3A15)')'T','L','d'
     write(9,'(" [---] ",3F15.6)')wv%T,wv%L,wv%d

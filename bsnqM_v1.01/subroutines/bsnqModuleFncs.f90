@@ -420,14 +420,17 @@
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%wvF%fileName
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr1,tmpr2,tmpr3
+    read(mf,*,end=81,err=81)tmpr1,tmpr2
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr3,tmpr4
     select case (i)
       case(0)
         call b%wvF%initWaveFile
       
-      case (1)
-        ! initAiryFile(dt,totTime,inT,inD,inH)
-        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,tmpr2)
+      case (1)      
+        ! initAiryFile(dt,totTime,inT,inD,inH,inAngDeg)
+        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
+          tmpr2,tmpr4)
     end select    
 
     read(mf,*,end=81,err=81)bqtxt

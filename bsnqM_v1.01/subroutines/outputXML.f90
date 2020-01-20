@@ -17,15 +17,15 @@
     write(mf,'(T5,a)')'<PointData Scalars="eta" Vectors="vel">'
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="eta" format="ascii">'
-    write(mf,'(E20.10)')b%tOb(0)%e
+    write(mf,'(F20.6)')b%tOb(0)%e
     write(mf,'(T7,a)')'</DataArray>'
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="waveH" format="ascii">'
-    write(mf,'(E20.10)')b%etaMax-b%etaMin
+    write(mf,'(F20.6)')b%etaMax-b%etaMin
     write(mf,'(T7,a)')'</DataArray>'
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="press" format="ascii">'
-    write(mf,'(E20.10)')b%presr(1:b%npl)
+    write(mf,'(F15.6)')b%presr(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
@@ -33,7 +33,7 @@
     ! write(mf,'(T7,a)')'</DataArray>'
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="depth" format="ascii">'
-    write(mf,'(E20.10)')-b%dep(1:b%npl)
+    write(mf,'(F15.6)')-b%dep(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="porH" format="ascii">'
@@ -42,7 +42,7 @@
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      write(mf,'(3E20.10)')b%tOb(0)%p(i), b%tOb(0)%q(i), 0d0
+      write(mf,'(2F20.6,F5.1)')b%tOb(0)%p(i), b%tOb(0)%q(i), 0d0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
 
@@ -58,7 +58,7 @@
     write(mf,'(T5,a)')'<Points>'
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="Points" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
-      write(mf,'(3E20.10)')b%cor(i,:),0d0
+      write(mf,'(2F15.4,F5.1)')b%cor(i,:),0d0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T5,a)')'</Points>'

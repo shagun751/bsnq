@@ -37,8 +37,10 @@ Q) Wave input type (0-file, 1-Airy)
 1
 Q) File | FileName
 none
-Q) Airy | Inlet boundary wave time-period amplitude (s) (m)
-1 -0.0232 0.45
+Q) Airy | Inlet boundary wave Time-period Height (s) (m)
+1 -0.0232
+Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
+0.45 0
 
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)
