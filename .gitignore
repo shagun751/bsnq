@@ -4,6 +4,8 @@ Output_*/
 *.rout
 *.fnpt
 Analysis_*/
+Data/
+
 
 
 

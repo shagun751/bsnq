@@ -24,10 +24,31 @@ continued from bsnq\_par\_v8.36
 - [x] Moving Press - Press2 - Press val at quad nodes
 - [ ] Moving Press - Press1 - Press val at linear nodes
 - [x] Moving Press - Press1 - Press val at quad nodes
+- [ ] waveInputFile search to binary instead of sequential
 
 
 #### Observations : shipPress : Press2 val Linear nodes
 This version in arounf 6.5 times faster than the previous code. This code took 23 minutes to run a 25 sec simulation case for domain 100m x 43m, water depth 2.5 constant. Ship moving at Froude = 0.7 along the midline. The earlier code took 160 minutes for the same test case.
+
+#### Observations : shipPress : Noise compared to old code
+<p align="centre"> <img width='45%' src="./CmpWith_inl2_v7p3p3.png">  
+  **Fig :** Comparison of the current code results with the bsnq_v7.3.3
+</p>
+The comparison of pressure filed moving at Fr=0.7, dont with the old code.  
+Old Code : bsnq_v7.3.3  
+Location : Tallin/Trial_inl/inl2_v7.3.3CC_C12_Rs15_v0p7  
+
+- It can be seen that the velocity has significantly lesser noise. This is the reason behind the faster (6 times) execution of the code.
+- This indicates an increased stability in the code. I am not sure why the code is more stable now. 
+- The same level of stability is observed with AdBaE3 time-stepping and RK4 time stepping. So the increase stability is not due to time-stepping
+- One possible reason is because I have done the equivalent of h<sup>2</sup> = &Psi;<sub>i</sub> h<sub>i</sub><sup>2</sup>, instead of doing h<sup>2</sup> = (&Psi;<sub>i</sub> h<sub>i</sub>)<sup>2</sup> everywhere. Similar was mentioned in the ADCIRC manual at one place in the square computation.
+- The other possibility is the inclusion of the boundary integrals implicitly, however thats not likely because atleast this problem is not boundary driven (I think).
+- Another possibility is the inclusion of u on 6 points instead of 3 points in the convective term.
+- **Anyway with this increased stability maybe we will finally be able to make the wave-breaking and run-up algorithms work correctly finally.**
+
+
+#### Observations : shipPress : Pressure at lin vs quad nods
+It appears that the quad nodes gives slightly better results with the deepest pressure value better represented
 
 -----------------------------------------------
 

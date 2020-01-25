@@ -30,4 +30,14 @@ Compares the branches in a tree structure
 ##### git status
 Lists the modified-unstaged-tracked files, untracked files and staged files.
 
+##### git reset --hard (commit)
+Resets from the current commit to the mentioned commit.
+It will delete all changes made in this commit and will not even be shown in the branch history.
+
+##### git revert (commit)
+Reverts from the current version to the mentioned commit.
+Creates a new commit with the reverted changes. 
+This is an alternate to the reset option.
+It ensures that the changes made in this commit show in the branch history.
+This ensures better documentation.
 
