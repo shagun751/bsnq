@@ -32,7 +32,8 @@ This version in arounf 6.5 times faster than the previous code. This code took 2
 
 #### Observations : shipPress : Noise compared to old code
 <p align="centre"> <img width='45%' src="./CmpWith_inl2_v7p3p3.png">  
-  **Fig :** Comparison of the current code results with the bsnq_v7.3.3
+
+**Fig :** Comparison of the current code results with the bsnq_v7.3.3
 </p>
 The comparison of pressure filed moving at Fr=0.7, dont with the old code.  
 Old Code : bsnq_v7.3.3  
