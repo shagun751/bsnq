@@ -272,7 +272,7 @@
     allocate(b%aFull(b%ivf(0)*2*j))
     allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
     allocate(b%gRE(i),b%gRPQ(2*j))
-    allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
+    allocate(b%etaMax(i),b%etaMin(i),b%presr(j),b%etadt(i))
     allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]

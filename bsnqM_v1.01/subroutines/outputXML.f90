@@ -28,6 +28,14 @@
     write(mf,'(F15.6)')b%presr(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="etadt" format="ascii">'
+    write(mf,'(F15.6)')b%etadt
+    write(mf,'(T7,a)')'</DataArray>'
+
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="VInvdt" format="ascii">'
+    write(mf,'(F15.6)')b%vec6Tmp(1:b%npl)
+    write(mf,'(T7,a)')'</DataArray>'
+
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
     ! write(mf,*)b%absC(1:b%npl)
     ! write(mf,'(T7,a)')'</DataArray>'

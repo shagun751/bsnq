@@ -66,6 +66,7 @@ implicit none
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::etaMax(:),etaMin(:),probeLoc(:,:)
+    real(kind=C_K2),allocatable::etadt(:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -183,6 +184,19 @@ contains
     !   endif
     ! enddo
 
+    b%etadt=( b%tOb(0)%e - b%tOb(1)%e )/b%dt
+    i=b%npl
+    ! V
+    b%vec6Tmp(1:i)=3d0*sqrt(grav * b%tOb(0)%tD(1:i)) &
+      - 2d0*sqrt(grav * b%dep(1:i))
+    ! minusdVInvdt
+    b%vec6Tmp(1:i)=1d0/(b%vec6Tmp(1:i)**2) * 1.5d0*sqrt(grav) &
+      /sqrt(b%tOb(0)%tD(1:i))*b%etadt    
+    write(9,303)"xEdt",b%tOb(0)%rtm,&
+      maxval(-b%etadt),b%cor(maxloc(-b%etadt),1)
+    write(9,303)"xVIdt",b%tOb(0)%rtm,&
+      maxval(b%vec6Tmp(1:i)),b%cor(maxloc(b%vec6Tmp(1:i)),1)
+
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
     endif
@@ -191,7 +205,7 @@ contains
     if(mod(b%rTime,tmpr1).lt.0.05*tmpr1)then
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
-    endif
+    endif    
 
     !write(201,*)
 
@@ -214,6 +228,7 @@ contains
     write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
+    303 format('      |',a6,3F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!
