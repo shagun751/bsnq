@@ -60,7 +60,7 @@
 
     call b%CSRMatrices
 
-    call b%destructR1
+    call b%destructR1    
 
     call system_clock(b%sysC(6))
     write(9,*)"[MSG] Done statMatrices"
@@ -314,6 +314,14 @@
     call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
 
     b%presr=0d0
+
+    ! meshfree
+    i=b%npl
+    call b%mlsl%calcRadius(i,b%Sz(1),b%ivl,b%linkl,&
+      b%cor(1:i,1),b%cor(1:i,2))
+    i=b%npt
+    call b%mlsq%calcRadius(i,b%Sz(4),b%ivq,b%linkq,&
+      b%cor(1:i,1),b%cor(1:i,2))
 
     call paralution_init(b%nthrd)    
 

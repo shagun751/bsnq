@@ -3,6 +3,7 @@ use bsnqGlobVars
 use waveFileModule
 use outAbsModule
 use shipMod
+use meshFreeMod
 implicit none
 
   interface
@@ -83,6 +84,7 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
+    type(mfTyp)::mlsl,mlsq
     
     
 

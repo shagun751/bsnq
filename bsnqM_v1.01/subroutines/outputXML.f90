@@ -26,8 +26,8 @@
 
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="press" format="ascii">'
     write(mf,'(F15.6)')b%presr(1:b%npl)
-    write(mf,'(T7,a)')'</DataArray>'
-
+    write(mf,'(T7,a)')'</DataArray>'    
+    
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
     ! write(mf,*)b%absC(1:b%npl)
     ! write(mf,'(T7,a)')'</DataArray>'
