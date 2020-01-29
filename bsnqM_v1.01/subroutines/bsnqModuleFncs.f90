@@ -316,12 +316,15 @@
     b%presr=0d0
 
     ! meshfree
-    i=b%npl
-    call b%mlsl%calcRadius(i,b%Sz(1),b%ivl,b%linkl,&
-      b%cor(1:i,1),b%cor(1:i,2))
+    ! i=b%npl
+    ! call b%mlsl%calcAll(i,b%Sz(1),b%ivl,b%linkl,&
+    !   b%cor(1:i,1),b%cor(1:i,2))
     i=b%npt
-    call b%mlsq%calcRadius(i,b%Sz(4),b%ivq,b%linkq,&
+    call b%mlsq%calcAll(i,b%Sz(4),b%ivq,b%linkq,&
       b%cor(1:i,1),b%cor(1:i,2))
+
+    call testMls2DDx
+    stop
 
     call paralution_init(b%nthrd)    
 

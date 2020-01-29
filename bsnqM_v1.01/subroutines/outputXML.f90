@@ -27,11 +27,18 @@
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="press" format="ascii">'
     write(mf,'(F15.6)')b%presr(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'    
-    
-    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="absC" format="ascii">'
-    ! write(mf,*)b%absC(1:b%npl)
-    ! write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="phi" format="ascii">'
+    do i=1,b%npl
+      tmpr1=0d0
+      k=(i-1)* b%ivq(0)
+      do j=k+1, k+b%ivq(i)
+        tmpr1=tmpr1 + b%mlsq%phi(j) * b%cor(b%linkq(j),1)
+      enddo
+      write(mf,'(F15.6)')tmpr1
+    enddo
+    write(mf,'(T7,a)')'</DataArray>'    
+    
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="depth" format="ascii">'
     write(mf,'(F15.6)')-b%dep(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
@@ -43,6 +50,19 @@
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
       write(mf,'(2F20.6,F5.1)')b%tOb(0)%p(i), b%tOb(0)%q(i), 0d0
+    enddo
+    write(mf,'(T7,a)')'</DataArray>'
+
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="grad" NumberOfComponents="3" format="ascii">'  
+    do i=1,b%npl
+      tmpr1=0d0
+      tmpr2=0d0
+      k=(i-1)* b%ivq(0)
+      do j=k+1, k+b%ivq(i)
+        tmpr1=tmpr1 + b%mlsq%phiDx(j) * b%cor(b%linkq(j),1)
+        tmpr2=tmpr2 + b%mlsq%phiDy(j) * b%cor(b%linkq(j),2)
+      enddo
+      write(mf,'(2F15.6,F5.1)')tmpr1,tmpr2,0d0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
 
