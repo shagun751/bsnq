@@ -316,15 +316,28 @@
     b%presr=0d0
 
     ! meshfree
-    ! i=b%npl
-    ! call b%mlsl%calcAll(i,b%Sz(1),b%ivl,b%linkl,&
-    !   b%cor(1:i,1),b%cor(1:i,2))
+    i=b%npl
+    call b%mlsl%calcAll(i,b%Sz(1),b%ivl,b%linkl,&
+      b%cor(1:i,1),b%cor(1:i,2))
+    do i2=1,b%nbndp
+      i=b%bndP(i2)
+      if(i.gt.b%npl)exit
+      k=(i-1)*b%ivl(0)
+      b%mlsl%phiDx(k+1:k+b%ivl(i))=0d0
+      b%mlsl%phiDy(k+1:k+b%ivl(i))=0d0
+    enddo
     i=b%npt
     call b%mlsq%calcAll(i,b%Sz(4),b%ivq,b%linkq,&
       b%cor(1:i,1),b%cor(1:i,2))
+    do i2=1,b%nbndp
+      i=b%bndP(i2)
+      k=(i-1)*b%ivq(0)
+      b%mlsq%phiDx(k+1:k+b%ivq(i))=0d0
+      b%mlsq%phiDy(k+1:k+b%ivq(i))=0d0
+    enddo
 
-    call testMls2DDx
-    stop
+    ! call testMls2DDx
+    ! stop
 
     call paralution_init(b%nthrd)    
 
