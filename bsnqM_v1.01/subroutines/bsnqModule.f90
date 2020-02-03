@@ -383,11 +383,11 @@ contains
         p(i2)=0d0
         q(i2)=0d0
 
-      elseif(j1.eq.13)then
-        if(abs(b%bndPN(i1,1)).gt.0.1)then
+      elseif(j2.eq.13)then
+        if(abs(b%bndPN(i2,1)).gt.0.1)then
           p(i2)=0d0
         endif
-        if(abs(b%bndPN(i1,2)).gt.0.1)then
+        if(abs(b%bndPN(i2,2)).gt.0.1)then
           q(i2)=0d0
         endif
 
@@ -450,11 +450,11 @@ contains
         mat(i2)=0d0
         mat(b%npt+i2)=0d0
 
-      elseif(j1.eq.13)then
-        if(abs(b%bndPN(i1,1)).gt.0.1)then
+      elseif(j2.eq.13)then
+        if(abs(b%bndPN(i2,1)).gt.0.1)then
           mat(i2)=0d0
         endif
-        if(abs(b%bndPN(i1,2)).gt.0.1)then
+        if(abs(b%bndPN(i2,2)).gt.0.1)then
           mat(b%npt+i2)=0d0
         endif
 
