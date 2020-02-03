@@ -3,30 +3,51 @@ module meshFreeMod
 use bsnqGlobVars
 implicit none
   
-  type, public :: mfTyp
+  type, public :: mfFEMTyp
+    !! FEM mesh points with FEM link-table based immediate neghs
     real(kind=C_K2),allocatable::rad(:),phi(:)
     real(kind=C_K2),allocatable::phiDx(:),phiDy(:)
   contains
     !procedure :: initRadius
     procedure :: calcAll
-  end type mfTyp
+  end type mfFEMTyp
+
+  
+  type, public :: mfPoiTyp
+    !! Random location with FEM mesh neghs
+    integer(kind=C_K1)::nn,nnMax
+    integer(kind=C_K1),allocatable::neid(:)
+    real(kind=C_K2)::cx,cy,rad
+    real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
+  contains
+    procedure :: initPoi
+  end type mfPoiTyp
 
 contains
 
 
-! !!-------------------------initRadius--------------------------!!
-!   subroutine initRadius(m,np)
-!   implicit none
+!!---------------------------initPoi---------------------------!!
+  subroutine initPoi(m,nnMax,cx,cy,rad)
+  implicit none
 
-!     class(mfTyp),intent(inout)::m
-!     integer(kind=C_K1),intent(in)::np
+    class(mfPoiTyp),intent(inout)::m
+    integer(kind=C_K1),intent(in)::nnMax
+    real(kind=C_K2),intent(in)::cx,cy,rad
 
-!     if(allocated(m%rad)) deallocate(m%rad)
-!     allocate(m%rad(np))
-!     m%rad=0d0
+    if(allocated(m%neid)) deallocate(m%neid)
+    if(allocated(m%phi)) deallocate(m%phi)
+    if(allocated(m%phiDx)) deallocate(m%phiDx)
+    if(allocated(m%phiDy)) deallocate(m%phiDy)
+    allocate(m%neid(nnMax),m%phi(nnMax))
+    allocate(m%phiDx(nnMax),m%phiDy(nnMax))
+    m%nnMax=nnMax
+    m%nn=0
+    m%cx=cx
+    m%cy=cy
+    m%rad=rad
 
-!   end subroutine initRadius
-! !!-----------------------End initRadius------------------------!!
+  end subroutine initPoi
+!!-------------------------End initPoi-------------------------!!
 
 
 
@@ -34,7 +55,7 @@ contains
   subroutine calcAll(m,npt,sz,ivq,jvq,corx,cory)
   implicit none
 
-    class(mfTyp),intent(inout)::m
+    class(mfFEMTyp),intent(inout)::m
     integer(kind=C_K1),intent(in)::npt,sz
     integer(kind=C_K1),intent(in)::ivq(0:npt),jvq(sz)
     real(kind=C_K2),intent(in)::corx(npt),cory(npt)
@@ -262,6 +283,47 @@ contains
     enddo
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
 
+    deallocate(corx,cory,phi,phiDx,phiDy)
+    write(*,*)
+    write(*,*)
+
+
+    write(*,*)' \ / '
+    write(*,*)'     '
+    write(*,*)' / \ '
+    xi=10d0
+    yi=89.55d0
+    nn=5
+    rad=dsqrt(2d0)/0.8d0    
+
+    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+
+    corx = (/ 1d0, -0.8d0, -1d0, 1d0, 0d0 /)
+    cory = (/ 1d0, 0.8d0, -1d0, -1d0, 0d0 /)    
+    corx=corx+xi
+    cory=cory+yi
+
+    call mls2DDx(xi, yi, nn, rad, &
+        corx, cory, &
+        phi, phiDx, phiDy)          
+
+    write(*,'(I10)')nn
+    do i=1,nn
+      write(*,'(5F15.6)')corx(i),cory(i),phi(i),phiDx(i),phiDx(i)
+    enddo
+
+    write(*,'(3F15.6)')sum(phi),sum(phiDx),sum(phiDy)
+    tmpr1=0d0
+    tmpr2=0d0
+    tmpr3=0d0
+    do i=1,nn
+      tmpr1 = tmpr1 + phi(i)*(1+corx(i))*(10+cory(i))
+      tmpr2 = tmpr2 + phiDx(i)*(1+corx(i))
+      tmpr3 = tmpr3 + phiDy(i)*(10+cory(i))
+    enddo
+    write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
+    
+
     ! A(1,:) = (/ 1d0,0.2d0,3d0 /)
     ! A(2,:) = (/ 0.2d0,4d0,5d0 /)
     ! A(3,:) = (/ 3d0,5d0,6d0 /)
@@ -375,20 +437,20 @@ contains
     endif    
 
     !! gammaTranspose
-    call matMul_V13_ASym33(pT,AInv,gT)
+    call matMul_V13_A33(pT,AInv,gT)
     
     !! gammaTranspose dx
     call matMul_ASym33_BSym33(Ax,AInv,M)
-    !call matMul_ASym33_BSym33(AInv,M,Ax)
-    call matMul_V13_ASym33(gT,M,gTemp)
-    call matMul_V13_ASym33(pTx,AInv,gTx)
+    ! Note : M is not symmetric
+    call matMul_V13_A33(gT,M,gTemp)
+    call matMul_V13_A33(pTx,AInv,gTx)
     gTx=gTx-gTemp
 
     !! gammaTranspose dx
     call matMul_ASym33_BSym33(Ay,AInv,M)
-    !call matMul_ASym33_BSym33(AInv,M,Ay)
-    call matMul_V13_ASym33(gT,M,gTemp)
-    call matMul_V13_ASym33(pTy,AInv,gTy)
+    ! Note : M is not symmetric
+    call matMul_V13_A33(gT,M,gTemp)
+    call matMul_V13_A33(pTy,AInv,gTy)
     gTy=gTy-gTemp
 
     do j=1,nn
@@ -647,30 +709,31 @@ contains
     real(kind=C_K2),intent(in)::A(3,3),B(3,3)
     real(kind=C_K2),intent(out)::R(3,3)
 
+
     R(1,1)=A(1,1)*B(1,1) + A(1,2)*B(1,2) + A(1,3)*B(1,3)
     R(1,2)=A(1,1)*B(1,2) + A(1,2)*B(2,2) + A(1,3)*B(2,3)
     R(1,3)=A(1,1)*B(1,3) + A(1,2)*B(2,3) + A(1,3)*B(3,3)
 
-    R(2,1)=R(1,2)
+    R(2,1)=A(1,2)*B(1,1) + A(2,2)*B(1,2) + A(2,3)*B(1,3)
     R(2,2)=A(1,2)*B(1,2) + A(2,2)*B(2,2) + A(2,3)*B(2,3)
     R(2,3)=A(1,2)*B(1,3) + A(2,2)*B(2,3) + A(2,3)*B(3,3)
 
-    R(3,1)=R(1,3)
-    R(3,2)=R(2,3)
+    R(3,1)=A(1,3)*B(1,1) + A(2,3)*B(1,2) + A(3,3)*B(1,3)
+    R(3,2)=A(1,3)*B(1,2) + A(2,3)*B(2,2) + A(3,3)*B(2,3)
     R(3,3)=A(1,3)*B(1,3) + A(2,3)*B(2,3) + A(3,3)*B(3,3)
 
   end subroutine matMul_ASym33_BSym33
 
-  subroutine matMul_V13_ASym33(V,A,res)
+  subroutine matMul_V13_A33(V,A,res)
   implicit none
 
     real(kind=C_K2),intent(in)::V(3),A(3,3)
     real(kind=C_K2),intent(out)::res(3)
     
-    res(1)=A(1,1)*V(1) + A(1,2)*V(2) + A(1,3)*V(3)
-    res(2)=A(1,2)*V(1) + A(2,2)*V(2) + A(2,3)*V(3) 
+    res(1)=A(1,1)*V(1) + A(2,1)*V(2) + A(3,1)*V(3)
+    res(2)=A(1,2)*V(1) + A(2,2)*V(2) + A(3,2)*V(3) 
     res(3)=A(1,3)*V(1) + A(2,3)*V(2) + A(3,3)*V(3)
-  end subroutine matMul_V13_ASym33
+  end subroutine matMul_V13_A33
 
   subroutine matMul_V13_V31(V13,V31,res)
   implicit none

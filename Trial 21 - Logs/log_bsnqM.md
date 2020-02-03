@@ -35,10 +35,17 @@ continued from bsnq\_par\_v8.36
 - [x] Gradient calculation using MLS
 - [ ] Gradient calculation using Least-square method
 - [ ] Check if stress based approach for second gradient is useful
-- [ ] Calculate ship wave-making resistance.
+- [x] Calculate ship wave-making resistance.
+- [x] IMPORTANT-BUG : dirichlet BC PQ
 
 
-### Observations : gradMLS : MLS with FEM Neigh
+### IMPORTANT BUG : dirichletBC [2020-02-03]
+- In the functions _diriBCPQ_ and _diriBCPQDiff_, I had made the stupid mistake of using i1 and j2 instead of i2 and j2. 
+- Due to this the normal velocity was not being made = 0 on the 'slip wall' BC
+- Corrected and verified.
+
+
+### Observations : gradMLS : MLS with FEM Neigh [2020-01-30]
 File : modsMFree.f90
 - The derivation in my MTech thesis is based on the thought that the MLS derivation is basically the summation form of the RKPM formulation (which is integral).
 - However on rechecking in the book Liu (2005), it seems that's not correct
@@ -47,6 +54,15 @@ File : modsMFree.f90
 - It has been verified using the _testMls2DDx_ in the code file.
 - The gradient is very poor for incomplete domain.
 - Currently the neightbours were based on immediate FEM neighbous. Though seems to be ok but its not perfect, especially near the corners.
+
+
+#### Update [2020-02-03]
+- I had made the stupid mistake of assuming that product of two symmetric matrices is symmetric. This is incorrect and was the reason behind the wrong derivative calculations
+- The MLS derivative calculations now are excellent. They have been verified for cases rect2D, fberk and ert. 
+- The following folder contains the first derivative of eta plotted and compared against the gradient calculation within paraview for the cases rect2D, fberk and ert
+Folder : Output_bsnqM_v1.01_RK4/Output_mlsDx
+Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
+- MLS gradient even works well now for partial subdomains, as tested in the function _test2DDx_
 
 
 ### Observations : shipPress : Soliton generation

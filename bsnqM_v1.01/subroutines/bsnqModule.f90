@@ -84,7 +84,7 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
-    type(mfTyp)::mlsl,mlsq
+    type(mfFEMTyp)::mlsl!,mlsq
     
     
 
@@ -195,6 +195,15 @@ contains
       b%etaMax=b%tOb(0)%e
     endif
 
+    !! Ship drag calculation
+    if((b%presOn).and.(b%tOb(0)%rtm.gt.3d0))then
+      b%vec6Tmp = b%tOb(0)%tD - b%dep
+      i=b%npt
+      call b%sh(1)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
+        b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1)
+      write(9,303)'shFx',b%tOb(0)%rtm,tmpr1
+    endif
+
     !write(201,*)
 
     !Writing probes values
@@ -216,6 +225,7 @@ contains
     write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
+    303 format('      |',a6,2F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!
@@ -370,11 +380,11 @@ contains
         p(i2)=0d0
         q(i2)=0d0
 
-      elseif(j1.eq.13)then
-        if(abs(b%bndPN(i1,1)).gt.0.1)then
+      elseif(j2.eq.13)then
+        if(abs(b%bndPN(i2,1)).gt.0.1)then
           p(i2)=0d0
         endif
-        if(abs(b%bndPN(i1,2)).gt.0.1)then
+        if(abs(b%bndPN(i2,2)).gt.0.1)then
           q(i2)=0d0
         endif
 
@@ -437,11 +447,11 @@ contains
         mat(i2)=0d0
         mat(b%npt+i2)=0d0
 
-      elseif(j1.eq.13)then
-        if(abs(b%bndPN(i1,1)).gt.0.1)then
+      elseif(j2.eq.13)then
+        if(abs(b%bndPN(i2,1)).gt.0.1)then
           mat(i2)=0d0
         endif
-        if(abs(b%bndPN(i1,2)).gt.0.1)then
+        if(abs(b%bndPN(i2,2)).gt.0.1)then
           mat(b%npt+i2)=0d0
         endif
 

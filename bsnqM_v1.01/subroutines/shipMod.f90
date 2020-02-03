@@ -1,17 +1,23 @@
 !!-----------------------------shipMod-----------------------------!!
 module shipMod
 use bsnqGlobVars
+use meshFreeMod
 implicit none
 
   type, public :: shipType    
     integer(kind=C_K1)::posN,posI,totNShip,presFnc
+    integer(kind=C_K1)::gridNL,gridNB
     real(kind=C_K2)::cl,cb,al    
     real(kind=C_K2)::L,B,T
     real(kind=C_K2),allocatable::posData(:,:)
+    real(kind=C_K2),allocatable::gP(:,:) !X major form
+    real(kind=C_K2),allocatable::gPPres(:)
+    type(mfPoiTyp)::gPObj
   contains
     procedure ::  getPress    
     procedure ::  getLoc
-  end type shipType
+    procedure ::  calcDrag
+  end type shipType  
 
   interface shipType
     procedure :: initShip
@@ -27,7 +33,8 @@ contains
 
     integer(kind=C_K1),intent(in)::mf,numShip
     real(kind=C_K2),intent(in)::simEnd
-    integer(kind=C_K1)::i,j
+    integer(kind=C_K1)::i,j,nnMax,k,k2
+    real(kind=C_K2)::tmpr1,tmpr2
     character(len=C_KSTR)::bqtxt  
 
     initShip%totNShip=numShip
@@ -55,6 +62,16 @@ contains
 
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%L,initShip%B,initShip%T
+
+    read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)nnMax,tmpr1
+    read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)initShip%gridNL,initShip%gridNB
+    allocate( initShip%gP( initShip%gridNL*initShip%gridNB, 2 ) )
+    allocate( initShip%gPPres( initShip%gridNL*initShip%gridNB ) )
+    call initShip%gPObj%initPoi(nnMax,0d0,0d0,tmpr1)    
+
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%posN        
     read(mf,*,end=83,err=83)bqtxt
@@ -212,6 +229,128 @@ contains
 
   end subroutine getPress
 !!------------------------End getPress-------------------------!!
+
+
+
+!!--------------------------calcDrag---------------------------!!
+  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx)
+  implicit none
+
+    class(shipType),intent(inout)::sh
+    integer(kind=C_K1),intent(in)::np
+    real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
+    real(kind=C_K2),intent(in)::eta(np)
+    real(kind=C_K2),intent(out)::fx
+
+    integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn
+    real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1,etaDx
+    real(kind=C_K2)::dx,dy,x,y
+
+    call sh%getLoc(rTime,x0,y0,thDeg)
+    csth=dcos(thDeg*deg2rad)
+    snth=dsin(thDeg*deg2rad)
+
+    dx = sh%L / (sh%gridNL-1)
+    dy = sh%B / (sh%gridNB-1)
+    k2=sh%gridNB
+    do i=1,sh%gridNL
+      do j=1,sh%gridNB
+        k=(i-1)*k2+j
+        x= -sh%L/2d0 + (i-1)*dx
+        y= -sh%B/2d0 + (j-1)*dy
+        sh%gP(k,1) = x0 + x*csth - y*snth  
+        sh%gP(k,2) = y0 + x*snth + y*csth  
+      enddo
+    enddo
+    ! do j=sh%gridNB,1,-1
+    !   do i=1,sh%gridNL
+    !     k=(i-1)*k2+j
+    !     write(*,'(F6.2,",",F6.2," ")',advance='no')sh%gP(k,1), &
+    !       sh%gP(k,2)
+    !   enddo
+    !   write(*,*)
+    ! enddo
+    ! stop
+
+    k2=sh%gridNL*sh%gridNB
+    call sh%getPress(rTime,k2,sh%gP,sh%gPPres)
+
+    fx=0d0
+    k2=sh%gridNB
+    do shI=1,sh%gridNL
+      do shJ=1,sh%gridNB
+
+        k=(shI-1)*k2+shJ
+        sh%gPObj%cx = sh%gP(k,1)
+        sh%gPObj%cy = sh%gP(k,2)
+
+        nn=0
+        tmpr1=sh%gPObj%rad**2
+        do i=1,np
+          dr=( corx(i)-sh%gPObj%cx )**2 &
+            + ( cory(i)-sh%gPObj%cy )**2 
+          if(dr.lt.tmpr1)then
+            nn=nn+1
+            if(nn .gt. sh%gPObj%nnMax)then
+              write(9,'("      |",a6,a)')"[ERR]",&
+                "ship%CalcDrag| Increase ship numOfNegh or reduce radius"
+              fx=0d0
+              return
+            endif            
+            sh%gPObj%neid(nn) = i
+          endif
+        enddo
+        if(nn .lt. 4)then
+          write(9,'("      |",a6,a)')"[ERR]",&
+            "ship%CalcDrag| Insufficient neghs"
+          ! write(*,'(2I5,2F15.6)')shI,shJ,sh%gPObj%cx,sh%gPObj%cy
+          ! write(*,'(I5)')nn
+          fx=0d0
+          return
+        endif            
+        sh%gPObj%nn=nn        
+
+        call mls2DDx(sh%gPObj%cx, sh%gPObj%cy, nn, &
+          sh%gPObj%rad, corx(sh%gPObj%neid(1:nn)), &
+          cory(sh%gPObj%neid(1:nn)), &
+          sh%gPObj%phi(1:nn), sh%gPObj%phiDx(1:nn), &
+          sh%gPObj%phiDy(1:nn))        
+
+        !! etaDx
+        etaDx=0d0
+        do i=1,nn
+          etaDx=etaDx+ sh%gPObj%phiDx(i) * eta(sh%gPObj%neid(i))
+        enddo
+
+        !! Simpson's integration
+        tmpr1=1d0
+        if(mod(shI,2).ne.0)then
+          if((shI.eq.1).or.(shI.eq.sh%gridNL))then
+            tmpr1=tmpr1*1d0
+          else
+            tmpr1=tmpr1*2d0
+          endif
+        else
+          tmpr1=tmpr1*4d0
+        endif
+        if(mod(shJ,2).ne.0)then
+          if((shJ.eq.1).or.(shJ.eq.sh%gridNB))then
+            tmpr1=tmpr1*1d0
+          else
+            tmpr1=tmpr1*2d0
+          endif
+        else
+          tmpr1=tmpr1*4d0
+        endif
+        tmpr1=tmpr1*dx*dy/9d0
+        fx=fx+tmpr1*sh%gPPres(k)*etaDx
+
+
+      enddo
+    enddo
+
+  end subroutine calcDrag
+!!------------------------End calcDrag-------------------------!!
 
 
 end module shipMod
