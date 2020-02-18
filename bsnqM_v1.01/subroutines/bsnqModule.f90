@@ -196,7 +196,7 @@ contains
     endif
 
     !! Ship drag calculation
-    if((b%presOn).and.(b%tOb(0)%rtm.gt.3d0))then
+    if(b%presOn)then
       b%vec6Tmp = b%tOb(0)%tD - b%dep
       i=b%npt
       call b%sh(1)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&

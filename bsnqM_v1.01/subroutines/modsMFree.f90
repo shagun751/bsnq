@@ -380,17 +380,7 @@ contains
       drr=dr/R
 
       if(drr.le.1d0)then
-        !! Exp (ending at r/R = 1)
-        wj=0.5d0/pi*dexp(-4.5d0*drr*drr)
-        wjx=9d0*dx/R/R*wj
-        wjy=9d0*dy/R/R*wj
-
-        ! !! Biquadratic
-        ! wj = 1d0 - 6d0*drr**2 + 8*drr**3 - 3*drr**4        
-        ! wjx= -12d0*dx/(R**2) + 24d0*dx*dr/(R**3) &
-        !   - 12d0*dx*dr*dr/(R**4)
-        ! wjy= 12d0*dy/(R**2) - 24d0*dy*dr/(R**3) &
-        !   + 12d0*dy*dr*dr/(R**4)    
+        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)        
       endif
 
       A(1,1)=A(1,1) + wj
@@ -433,7 +423,7 @@ contains
       write(9,'(" [ERR] ADet is too small",F15.6)')ADet
       write(9,'(" [---] Location X Y",2F15.6)')x,y
       write(9,'(" [---] Num Neigh",I10)')nn
-      stop
+      return
     endif    
 
     !! gammaTranspose
@@ -462,17 +452,7 @@ contains
       drr=dr/R
 
       if(drr.le.1d0)then
-        !! Exp (ending at r/R = 1)
-        wj=0.5d0/pi*dexp(-4.5d0*drr*drr)
-        wjx=9d0*dx/R/R*wj
-        wjy=9d0*dy/R/R*wj
-
-        !! Biquadratic
-        ! wj = 1d0 - 6d0*drr**2 + 8*drr**3 - 3*drr**4  
-        ! wjx= -12d0*dx/(R**2) + 24d0*dx*dr/(R**3) &
-        !   - 12d0*dx*dr*dr/(R**4)  
-        ! wjy= 12d0*dy/(R**2) - 24d0*dy*dr/(R**3) &
-        !   + 12d0*dy*dr*dr/(R**4)    
+        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)
       endif      
 
       Bj(1)=wj
@@ -653,6 +633,36 @@ contains
 
   end subroutine mls2DDxSAThesis
 !!---------------------End mls2DDxSAThesis---------------------!!
+
+
+
+!!--------------------------weightFnc--------------------------!!
+  subroutine weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,typ)
+  implicit none
+
+    integer(kind=C_K1),intent(in)::typ
+    real(kind=C_K2),intent(in)::dx,dy,dr,drr,R
+    real(kind=C_K2),intent(out)::wj,wjx,wjy
+
+    select case(typ)
+      case(1)
+        !! Exp (ending at r/R = 1)
+        wj=0.5d0/pi*dexp(-4.5d0*drr*drr)
+        wjx=9d0*dx/R/R*wj
+        wjy=9d0*dy/R/R*wj
+
+      case(2)
+        !! Biquadratic
+        wj = 1d0 - 6d0*drr**2 + 8*drr**3 - 3*drr**4        
+        wjx= -12d0*dx/(R**2) + 24d0*dx*dr/(R**3) &
+          - 12d0*dx*dr*dr/(R**4)
+        wjy= 12d0*dy/(R**2) - 24d0*dy*dr/(R**3) &
+          + 12d0*dy*dr*dr/(R**4)    
+    end select
+
+  end subroutine weightFnc
+!!------------------------End weightFnc------------------------!!
+
 
 
 
