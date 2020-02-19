@@ -12,7 +12,8 @@ implicit none
     real(kind=C_K2),allocatable::posData(:,:)
     real(kind=C_K2),allocatable::gP(:,:) !X major form
     real(kind=C_K2),allocatable::gPPres(:)
-    type(mfPoiTyp)::gPObj
+    logical(kind=C_LG)::dragFlag
+    type(mfPoiTyp)::gPObj    
   contains
     procedure ::  getPress    
     procedure ::  getLoc
@@ -64,6 +65,8 @@ contains
     read(mf,*,end=83,err=83)initShip%L,initShip%B,initShip%T
 
     read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)initShip%dragFlag
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)nnMax,tmpr1
     read(mf,*,end=83,err=83)bqtxt
@@ -242,7 +245,7 @@ contains
     real(kind=C_K2),intent(in)::eta(np)
     real(kind=C_K2),intent(out)::fx
 
-    integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn
+    integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn,err
     real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1,etaDx
     real(kind=C_K2)::dx,dy,x,y
 
@@ -314,7 +317,12 @@ contains
           sh%gPObj%rad, corx(sh%gPObj%neid(1:nn)), &
           cory(sh%gPObj%neid(1:nn)), &
           sh%gPObj%phi(1:nn), sh%gPObj%phiDx(1:nn), &
-          sh%gPObj%phiDy(1:nn))        
+          sh%gPObj%phiDy(1:nn),err)        
+
+        if(err.ne.0) then !If any err in mls2DDx then return fx=0
+          fx=0d0
+          return
+        endif
 
         !! etaDx
         etaDx=0d0

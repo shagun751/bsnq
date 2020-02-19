@@ -60,7 +60,7 @@ contains
     integer(kind=C_K1),intent(in)::ivq(0:npt),jvq(sz)
     real(kind=C_K2),intent(in)::corx(npt),cory(npt)
 
-    integer(kind=C_K1)::i,j,k1,k2,i2
+    integer(kind=C_K1)::i,j,k1,k2,i2,err
     real(kind=C_K2)::rMax,dr,cx,cy,coef
 
     coef=0.8d0 ! Farhter point in this much of the radius
@@ -101,7 +101,7 @@ contains
       k2=(i-1)*ivq(0)+ivq(i)
       call mls2DDx(corx(i), cory(i), ivq(i), m%rad(i), &
         corx(jvq(k1:k2)), cory(jvq(k1:k2)), &
-        m%phi(k1:k2), m%phiDx(k1:k2), m%phiDy(k1:k2))   
+        m%phi(k1:k2), m%phiDx(k1:k2), m%phiDy(k1:k2),err)   
 
       ! write(*,*)corx(i),cory(i)
       ! write(*,*)ivq(i)
@@ -121,7 +121,7 @@ contains
   subroutine testMls2DDx
   implicit none
 
-    integer(kind=C_K1)::nn,i
+    integer(kind=C_K1)::nn,i,err
     real(kind=C_K2)::xi,yi,rad,tmpr1,tmpr2,tmpr3
     real(kind=C_K2),allocatable::corx(:),cory(:)
     real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
@@ -145,7 +145,7 @@ contains
 
     call mls2DDx(xi, yi, nn, rad, &
         corx, cory, &
-        phi, phiDx, phiDy)          
+        phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
     do i=1,nn
@@ -185,7 +185,7 @@ contains
 
     call mls2DDx(xi, yi, nn, rad, &
         corx, cory, &
-        phi, phiDx, phiDy)          
+        phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
     do i=1,nn
@@ -225,7 +225,7 @@ contains
 
     call mls2DDx(xi, yi, nn, rad, &
         corx, cory, &
-        phi, phiDx, phiDy)          
+        phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
     do i=1,nn
@@ -265,7 +265,7 @@ contains
 
     call mls2DDx(xi, yi, nn, rad, &
         corx, cory, &
-        phi, phiDx, phiDy)          
+        phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
     do i=1,nn
@@ -305,7 +305,7 @@ contains
 
     call mls2DDx(xi, yi, nn, rad, &
         corx, cory, &
-        phi, phiDx, phiDy)          
+        phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
     do i=1,nn
@@ -339,11 +339,12 @@ contains
 
 
 !!---------------------------mls2DDx---------------------------!!
-  subroutine mls2DDx(x,y,nn,R,corx,cory,phi,phiDx,phiDy)
+  subroutine mls2DDx(x,y,nn,R,corx,cory,phi,phiDx,phiDy,err)
   implicit none
 
-    integer(kind=C_K1),intent(in)::nn    
+    integer(kind=C_K1),intent(in)::nn        
     real(kind=C_K2),intent(in)::x,y,corx(nn),cory(nn),R
+    integer(kind=C_K1),intent(out)::err
     real(kind=C_K2),intent(out)::phi(nn),phiDx(nn),phiDy(nn)
 
     integer(kind=C_K1)::j
@@ -357,6 +358,7 @@ contains
     phi=0d0
     phiDx=0d0
     phiDy=0d0
+    err=-1
    
     A=0d0    
     Ax=0d0
@@ -478,6 +480,7 @@ contains
       call matMul_V13_V31(gT,Bjy,tmpr2)
       phiDy(j)=tmpr1+tmpr2
 
+      err=0
     enddo    
 
   end subroutine mls2DDx

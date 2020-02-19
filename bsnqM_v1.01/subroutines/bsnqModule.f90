@@ -197,11 +197,13 @@ contains
 
     !! Ship drag calculation
     if(b%presOn)then
-      b%vec6Tmp = b%tOb(0)%tD - b%dep
-      i=b%npt
-      call b%sh(1)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
-        b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1)
-      write(9,303)'shFx',b%tOb(0)%rtm,tmpr1
+      if(b%sh(1)%dragFlag)then !Optional to calc drag
+        b%vec6Tmp = b%tOb(0)%tD - b%dep
+        i=b%npt
+        call b%sh(1)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
+          b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1)
+        write(9,303)'shFx',b%tOb(0)%rtm,tmpr1
+      endif
     endif
 
     !write(201,*)
