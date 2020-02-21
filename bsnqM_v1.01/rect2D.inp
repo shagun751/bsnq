@@ -14,7 +14,7 @@ Q) Maximum number of iterations for GMRES solver
 50000
 
 Q) Output file interval (s)
-1.0
+0.5
 Q) Resume file generation interval (s)
 5.0
 Q) Wave-height reset time (s)

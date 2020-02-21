@@ -84,8 +84,7 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
-    type(mfFEMTyp)::mlsl!,mlsq
-    
+    type(mfFEMTyp)::mlsl!,mlsq    
     
 
   contains    

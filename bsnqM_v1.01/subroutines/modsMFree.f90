@@ -21,6 +21,7 @@ implicit none
     real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
   contains
     procedure :: initPoi
+    procedure :: setPoi
   end type mfPoiTyp
 
 contains
@@ -48,6 +49,43 @@ contains
 
   end subroutine initPoi
 !!-------------------------End initPoi-------------------------!!
+
+
+
+!!---------------------------setPoi----------------------------!!
+  subroutine setPoi(m,nn,nnMax,cx,cy,rad,&
+    nei,phi,phiDx,phiDy)
+  implicit none
+
+    class(mfPoiTyp),intent(inout)::m
+    integer(kind=C_K1),intent(in)::nn,nnMax,nei(nn)
+    real(kind=C_K2),intent(in)::cx,cy,rad
+    real(kind=C_K2),intent(in)::phi(nn),phiDx(nn),phiDy(nn)
+
+    if(allocated(m%neid)) deallocate(m%neid)
+    if(allocated(m%phi)) deallocate(m%phi)
+    if(allocated(m%phiDx)) deallocate(m%phiDx)
+    if(allocated(m%phiDy)) deallocate(m%phiDy)
+    allocate(m%neid(nnMax),m%phi(nnMax))
+    allocate(m%phiDx(nnMax),m%phiDy(nnMax))
+
+    if(nn.gt.nnMax)then
+      write(9,'(" [ERR] numNei > numNeiMax",2I10)')nn,nnMax
+      stop
+    endif
+
+    m%nnMax=nnMax
+    m%nn=nn
+    m%cx=cx
+    m%cy=cy
+    m%rad=rad
+    m%neid(1:nn)=nei
+    m%phi(1:nn)=phi
+    m%phiDx(1:nn)=phiDx
+    m%phiDy(1:nn)=phiDy
+
+  end subroutine setPoi
+!!-------------------------End setPoi--------------------------!!
 
 
 
@@ -114,6 +152,156 @@ contains
 
   end subroutine calcAll
 !!-------------------------End calcAll-------------------------!!
+
+
+
+!!---------------------------mls2DDx---------------------------!!
+  subroutine mls2DDx(x,y,nn,R,corx,cory,phi,phiDx,phiDy,err)
+  implicit none
+
+    integer(kind=C_K1),intent(in)::nn        
+    real(kind=C_K2),intent(in)::x,y,corx(nn),cory(nn),R
+    integer(kind=C_K1),intent(out)::err
+    real(kind=C_K2),intent(out)::phi(nn),phiDx(nn),phiDy(nn)
+
+    integer(kind=C_K1)::j
+    real(kind=C_K2)::rMax,dr,dx,dy,wj,wjx,wjy,drr,xj,yj
+    real(kind=C_K2)::A(3,3),AInv(3,3),ADet
+    real(kind=C_K2)::Ax(3,3),Ay(3,3),M(3,3)
+    real(kind=C_K2)::pT(3),pTx(3),pTy(3)
+    real(kind=C_K2)::Bj(3),Bjx(3),Bjy(3),tmpr1,tmpr2
+    real(kind=C_K2)::gT(3),gTx(3),gTy(3),gTemp(3)
+
+    phi=0d0
+    phiDx=0d0
+    phiDy=0d0
+    err=-1
+   
+    A=0d0    
+    Ax=0d0
+    Ay=0d0
+    pT(1)=1d0
+    pT(2)=x
+    pT(3)=y      
+    pTx(1)=0d0
+    pTx(2)=1d0
+    pTx(3)=0d0    
+    pTy(1)=0d0
+    pTy(2)=0d0
+    pTy(3)=1d0    
+
+    do j=1,nn
+      xj=corx(j)
+      yj=cory(j)
+      dx=xj-x
+      dy=yj-y
+      dr=dsqrt(dx**2 + dy**2)
+      drr=dr/R
+
+      if(drr.le.1d0)then
+        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)        
+      endif
+
+      A(1,1)=A(1,1) + wj
+      A(1,2)=A(1,2) + wj*xj
+      A(1,3)=A(1,3) + wj*yj
+      A(2,2)=A(2,2) + wj*xj*xj
+      A(2,3)=A(2,3) + wj*xj*yj
+      A(3,3)=A(3,3) + wj*yj*yj        
+
+      Ax(1,1)=Ax(1,1) + wjx
+      Ax(1,2)=Ax(1,2) + wjx*xj
+      Ax(1,3)=Ax(1,3) + wjx*yj
+      Ax(2,2)=Ax(2,2) + wjx*xj*xj
+      Ax(2,3)=Ax(2,3) + wjx*xj*yj
+      Ax(3,3)=Ax(3,3) + wjx*yj*yj        
+
+      Ay(1,1)=Ay(1,1) + wjy
+      Ay(1,2)=Ay(1,2) + wjy*xj
+      Ay(1,3)=Ay(1,3) + wjy*yj
+      Ay(2,2)=Ay(2,2) + wjy*xj*xj
+      Ay(2,3)=Ay(2,3) + wjy*xj*yj
+      Ay(3,3)=Ay(3,3) + wjy*yj*yj        
+    enddo    
+
+    A(2,1)=A(1,2)
+    A(3,1)=A(1,3)
+    A(3,2)=A(2,3)
+
+    Ax(2,1)=Ax(1,2)
+    Ax(3,1)=Ax(1,3)
+    Ax(3,2)=Ax(2,3)
+
+    Ay(2,1)=Ay(1,2)
+    Ay(3,1)=Ay(1,3)
+    Ay(3,2)=Ay(2,3)
+
+    call findInvSymm3x3(A,AInv,ADet)    
+
+    if(abs(ADet).lt.1e-10)then
+      write(9,'(" [ERR] ADet is too small",F15.6)')ADet
+      write(9,'(" [---] Location X Y",2F15.6)')x,y
+      write(9,'(" [---] Num Neigh",I10)')nn
+      return
+    endif    
+
+    !! gammaTranspose
+    call matMul_V13_A33(pT,AInv,gT)
+    
+    !! gammaTranspose dx
+    call matMul_ASym33_BSym33(Ax,AInv,M)
+    ! Note : M is not symmetric
+    call matMul_V13_A33(gT,M,gTemp)
+    call matMul_V13_A33(pTx,AInv,gTx)
+    gTx=gTx-gTemp
+
+    !! gammaTranspose dx
+    call matMul_ASym33_BSym33(Ay,AInv,M)
+    ! Note : M is not symmetric
+    call matMul_V13_A33(gT,M,gTemp)
+    call matMul_V13_A33(pTy,AInv,gTy)
+    gTy=gTy-gTemp
+
+    do j=1,nn
+      xj=corx(j)
+      yj=cory(j)
+      dx=xj-x
+      dy=yj-y
+      dr=dsqrt(dx**2 + dy**2)
+      drr=dr/R
+
+      if(drr.le.1d0)then
+        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)
+      endif      
+
+      Bj(1)=wj
+      Bj(2)=wj*xj
+      Bj(3)=wj*yj
+      Bjx(1)=wjx
+      Bjx(2)=wjx*xj
+      Bjx(3)=wjx*yj
+      Bjy(1)=wjy
+      Bjy(2)=wjy*xj
+      Bjy(3)=wjy*yj
+
+      !! phi
+      call matMul_V13_V31(gT,Bj,phi(j))
+
+      !! phiDx
+      call matMul_V13_V31(gTx,Bj,tmpr1)
+      call matMul_V13_V31(gT,Bjx,tmpr2)
+      phiDx(j)=tmpr1+tmpr2
+
+      !! phiDy
+      call matMul_V13_V31(gTy,Bj,tmpr1)
+      call matMul_V13_V31(gT,Bjy,tmpr2)
+      phiDy(j)=tmpr1+tmpr2
+
+      err=0
+    enddo    
+
+  end subroutine mls2DDx
+!!------------------------End mls2DDx-------------------------!!
 
 
 
@@ -335,156 +523,6 @@ contains
 
   end subroutine testMls2DDx
 !!-----------------------End testMls2DDx-----------------------!!
-
-
-
-!!---------------------------mls2DDx---------------------------!!
-  subroutine mls2DDx(x,y,nn,R,corx,cory,phi,phiDx,phiDy,err)
-  implicit none
-
-    integer(kind=C_K1),intent(in)::nn        
-    real(kind=C_K2),intent(in)::x,y,corx(nn),cory(nn),R
-    integer(kind=C_K1),intent(out)::err
-    real(kind=C_K2),intent(out)::phi(nn),phiDx(nn),phiDy(nn)
-
-    integer(kind=C_K1)::j
-    real(kind=C_K2)::rMax,dr,dx,dy,wj,wjx,wjy,drr,xj,yj
-    real(kind=C_K2)::A(3,3),AInv(3,3),ADet
-    real(kind=C_K2)::Ax(3,3),Ay(3,3),M(3,3)
-    real(kind=C_K2)::pT(3),pTx(3),pTy(3)
-    real(kind=C_K2)::Bj(3),Bjx(3),Bjy(3),tmpr1,tmpr2
-    real(kind=C_K2)::gT(3),gTx(3),gTy(3),gTemp(3)
-
-    phi=0d0
-    phiDx=0d0
-    phiDy=0d0
-    err=-1
-   
-    A=0d0    
-    Ax=0d0
-    Ay=0d0
-    pT(1)=1d0
-    pT(2)=x
-    pT(3)=y      
-    pTx(1)=0d0
-    pTx(2)=1d0
-    pTx(3)=0d0    
-    pTy(1)=0d0
-    pTy(2)=0d0
-    pTy(3)=1d0    
-
-    do j=1,nn
-      xj=corx(j)
-      yj=cory(j)
-      dx=xj-x
-      dy=yj-y
-      dr=dsqrt(dx**2 + dy**2)
-      drr=dr/R
-
-      if(drr.le.1d0)then
-        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)        
-      endif
-
-      A(1,1)=A(1,1) + wj
-      A(1,2)=A(1,2) + wj*xj
-      A(1,3)=A(1,3) + wj*yj
-      A(2,2)=A(2,2) + wj*xj*xj
-      A(2,3)=A(2,3) + wj*xj*yj
-      A(3,3)=A(3,3) + wj*yj*yj        
-
-      Ax(1,1)=Ax(1,1) + wjx
-      Ax(1,2)=Ax(1,2) + wjx*xj
-      Ax(1,3)=Ax(1,3) + wjx*yj
-      Ax(2,2)=Ax(2,2) + wjx*xj*xj
-      Ax(2,3)=Ax(2,3) + wjx*xj*yj
-      Ax(3,3)=Ax(3,3) + wjx*yj*yj        
-
-      Ay(1,1)=Ay(1,1) + wjy
-      Ay(1,2)=Ay(1,2) + wjy*xj
-      Ay(1,3)=Ay(1,3) + wjy*yj
-      Ay(2,2)=Ay(2,2) + wjy*xj*xj
-      Ay(2,3)=Ay(2,3) + wjy*xj*yj
-      Ay(3,3)=Ay(3,3) + wjy*yj*yj        
-    enddo    
-
-    A(2,1)=A(1,2)
-    A(3,1)=A(1,3)
-    A(3,2)=A(2,3)
-
-    Ax(2,1)=Ax(1,2)
-    Ax(3,1)=Ax(1,3)
-    Ax(3,2)=Ax(2,3)
-
-    Ay(2,1)=Ay(1,2)
-    Ay(3,1)=Ay(1,3)
-    Ay(3,2)=Ay(2,3)
-
-    call findInvSymm3x3(A,AInv,ADet)    
-
-    if(abs(ADet).lt.1e-10)then
-      write(9,'(" [ERR] ADet is too small",F15.6)')ADet
-      write(9,'(" [---] Location X Y",2F15.6)')x,y
-      write(9,'(" [---] Num Neigh",I10)')nn
-      return
-    endif    
-
-    !! gammaTranspose
-    call matMul_V13_A33(pT,AInv,gT)
-    
-    !! gammaTranspose dx
-    call matMul_ASym33_BSym33(Ax,AInv,M)
-    ! Note : M is not symmetric
-    call matMul_V13_A33(gT,M,gTemp)
-    call matMul_V13_A33(pTx,AInv,gTx)
-    gTx=gTx-gTemp
-
-    !! gammaTranspose dx
-    call matMul_ASym33_BSym33(Ay,AInv,M)
-    ! Note : M is not symmetric
-    call matMul_V13_A33(gT,M,gTemp)
-    call matMul_V13_A33(pTy,AInv,gTy)
-    gTy=gTy-gTemp
-
-    do j=1,nn
-      xj=corx(j)
-      yj=cory(j)
-      dx=xj-x
-      dy=yj-y
-      dr=dsqrt(dx**2 + dy**2)
-      drr=dr/R
-
-      if(drr.le.1d0)then
-        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)
-      endif      
-
-      Bj(1)=wj
-      Bj(2)=wj*xj
-      Bj(3)=wj*yj
-      Bjx(1)=wjx
-      Bjx(2)=wjx*xj
-      Bjx(3)=wjx*yj
-      Bjy(1)=wjy
-      Bjy(2)=wjy*xj
-      Bjy(3)=wjy*yj
-
-      !! phi
-      call matMul_V13_V31(gT,Bj,phi(j))
-
-      !! phiDx
-      call matMul_V13_V31(gTx,Bj,tmpr1)
-      call matMul_V13_V31(gT,Bjx,tmpr2)
-      phiDx(j)=tmpr1+tmpr2
-
-      !! phiDy
-      call matMul_V13_V31(gTy,Bj,tmpr1)
-      call matMul_V13_V31(gT,Bjy,tmpr2)
-      phiDy(j)=tmpr1+tmpr2
-
-      err=0
-    enddo    
-
-  end subroutine mls2DDx
-!!------------------------End mls2DDx-------------------------!!
 
 
 

@@ -46,7 +46,7 @@ implicit none
   call bq%initMat
   call bq%statMatrices  
 
-  
+
   do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
   
     call bq%preInstructs
