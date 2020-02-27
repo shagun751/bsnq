@@ -5,10 +5,11 @@ implicit none
   
   type, public :: mfPoiTyp
     !! Random location with FEM mesh neghs
-    integer(kind=C_K1)::nn,nnMax
+    integer(kind=C_K1)::nn,nnMax,bsnqId
     integer(kind=C_K1),allocatable::neid(:)
     real(kind=C_K2)::cx,cy,rad
     real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
+    ! bsnqId is set = 0 if the point is not a bsnq point
   contains
     procedure :: initPoi
     procedure :: setPoi
@@ -36,6 +37,7 @@ contains
     m%cx=cx
     m%cy=cy
     m%rad=rad
+    m%bsnqId=0
 
   end subroutine initPoi
 !!-------------------------End initPoi-------------------------!!
@@ -43,12 +45,12 @@ contains
 
 
 !!---------------------------setPoi----------------------------!!
-  subroutine setPoi(m,nn,nnMax,cx,cy,rad,&
+  subroutine setPoi(m,nn,nnMax,bsnqId,cx,cy,rad,&
     nei,phi,phiDx,phiDy)
   implicit none
 
     class(mfPoiTyp),intent(inout)::m
-    integer(kind=C_K1),intent(in)::nn,nnMax,nei(nn)
+    integer(kind=C_K1),intent(in)::nn,nnMax,nei(nn),bsnqId
     real(kind=C_K2),intent(in)::cx,cy,rad
     real(kind=C_K2),intent(in)::phi(nn),phiDx(nn),phiDy(nn)
 
@@ -66,6 +68,7 @@ contains
 
     m%nnMax=nnMax
     m%nn=nn
+    m%bsnqId=bsnqId
     m%cx=cx
     m%cy=cy
     m%rad=rad

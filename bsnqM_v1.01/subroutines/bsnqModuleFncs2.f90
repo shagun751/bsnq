@@ -30,7 +30,7 @@
         write(mf,'(" [---] Cx, Cy ",2F15.6)')cx,cy
       endif
 
-      call b%mfl(i)%setPoi(nn, nn, cx, cy, rad, neid(1:nn), &
+      call b%mfl(i)%setPoi(nn, nn, i, cx, cy, rad, neid(1:nn), &
         phi(1:nn), phiDx(1:nn), phiDy(1:nn))
 
       ! if(i.ne.1040) cycle
