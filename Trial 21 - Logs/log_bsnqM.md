@@ -11,17 +11,18 @@ continued from bsnq\_par\_v8.36
 - Modular Time-stepping formulation
   
 1. [Initial Development log](./log_bsnqM_v0001.md)
-1. [Moving pressure field development](#log_bsnqM_v0002)
+1. [Moving pressure field and Gradient MLS development](#log_bsnqM_v0002)
 
 -----------------------------------------------
 
 <a name = 'log_bsnqM_v0002' />
 
-## Moving pressure field development
+## Moving pressure field and Gradient MLS development
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
 - Calculating the gradient of quantities using mesh-free techniques
+- Optimised neighbour search algorithm using FEM link table for any radius
 
 ### List of Work
 - [x] Probes - nearest point
@@ -32,6 +33,8 @@ continued from bsnq\_par\_v8.36
 - [ ] waveInputFile search to binary instead of sequential
 - [ ] Check soliton generation in /-\\
 - [ ] Verify point to point with Ertekin (1986)
+- [ ] Neigh search - immediate FEM linktable only
+- [x] Neigh search - using FEM linktable for any radius
 - [x] Gradient calculation using MLS
 - [ ] Gradient calculation using Least-square method
 - [ ] Check if stress based approach for second gradient is useful
@@ -45,7 +48,7 @@ continued from bsnq\_par\_v8.36
 - Corrected and verified.
 
 
-### Observations : gradMLS : MLS with FEM Neigh [2020-01-30]
+### Observations : gradMLS : MLS with FEM Neigh only [2020-01-30]
 File : modsMFree.f90
 - The derivation in my MTech thesis is based on the thought that the MLS derivation is basically the summation form of the RKPM formulation (which is integral).
 - However on rechecking in the book Liu (2005), it seems that's not correct
@@ -63,6 +66,18 @@ File : modsMFree.f90
 Folder : Output_bsnqM_v1.01_RK4/Output_mlsDx
 Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 - MLS gradient even works well now for partial subdomains, as tested in the function _test2DDx_
+
+
+#### Update : Neigh search - any rad FEM linktable [2020-02-27]
+- The radius is calculated using the maximum distance of a node in the immdiate FEM linktable for the node (r<sub>max</sub>). The coef is an option to modify the radius as required. _findRadLinkList_
+	rad = r<sub>max</sub> x coef
+- This approach allows automatic adaption to irregular mesh.
+- The search for the neighbours is then done for the above calculated radius using the FEM linktable. _findNeiLinkList_
+- The bsnq module function _setMFree_ then using the above two subroutines along with _mls2DDx_ and the meshFreeMod function _setPoi_ to initalise the neid, phi, phiDx and phiDy variables for the required nodes.
+- For now I have done it for linear nodes, but the neighs are all the points (linear + quad). This ensures enough neighs for each point. **Hence ensure using values at all all points (lin + quad) and not just lin points for gradient and interpolation calculations**.
+- The _setMFree_ subroutine is very fast despite doing everything for finding radius, finding neighbours, calculating mls phi and grad, and initialising the mfree point (memory allocation involved). For lin nodes (with lin+quad nodes neighs) it takes about 0.5 x the time taken by subroutine _statMatrices_
+- Only if the subroutine _setMFree_ will it allocate the matrix of objects of typ _mfPoiTyp_. Therefore I have ensure that in _outputXML_ gradEta will be output directly if _setMFree_ is called, otherwise it will automatically not call the part calculating gradEta.
+- I have removed the _mfFEMTyp_ and he associated _calcAll_ subroutine. This was a badly written code where the neigs were only the immediate FEM neighs and it wasn't very generalisable. It was also very confusing. 
 
 
 ### Observations : shipPress : Soliton generation
