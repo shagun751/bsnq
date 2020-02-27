@@ -84,7 +84,7 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
-    type(mfFEMTyp)::mlsl!,mlsq    
+    type(mfPoiTyp),allocatable::mfl(:)
     
 
   contains    
@@ -107,12 +107,14 @@ implicit none
     procedure ::  diriBCPQ
     procedure ::  updateSoln
     !procedure ::  destructor
+    procedure ::  setMFree
 
   end type bsnqCase
 
 contains
 
   include 'bsnqModuleFncs.f90'
+  include 'bsnqModuleFncs2.f90'
   include 'outputXML.f90'
 
 !!---------------------------preInstructs--------------------------!!

@@ -31,9 +31,8 @@
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="phi" format="ascii">'
     ! do i=1,b%npl
     !   tmpr1=0d0
-    !   k=(i-1)* b%ivl(0)
-    !   do j=k+1, k+b%ivl(i)
-    !     tmpr1=tmpr1 + b%mlsl%phi(j) * b%cor(b%linkl(j),1)
+    !   do j=1,b%mfl(i)%nn
+    !     tmpr1=tmpr1 + b%mfl(i)%phi(j) * b%cor(b%mfl(i)%neid(j),1)
     !   enddo
     !   !if(abs(tmpr1).gt.10) tmpr1=-1d0
     !   write(mf,'(F15.6)')tmpr1
@@ -58,10 +57,9 @@
     ! do i=1,b%npl
     !   tmpr1=0d0
     !   tmpr2=0d0
-    !   k=(i-1)* b%ivl(0)
-    !   do j=k+1, k+b%ivl(i)
-    !     tmpr1=tmpr1 + b%mlsl%phiDx(j) * b%cor(b%linkl(j),1)
-    !     tmpr2=tmpr2 + b%mlsl%phiDy(j) * b%cor(b%linkl(j),2)
+    !   do j=1,b%mfl(i)%nn
+    !     tmpr1=tmpr1 + b%mfl(i)%phiDx(j) * b%cor(b%mfl(i)%neid(j),1)
+    !     tmpr2=tmpr2 + b%mfl(i)%phiDy(j) * b%cor(b%mfl(i)%neid(j),2)
     !   enddo
     !   if(abs(tmpr1).gt.10d0)tmpr1=-1
     !   if(abs(tmpr2).gt.10d0)tmpr2=-1
@@ -69,20 +67,23 @@
     ! enddo
     ! write(mf,'(T7,a)')'</DataArray>'
 
-    write(mf,'(T7,a)')'<DataArray type="Float64" Name="gradEta" NumberOfComponents="3" format="ascii">'  
-    do i=1,b%npl
-      tmpr1=0d0
-      tmpr2=0d0
-      k=(i-1)* b%ivl(0)
-      do j=k+1, k+b%ivl(i)
-        tmpr1=tmpr1 + b%mlsl%phiDx(j) * b%tOb(0)%e(b%linkl(j))
-        tmpr2=tmpr2 + b%mlsl%phiDy(j) * b%tOb(0)%e(b%linkl(j))
+    if(allocated(b%mfl))then
+      write(mf,'(T7,a)')'<DataArray type="Float64" Name="gradEta" NumberOfComponents="3" format="ascii">'  
+      do i=1,b%npl
+        tmpr1=0d0
+        tmpr2=0d0
+        do j=1,b%mfl(i)%nn
+          k = b%mfl(i)%neid(j)
+          tmpr3 = b%tOb(0)%tD( k ) - b%dep( k )
+          tmpr1=tmpr1 + b%mfl(i)%phiDx(j) * tmpr3
+          tmpr2=tmpr2 + b%mfl(i)%phiDy(j) * tmpr3
+        enddo
+        if(abs(tmpr1).gt.100d0)tmpr1=-10
+        if(abs(tmpr2).gt.100d0)tmpr2=-10
+        write(mf,'(2F15.6,F5.1)')tmpr1,tmpr2,0d0
       enddo
-      if(abs(tmpr1).gt.100d0)tmpr1=-10
-      if(abs(tmpr2).gt.100d0)tmpr2=-10
-      write(mf,'(2F15.6,F5.1)')tmpr1,tmpr2,0d0
-    enddo
-    write(mf,'(T7,a)')'</DataArray>'
+      write(mf,'(T7,a)')'</DataArray>'
+    endif
 
     write(mf,'(T5,a)')'</PointData>'
 

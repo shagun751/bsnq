@@ -3,16 +3,6 @@ module meshFreeMod
 use bsnqGlobVars
 implicit none
   
-  type, public :: mfFEMTyp
-    !! FEM mesh points with FEM link-table based immediate neghs
-    real(kind=C_K2),allocatable::rad(:),phi(:)
-    real(kind=C_K2),allocatable::phiDx(:),phiDy(:)
-  contains
-    !procedure :: initRadius
-    procedure :: calcAll
-  end type mfFEMTyp
-
-  
   type, public :: mfPoiTyp
     !! Random location with FEM mesh neghs
     integer(kind=C_K1)::nn,nnMax
@@ -86,72 +76,6 @@ contains
 
   end subroutine setPoi
 !!-------------------------End setPoi--------------------------!!
-
-
-
-!!---------------------------calcAll---------------------------!!
-  subroutine calcAll(m,npt,sz,ivq,jvq,corx,cory)
-  implicit none
-
-    class(mfFEMTyp),intent(inout)::m
-    integer(kind=C_K1),intent(in)::npt,sz
-    integer(kind=C_K1),intent(in)::ivq(0:npt),jvq(sz)
-    real(kind=C_K2),intent(in)::corx(npt),cory(npt)
-
-    integer(kind=C_K1)::i,j,k1,k2,i2,err
-    real(kind=C_K2)::rMax,dr,cx,cy,coef
-
-    coef=0.8d0 ! Farhter point in this much of the radius
-
-    if(allocated(m%rad)) deallocate(m%rad)
-    allocate(m%rad(npt))    
-    m%rad=0d0
-
-    if(allocated(m%phi)) deallocate(m%phi)
-    if(allocated(m%phiDx)) deallocate(m%phiDx)
-    if(allocated(m%phiDy)) deallocate(m%phiDy)
-    allocate(m%phi(sz), m%phiDx(sz), m%phiDy(sz))
-    m%phi=0d0
-    m%phiDx=0d0
-    m%phiDy=0d0
-    
-    ! Radius
-    do i=1,npt
-      rMax=0d0
-      cx=corx(i)
-      cy=cory(i)
-      k1=(i-1)*ivq(0)
-      k2=k1+ivq(i)
-      do j=k1+1,k2
-        i2=jvq(j)
-        dr=(corx(i2)-cx)**2 + (cory(i2)-cy)**2
-        if(rMax.lt.dr) rMax=dr
-      enddo
-      if(rMax.lt.1e-10)then
-        write(9,'(" [ERR] Check radius calculation at node",I10)')i
-        stop
-      endif
-      m%rad(i)=dsqrt(rMax)/coef
-    enddo
-
-    do i=1,npt
-      k1=(i-1)*ivq(0)+1
-      k2=(i-1)*ivq(0)+ivq(i)
-      call mls2DDx(corx(i), cory(i), ivq(i), m%rad(i), &
-        corx(jvq(k1:k2)), cory(jvq(k1:k2)), &
-        m%phi(k1:k2), m%phiDx(k1:k2), m%phiDy(k1:k2),err)   
-
-      ! write(*,*)corx(i),cory(i)
-      ! write(*,*)ivq(i)
-      ! write(*,*)m%rad(i)
-      ! do j=k1,k2
-      !   write(*,'(I10,5F15.6)')j,corx(jvq(j)),cory(jvq(j)),&
-      !     m%phi(j), m%phiDx(j), m%phiDy(j)
-      ! enddo
-    enddo
-
-  end subroutine calcAll
-!!-------------------------End calcAll-------------------------!!
 
 
 

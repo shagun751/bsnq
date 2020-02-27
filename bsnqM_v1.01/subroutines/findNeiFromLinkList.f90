@@ -17,15 +17,15 @@
     cy=cor(ip,2)
     k1=(ip-1)*ivq(0)
     do j=k1+1,k1+ivq(ip)
-      i2=jvq(j)
+      i2=jvq(j)      
       dr=(cor(i2,1)-cx)**2 + (cor(i2,2)-cy)**2
-      if(rad.lt.dr) rad=dr
+      if(rad.lt.dr) rad=dr      
     enddo
     if(rad.lt.1e-10)then
       write(9,'(" [ERR] Check radius calculation at node",I10)')ip
       stop
     endif    
-    rad=rad*coef
+    rad=sqrt(rad)*coef
 
   end subroutine findRadLinkList
 !!-----------------------End findRadLinkList-----------------------!!

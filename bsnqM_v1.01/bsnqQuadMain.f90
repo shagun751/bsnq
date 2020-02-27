@@ -42,9 +42,10 @@ implicit none
   call system_clock(bq%sysC(1))
   call bq%meshRead
   call bq%femInit
-  call bq%setRun  
-  call bq%initMat
-  call bq%statMatrices  
+  call bq%setRun 
+  call bq%setMFree 
+  call bq%initMat  
+  call bq%statMatrices    
 
 
   do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)

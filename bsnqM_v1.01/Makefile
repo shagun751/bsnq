@@ -37,6 +37,7 @@ OBJ=paralution_fortran.o $(HEADER).o $(MODULE).o $(MAIN).f90
 SUBS=\
 subroutines/$(MODULE).f90 \
 subroutines/bsnqModuleFncs.f90 \
+subroutines/bsnqModuleFncs2.f90 \
 subroutines/outputXML.f90
 
 SUBS2=\
