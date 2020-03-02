@@ -104,7 +104,7 @@ implicit none
     call bq%updateSoln(4)
     !!-----------End RK4 S4------------!!
   
-    call bq%postInstructs
+    call bq%postInstructs    
 
   enddo
 

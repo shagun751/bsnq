@@ -37,6 +37,15 @@ implicit none
     procedure ::  initBsnqVars
   end type bsnqVars
 
+  type, public :: bsnqDerv
+    integer(kind=C_K1)::np
+    real(kind=C_K2)::rtm
+    real(kind=C_K2),allocatable::ux(:),uxx(:),uxxx(:)
+    real(kind=C_K2),allocatable::px(:),pxx(:),pxxx(:)
+  contains
+    procedure ::  init => initBsnqDerv
+  end type bsnqDerv
+
   
   type, public :: bsnqCase
     
@@ -84,7 +93,10 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
-    type(mfPoiTyp),allocatable::mfl(:)
+
+    !! Optional initialisation
+    type(mfPoiTyp),allocatable::pObf(:)
+    type(bsnqDerv)::bDf
     
 
   contains    
@@ -108,6 +120,7 @@ implicit none
     procedure ::  updateSoln
     !procedure ::  destructor
     procedure ::  setMFree
+    procedure ::  calcDerv
 
   end type bsnqCase
 
@@ -185,6 +198,8 @@ contains
     !     exit
     !   endif
     ! enddo
+
+    if(allocated(b%pObf)) call b%calcDerv
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
@@ -490,5 +505,22 @@ contains
 
   end subroutine initBsnqVars
 !!------------------------End initBsnqVars-------------------------!!
+
+
+
+!!--------------------------initBsnqDerv---------------------------!!
+  subroutine initBsnqDerv(b,np)
+  use bsnqGlobVars
+  implicit none
+
+    class(bsnqDerv),intent(inout)::b
+    integer(kind=C_K1),intent(in)::np
+
+    allocate(b%ux(np), b%uxx(np), b%uxxx(np))
+    allocate(b%px(np), b%pxx(np), b%pxxx(np))
+    b%np=np    
+
+  end subroutine initBsnqDerv
+!!------------------------End initBsnqDerv-------------------------!!
 
 end module bsnqModule

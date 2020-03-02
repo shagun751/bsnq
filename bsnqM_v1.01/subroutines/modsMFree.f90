@@ -15,6 +15,14 @@ implicit none
     procedure :: setPoi
   end type mfPoiTyp
 
+  type, extends(mfPoiTyp), public :: mfPoiVertVelTyp
+    !! Inheriting the base class mfPoiTyp from meshFreeMod
+    real(kind=C_K2)::ux,uxx
+    real(kind=C_K2)::px,pxx
+  !contains
+    !procedure :: calcDxx
+  end type mfPoiVertVelTyp
+
 contains
 
 
@@ -79,6 +87,25 @@ contains
 
   end subroutine setPoi
 !!-------------------------End setPoi--------------------------!!
+
+
+
+!!---------------------------calcGrad--------------------------!!
+  subroutine calcGrad(nn,phiDx,f,fx,i)
+  implicit none
+
+    integer(kind=C_K1),intent(in)::nn
+    integer(kind=C_K1),intent(out)::i
+    real(kind=C_K2),intent(in)::phiDx(nn),f(nn)
+    real(kind=C_K2),intent(out)::fx
+
+    fx=0d0
+    do i=1,nn
+      fx = fx + phiDx(i) * f(i)
+    enddo
+
+  end subroutine calcGrad
+!!---------------------------calcGrad--------------------------!!
 
 
 

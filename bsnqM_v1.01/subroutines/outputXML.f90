@@ -27,17 +27,6 @@
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="press" format="ascii">'
     write(mf,'(F15.6)')b%presr(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'    
-
-    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="phi" format="ascii">'
-    ! do i=1,b%npl
-    !   tmpr1=0d0
-    !   do j=1,b%mfl(i)%nn
-    !     tmpr1=tmpr1 + b%mfl(i)%phi(j) * b%cor(b%mfl(i)%neid(j),1)
-    !   enddo
-    !   !if(abs(tmpr1).gt.10) tmpr1=-1d0
-    !   write(mf,'(F15.6)')tmpr1
-    ! enddo
-    ! write(mf,'(T7,a)')'</DataArray>'    
     
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="depth" format="ascii">'
     write(mf,'(F15.6)')-b%dep(1:b%npl)
@@ -53,34 +42,33 @@
     enddo
     write(mf,'(T7,a)')'</DataArray>'
 
-    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="grad" NumberOfComponents="3" format="ascii">'  
-    ! do i=1,b%npl
-    !   tmpr1=0d0
-    !   tmpr2=0d0
-    !   do j=1,b%mfl(i)%nn
-    !     tmpr1=tmpr1 + b%mfl(i)%phiDx(j) * b%cor(b%mfl(i)%neid(j),1)
-    !     tmpr2=tmpr2 + b%mfl(i)%phiDy(j) * b%cor(b%mfl(i)%neid(j),2)
-    !   enddo
-    !   if(abs(tmpr1).gt.10d0)tmpr1=-1
-    !   if(abs(tmpr2).gt.10d0)tmpr2=-1
-    !   write(mf,'(2F15.6,F5.1)')tmpr1,tmpr2,0d0
-    ! enddo
-    ! write(mf,'(T7,a)')'</DataArray>'
 
-    if(allocated(b%mfl))then
+    if(allocated(b%pObf))then
       write(mf,'(T7,a)')'<DataArray type="Float64" Name="gradEta" NumberOfComponents="3" format="ascii">'  
       do i=1,b%npl
         tmpr1=0d0
         tmpr2=0d0
-        do j=1,b%mfl(i)%nn
-          k = b%mfl(i)%neid(j)
+        do j=1,b%pObf(i)%nn
+          k = b%pObf(i)%neid(j)
           tmpr3 = b%tOb(0)%tD( k ) - b%dep( k )
-          tmpr1=tmpr1 + b%mfl(i)%phiDx(j) * tmpr3
-          tmpr2=tmpr2 + b%mfl(i)%phiDy(j) * tmpr3
+          tmpr1=tmpr1 + b%pObf(i)%phiDx(j) * tmpr3
+          tmpr2=tmpr2 + b%pObf(i)%phiDy(j) * tmpr3
         enddo
         if(abs(tmpr1).gt.100d0)tmpr1=-10
         if(abs(tmpr2).gt.100d0)tmpr2=-10
         write(mf,'(2F15.6,F5.1)')tmpr1,tmpr2,0d0
+      enddo
+      write(mf,'(T7,a)')'</DataArray>'
+
+      write(mf,'(T7,a)')'<DataArray type="Float64" Name="uDerv" NumberOfComponents="3" format="ascii">'  
+      do i=1,b%npl
+        write(mf,'(3F15.6)')b%bDf%ux(i),b%bDf%uxx(i),b%bDf%uxxx(i)
+      enddo
+      write(mf,'(T7,a)')'</DataArray>'
+
+      write(mf,'(T7,a)')'<DataArray type="Float64" Name="pDerv" NumberOfComponents="3" format="ascii">'  
+      do i=1,b%npl
+        write(mf,'(3F15.6)')b%bDf%px(i),b%bDf%pxx(i),b%bDf%pxxx(i)
       enddo
       write(mf,'(T7,a)')'</DataArray>'
     endif
