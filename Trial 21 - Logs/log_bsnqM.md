@@ -56,6 +56,7 @@ continued from bsnq\_par\_v8.36
 	- Verified erB_F1p10_T0p30_B4p0_W08p0_dt0400_gf
 		- gfort(new) to ifort(old) comparison is exact
 		- ifort(new) to ifort(old) comparison is exact
+		- ifort seems to be 1.09x faster than gfortran
 	- Hence the bug fix is concluded.
 - Similar mistake was made in _mls2DDxSAThesis_. Maybe that's the reason behing the code failing with that subroutine, but I have just commented that subroutine as _mls2DDx_ is working perfectly well.
 
