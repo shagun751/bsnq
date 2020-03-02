@@ -36,7 +36,7 @@ subroutine fem_N6i_Sc6_dN6jdx(mat,h1,h2,h3,h4,h5,h6,&
 use bsnqGlobVars
 implicit none
 
-  real(kind=C_K2),intent(out)::mat(6,3)
+  real(kind=C_K2),intent(out)::mat(6,6)
   real(kind=C_K2),intent(in)::h1,h2,h3,h4,h5,h6
   real(kind=C_K2),intent(in)::b11,b12
 

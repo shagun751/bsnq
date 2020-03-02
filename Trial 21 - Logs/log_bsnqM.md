@@ -40,6 +40,22 @@ continued from bsnq\_par\_v8.36
 - [ ] Check if stress based approach for second gradient is useful
 - [x] Calculate ship wave-making resistance.
 - [x] IMPORTANT-BUG : dirichlet BC PQ
+- [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
+
+
+### IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]
+- In the subroutine _fem_N6i_Sc6_dN6jdx_, I was defining a matrix mat(6,6), but in the declaration I gave mat(6,3)
+- This subroutine is only used for pressure Gx, Gy calculations.
+- ifort did not show this as error and hopefull calculted the full (6,6) matrix
+- gfortran shows this bug (gfortran rockz!)
+- Small change in OMP syntax for solveAll PQ. Was only a nextline issue between ifort and gfortran. Shouldnt make diff in results.
+- Results
+	- Verified rect2D
+		- ifort to ifort(d97a4e) comparison exactly same
+		- gfortran to ifort(d97a4e) there is tiny difference in near the waveInlet for a short distance. That's probably just a compiler related thing.
+	- Verified erB_F1p10_T0p30_B4p0_W08p0_dt0400_gf
+		- Under progress
+- Similar mistake was made in _mls2DDxSAThesis_. Maybe that's the reason behing the code failing with that subroutine, but I have just commented that subroutine as _mls2DDx_ is working perfectly well.
 
 
 ### IMPORTANT BUG : dirichletBC [2020-02-03]

@@ -180,7 +180,7 @@
     !gRPQ=0d0
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i,tmpr1,tmpr2,tmpr3,tmpr4,absC,&
-      k,j,k2,i2)
+    !$OMP     k,j,k2,i2)
     !$OMP DO SCHEDULE(dynamic,100)
     do i=1,b%npt      
       tmpr1=0d0
