@@ -24,6 +24,29 @@
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
 
 
+### Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27]
+- The radius is calculated using the maximum distance of a node in the immdiate FEM linktable for the node (r<sub>max</sub>). The coef is an option to modify the radius as required. _findRadLinkList_
+	rad = r<sub>max</sub> x coef
+- This approach allows automatic adaption to irregular mesh.
+- The search for the neighbours is then done for the above calculated radius using the FEM linktable. _findNeiLinkList_
+- The bsnq module function _setMFree_ then using the above two subroutines along with _mls2DDx_ and the meshFreeMod function _setPoi_ to initalise the neid, phi, phiDx and phiDy variables for the required nodes.
+- For now I have done it for linear nodes, but the neighs are all the points (linear + quad). This ensures enough neighs for each point. **Hence ensure using values at all all points (lin + quad) and not just lin points for gradient and interpolation calculations**.
+- The _setMFree_ subroutine is very fast despite doing everything for finding radius, finding neighbours, calculating mls phi and grad, and initialising the mfree point (memory allocation involved). For lin nodes (with lin+quad nodes neighs) it takes about 0.5 x the time taken by subroutine _statMatrices_
+- Only if the subroutine _setMFree_ will it allocate the matrix of objects of typ _mfPoiTyp_. Therefore I have ensure that in _outputXML_ gradEta will be output directly if _setMFree_ is called, otherwise it will automatically not call the part calculating gradEta.
+- I have removed the _mfFEMTyp_ and he associated _calcAll_ subroutine. This was a badly written code where the neigs were only the immediate FEM neighs and it wasn't very generalisable. It was also very confusing. 
+- Added the variable bsnqId to the typ _mfPoiTyp_. This will be set = 0 if the mf point is not a bsnq FEM point, otherwise it will be set as the node Id of that point from the mesh. This will allow easier reference in case only a few bsnq nodes are used as mfPoi instead of all.
+
+#### Update [2020-03-06]
+- The gradient calculation is now done for all points (lin + quad)
+- This was necessary to calculate ux, uxx, uxxx at any point, because even to calculate uxx at any point you need ux at all points.
+- Thankfully the speed is not effected too much. Per derivative there was addition of about 3 sec in total runtime of rect2D.
+
+<p align="centre">  <img width="90%" src="./cmp_Grad_BlackMLD_RedParaview.png">  
+
+**Fig :** Results of first derivative calculated using paraview (Red) and the code MLS (black), showing excellent comparison.
+</p>
+
+
 ### IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]
 - In the subroutine _fem_N6i_Sc6_dN6jdx_, I was defining a matrix mat(6,6), but in the declaration I gave mat(6,3)
 - This subroutine is only used for pressure Gx, Gy calculations.
@@ -66,19 +89,6 @@ File : modsMFree.f90
 Folder : Output_bsnqM_v1.01_RK4/Output_mlsDx
 Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 - MLS gradient even works well now for partial subdomains, as tested in the function _test2DDx_
-
-
-#### Update : Neigh search - any rad FEM linktable [2020-02-27]
-- The radius is calculated using the maximum distance of a node in the immdiate FEM linktable for the node (r<sub>max</sub>). The coef is an option to modify the radius as required. _findRadLinkList_
-	rad = r<sub>max</sub> x coef
-- This approach allows automatic adaption to irregular mesh.
-- The search for the neighbours is then done for the above calculated radius using the FEM linktable. _findNeiLinkList_
-- The bsnq module function _setMFree_ then using the above two subroutines along with _mls2DDx_ and the meshFreeMod function _setPoi_ to initalise the neid, phi, phiDx and phiDy variables for the required nodes.
-- For now I have done it for linear nodes, but the neighs are all the points (linear + quad). This ensures enough neighs for each point. **Hence ensure using values at all all points (lin + quad) and not just lin points for gradient and interpolation calculations**.
-- The _setMFree_ subroutine is very fast despite doing everything for finding radius, finding neighbours, calculating mls phi and grad, and initialising the mfree point (memory allocation involved). For lin nodes (with lin+quad nodes neighs) it takes about 0.5 x the time taken by subroutine _statMatrices_
-- Only if the subroutine _setMFree_ will it allocate the matrix of objects of typ _mfPoiTyp_. Therefore I have ensure that in _outputXML_ gradEta will be output directly if _setMFree_ is called, otherwise it will automatically not call the part calculating gradEta.
-- I have removed the _mfFEMTyp_ and he associated _calcAll_ subroutine. This was a badly written code where the neigs were only the immediate FEM neighs and it wasn't very generalisable. It was also very confusing. 
-- Added the variable bsnqId to the typ _mfPoiTyp_. This will be set = 0 if the mf point is not a bsnq FEM point, otherwise it will be set as the node Id of that point from the mesh. This will allow easier reference in case only a few bsnq nodes are used as mfPoi instead of all.
 
 
 ### Observations : shipPress : Soliton generation

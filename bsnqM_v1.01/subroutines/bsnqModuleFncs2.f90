@@ -67,6 +67,8 @@
     b%ur = b%tOb(0)%p / b%tOb(0)%tD
     b%vr = b%tOb(0)%q / b%tOb(0)%tD
 
+    !b%ur = dsin(b%cor(:,1))
+
     !! First derivative
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i,i2,j,k2)
