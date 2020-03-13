@@ -1,11 +1,11 @@
 Q) FileName (keep extension as .fnpt for gitignore)
-fnptMonoC2_T2p0_dt0p0050.fnpt
+fnptMonoC3_T1p5_dt0p0050.fnpt
 Q) Number of time steps (N)
-11200
+5800
 Q) Time step (s)
 0.005
 Q) Start time-step (minVal 1)
-801
+51
 Q) Number of z points
 21
 Q) Water depth (m)

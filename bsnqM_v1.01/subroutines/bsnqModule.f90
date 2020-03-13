@@ -207,11 +207,16 @@ contains
 
     if(allocated(b%pObf)) call b%calcDerv
     i=14371
-    call getVertVel(-0.35d0, b%dep(i), b%tOb(0)%e(i), b%bDf%hx(i),&
+    call getVertVel(-0.50d0, b%dep(i), b%tOb(0)%e(i), b%bDf%hx(i),&
       b%bDf%u(i), b%bDf%ux(i), b%bDf%uxx(i), b%bDf%uxxx(i), &
       b%bDf%uhx(i), b%bDf%uhxx(i), b%bDf%uhxxx(i), &
       b%bDf%uxt(i), b%bDf%uhxt(i), tmpr1, tmpr2, tmpr3)  
-    write(120,'(4F15.6)')b%tOb(0)%rtm,tmpr1,tmpr2,tmpr3
+    write(120,'(4F15.6)',advance='no')b%tOb(0)%rtm,tmpr3,tmpr1,tmpr2
+    call getVertVel(-0.35d0, b%dep(i), b%tOb(0)%e(i), b%bDf%hx(i),&
+      b%bDf%u(i), b%bDf%ux(i), b%bDf%uxx(i), b%bDf%uxxx(i), &
+      b%bDf%uhx(i), b%bDf%uhxx(i), b%bDf%uhxxx(i), &
+      b%bDf%uxt(i), b%bDf%uhxt(i), tmpr1, tmpr2, tmpr3)
+    write(120,'(3F15.6)')tmpr3,tmpr1,tmpr2  
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML

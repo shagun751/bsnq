@@ -31,35 +31,58 @@ continued from bsnq\_par\_v8.36
 
 ### Observations : VertVel : Unidirectional wave [2020-03-13]
 - With the derivatives confirmed I proceeded with calculation of the vertical velocity based on Dingemans (1994, pg. 390). 
-- Regular waves of T=2s, H=1m, h=0.7m were generated in fnpt and the solution was transferred to Bsnq at 5m.
-- A probe was placed at x=20m, z=-0.35m in both fnpt and Bsnq.
+- Regular waves of T=2s and 1.5s, H=1m, h=0.7m were generated in fnpt and the solution was transferred to Bsnq at 5m.
+- Probes were placed at x=20m, z=-0.50m and z=-0.35m in both fnpt and Bsnq.
 - In this reference the expression of u seems to be correct and was verified by comparing against fnpt.
 - However the expression for w and pr is wrong.
 - This mistake was verified by testing in Mathematica the results obtained from Dingemans (1994, pg. 390) expressions for Airy wave theory. Check the file 'VertVel_UnidirectionalWave/CheckFormulaUsingAiryWaveTheory.nb'.
 - The correction for w was made using the continuity equation.
 - The correction for pressure was made using the w momentum equaitons and considering only d(w)/dt = -grad(P)/rho + g, and taking only the first term in the corrected w expression for calculation of d(w)/dt.
-<p align="centre">  <img width="70%" src="./VertVel_UnidirectionalWave/DingemansCorrection.jpg">
+- **From the tests for T=2.0s kh=0.5 we can see that the match is excellent for u, w, and pr. However the match is not very good for T=1.5s kh=1.4 for w and pr.**
 
-**Fig :** The correction of equations given in Dingemans (1994).
-</p>
+| **Figure :** The correction of equations given in Dingemans (1994). |
+| :-------------: |
+| <img width="70%" src="./VertVel_UnidirectionalWave/DingemansCorrection.jpg"> |
 
-<p align="centre">  <img width="90%" src="./VertVel_UnidirectionalWave/AiryuVel.png">
+| **Figure :** Comparison of the results for velocity and pressure for Airy wave obtained from the Airy wave theory (u, w, pr) vs Dingemans (uc = uDing, wDing, prDing) and the corrected expressions (uc, wc prc) |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/AiryuVel.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/AirywVel.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/Airypres.png"> |
 
-<img width="90%" src="./VertVel_UnidirectionalWave/AirywVel.png">
+##### Regular T=2.0s
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>eta</b> at x=20m for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_WP6.png"> |
 
-<img width="90%" src="./VertVel_UnidirectionalWave/Airypres.png">
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, z=-0.5m, for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi1_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi1_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi1_V.png"> |
 
-**Fig :** Comparison of the results for velocity and pressure for Airy wave obtained from the Airy wave theory (u, w, pr) vs Dingemans (uc = uDing, wDing, prDing) and the corrected expressions (uc, wc prc)
-</p>
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, z=-0.35m, for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi2_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi2_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi2_V.png"> |
 
-<p align="centre">  <img width="90%" src="./VertVel_UnidirectionalWave/fnptVsBsnq_PoiPd.png">
+##### Regular T=1.5s
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>eta</b> at x=20m for a regular wave of T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_WP6.png"> |
 
-<img width="90%" src="./VertVel_UnidirectionalWave/fnptVsBsnq_PoiV1.png">
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, z=-0.5m, for a regular wave of T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi1_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi1_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi1_V.png"> |
 
-<img width="90%" src="./VertVel_UnidirectionalWave/fnptVsBsnq_PoiV2.png">
-
-**Fig :** Resuts from Bsnq (green) compared against FNPT (purple) for **Pressure, uVel, wVel** at x=20m, z=-0.35m, for a regular wave of T=2s, H=0.1m, d=0.7m, generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
-</p>
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, z=-0.35m, for a regular wave of T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_V.png"> |
 
 
 ### Observations : 3rd Derv consecutive derivative based [2020-03-06]
@@ -71,14 +94,12 @@ continued from bsnq\_par\_v8.36
 - The subroutine is _calcDerv_, part of bsnqModule. It will only be called if the pObf is allocated by the subroutine _setMFree_, also a part of bsnqModule.
 - From the results below it can be seen that near the boundaries the 2nd and 3rd derivatives are inaccurate. **This can be a issue in calculating depth resolved velociies for coupling near the boundaries.**
 
-<p align="centre">  <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_1.jpg">
+| **Figure :** Results of 1st, 2nd and 3rd derivatives of sin(x) compared for MLS code against. |
+| :-------------: |
+| <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_1.jpg"> |
+| <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_2.jpg"> |
+| <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_3.jpg"> |
 
-<img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_2.jpg">
-
-<img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_3.jpg">  
-
-**Fig :** Results of 1st, 2nd and 3rd derivatives of sin(x) compared for MLS code against.
-</p>
 
 -----------------------------------------------
 
