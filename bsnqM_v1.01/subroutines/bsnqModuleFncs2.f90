@@ -66,12 +66,21 @@
 
     b%ur = b%tOb(0)%p / b%tOb(0)%tD
     b%vr = b%tOb(0)%q / b%tOb(0)%tD
+    b%uhr = b%ur * b%dep
+    b%vhr = b%vr * b%dep
+    b%bDf%u = b%ur
+
+    ! Storing ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)    
+    b%bDf%uxtn(:,2) = b%bDf%uxtn(:,1)  
+    b%bDf%uhxtn(:,2) = b%bDf%uhxtn(:,1)    
+    b%bDf%uxtn(:,1) = b%bDf%ux
+    b%bDf%uhxtn(:,1) = b%bDf%uhx
 
     !b%ur = dsin(b%cor(:,1))
 
     !! First derivative
     !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k2)
+    !$OMP   PRIVATE(i,i2,j,k,k2)
     !$OMP DO SCHEDULE(dynamic,100)    
     do i=1,b%npt
       i2 = b%pObf(i)%bsnqId
@@ -81,7 +90,10 @@
         b%ur( b%pObf(i)%neid ), b%bDf%ux( i2 ), j )
 
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%tOb(0)%p( b%pObf(i)%neid ), b%bDf%px( i2 ), j )
+        b%uhr( b%pObf(i)%neid ), b%bDf%uhx( i2 ), j )
+
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        b%dep( b%pObf(i)%neid ), b%bDf%hx( i2 ), j )
 
     enddo
     !$OMP END DO NOWAIT
@@ -99,7 +111,7 @@
         b%bDf%ux( b%pObf(i)%neid ), b%bDf%uxx( i2 ), j )
 
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf%px( b%pObf(i)%neid ), b%bDf%pxx( i2 ), j )
+        b%bDf%uhx( b%pObf(i)%neid ), b%bDf%uhxx( i2 ), j )
 
     enddo
     !$OMP END DO NOWAIT
@@ -117,11 +129,37 @@
         b%bDf%uxx( b%pObf(i)%neid ), b%bDf%uxxx( i2 ), j )
 
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf%pxx( b%pObf(i)%neid ), b%bDf%pxxx( i2 ), j )
+        b%bDf%uhxx( b%pObf(i)%neid ), b%bDf%uhxxx( i2 ), j )
 
     enddo
     !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
+    !$OMP END PARALLEL    
+
+    b%bDf%uxt = ( 3d0*b%bDf%ux - 4d0*b%bDf%uxtn(:,1) &
+      + b%bDf%uxtn(:,2) )/2d0/b%dt
+    b%bDf%uhxt = ( 3d0*b%bDf%uhx - 4d0*b%bDf%uhxtn(:,1) &
+      + b%bDf%uhxtn(:,2) )/2d0/b%dt
+
 
   end subroutine calcDerv
 !!---------------------------End calcDerv--------------------------!!
+
+
+
+!!---------------------------getVertVel----------------------------!!
+  subroutine getVertVel(z,h,eta,hx,u,ux,uxx,uxxx,uhx,uhxx,uhxxx,&
+    uxt,uhxt,uc,wc,pc)
+  implicit none
+
+    real(kind=8),intent(in)::z,h,eta,hx,u,ux,uxx,uxxx
+    real(kind=8),intent(in)::uhx,uhxx,uhxxx,uxt,uhxt
+    real(kind=8),intent(out)::uc,wc,pc
+
+    uc = u - (0.5d0*h*uhxx - h*h*uxx/6d0) - (z*uhxx + 0.5d0*z*z*uxx)
+    wc = -uhx - z*ux + z/2d0*( hx*uhxx + h*uhxxx ) &
+      - z/6d0*( 2d0*h*hx*uxx + h*h*uxxx ) &
+      + z*z/2d0*uhxxx + z*z*z/6d0*uxxx
+    pc = rhoW * ( grav*( -z + eta ) + z*(uhxt + 0.5d0*z*uxt) )
+
+  end subroutine getVertVel
+!!-------------------------End getVertVel--------------------------!!

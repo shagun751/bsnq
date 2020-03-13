@@ -27,15 +27,15 @@ Q) Number of OpenMP Threads
 4
 Q) Wave Probes
 6
-8.0 2
+1.0 2
+3.0 2
+5.0 2
+7.0 2
 9.0 2
-10.0 2
-11.0 2
-12.0 2
-13.0 2
+15.0 2
 
 Q) Wave input type (0-file, 1-Airy)
-1
+0
 Q) File | FileName
 vsrMonoC2_T2p0_dt0p005_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height (s) (m)

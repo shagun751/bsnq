@@ -37,14 +37,19 @@ implicit none
     procedure ::  initBsnqVars
   end type bsnqVars
 
-  type, public :: bsnqDerv
+  type, public :: vertVelDerv
     integer(kind=C_K1)::np
     real(kind=C_K2)::rtm
-    real(kind=C_K2),allocatable::ux(:),uxx(:),uxxx(:)
-    real(kind=C_K2),allocatable::px(:),pxx(:),pxxx(:)
+    real(kind=C_K2),allocatable::u(:),ux(:),uxx(:),uxxx(:)
+    real(kind=C_K2),allocatable::uh(:),uhx(:),uhxx(:),uhxxx(:)
+    real(kind=C_K2),allocatable::hx(:)
+    ! d2(U)/dxdt and d2(Uh)/dxdt
+    real(kind=C_K2),allocatable::uxt(:),uhxt(:)      
+    ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)   
+    real(kind=C_K2),allocatable::uxtn(:,:),uhxtn(:,:)    
   contains
-    procedure ::  init => initBsnqDerv
-  end type bsnqDerv
+    procedure ::  init => initVertVelDerv
+  end type vertVelDerv
 
   
   type, public :: bsnqCase
@@ -68,6 +73,7 @@ implicit none
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
     real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
+    real(kind=C_K2),allocatable::uhr(:),vhr(:)
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
     real(kind=C_K2),allocatable::rowMaxW(:),rowMaxE(:),rowMaxPQ(:)
     real(kind=C_K2),allocatable::gBs5(:),gBs6(:),absC(:)
@@ -96,7 +102,7 @@ implicit none
 
     !! Optional initialisation
     type(mfPoiTyp),allocatable::pObf(:)
-    type(bsnqDerv)::bDf
+    type(vertVelDerv)::bDf
     
 
   contains    
@@ -200,6 +206,12 @@ contains
     ! enddo
 
     if(allocated(b%pObf)) call b%calcDerv
+    i=14371
+    call getVertVel(-0.35d0, b%dep(i), b%tOb(0)%e(i), b%bDf%hx(i),&
+      b%bDf%u(i), b%bDf%ux(i), b%bDf%uxx(i), b%bDf%uxxx(i), &
+      b%bDf%uhx(i), b%bDf%uhxx(i), b%bDf%uhxxx(i), &
+      b%bDf%uxt(i), b%bDf%uhxt(i), tmpr1, tmpr2, tmpr3)  
+    write(120,'(4F15.6)')b%tOb(0)%rtm,tmpr1,tmpr2,tmpr3
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
@@ -210,7 +222,6 @@ contains
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
     endif
-
     !! Ship drag calculation
     if(b%presOn)then
       if(b%sh(1)%dragFlag)then !Optional to calc drag
@@ -508,19 +519,26 @@ contains
 
 
 
-!!--------------------------initBsnqDerv---------------------------!!
-  subroutine initBsnqDerv(b,np)
+!!-------------------------initVertVelDerv-------------------------!!
+  subroutine initVertVelDerv(b,np)
   use bsnqGlobVars
   implicit none
 
-    class(bsnqDerv),intent(inout)::b
+    class(vertVelDerv),intent(inout)::b
     integer(kind=C_K1),intent(in)::np
 
-    allocate(b%ux(np), b%uxx(np), b%uxxx(np))
-    allocate(b%px(np), b%pxx(np), b%pxxx(np))
+    allocate(b%u(np), b%ux(np), b%uxx(np), b%uxxx(np))
+    allocate(b%uh(np), b%uhx(np), b%uhxx(np), b%uhxxx(np))
+    allocate(b%hx(np))
+    allocate(b%uxt(np), b%uhxt(np))
+    allocate(b%uxtn(np,2), b%uhxtn(np,2))
+    b%ux=0d0
+    b%uhx=0d0    
+    b%uxtn=0d0
+    b%uhxtn=0d0    
     b%np=np    
 
-  end subroutine initBsnqDerv
-!!------------------------End initBsnqDerv-------------------------!!
+  end subroutine initVertVelDerv
+!!-----------------------End initVertVelDerv-----------------------!!
 
 end module bsnqModule

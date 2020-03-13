@@ -66,11 +66,11 @@
       enddo
       write(mf,'(T7,a)')'</DataArray>'
 
-      write(mf,'(T7,a)')'<DataArray type="Float64" Name="pDerv" NumberOfComponents="3" format="ascii">'  
-      do i=1,b%npl
-        write(mf,'(3F15.6)')b%bDf%px(i),b%bDf%pxx(i),b%bDf%pxxx(i)
-      enddo
-      write(mf,'(T7,a)')'</DataArray>'
+      ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="pDerv" NumberOfComponents="3" format="ascii">'  
+      ! do i=1,b%npl
+      !   write(mf,'(3F15.6)')b%bDf%px(i),b%bDf%pxx(i),b%bDf%pxxx(i)
+      ! enddo
+      ! write(mf,'(T7,a)')'</DataArray>'
     endif
 
     write(mf,'(T5,a)')'</PointData>'

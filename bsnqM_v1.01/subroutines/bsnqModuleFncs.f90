@@ -258,6 +258,7 @@
     allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
     allocate(b%por(j),b%vec6Tmp(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
+    allocate(b%uhr(j),b%vhr(j))
 
     allocate(b%massW(i1*i),b%massE(i1*i))
     allocate(b%mass1(j1*j),b%mass2(i1*i))    
