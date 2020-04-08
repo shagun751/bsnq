@@ -28,6 +28,7 @@ continued from bsnq\_par\_v8.36
 - [x] Consecutive derivative based - uDx uDxx uDxxx 
 - [x] Consecutive derivative based - pDx pDxx pDxxx 
 - [x] Calculation of u, w and pr assuming unidirectional waves
+- [ ] Calculation of u, w and pr for directional wave
 
 ### Observations : VertVel : Unidirectional wave [2020-03-13]
 - With the derivatives confirmed I proceeded with calculation of the vertical velocity based on Dingemans (1994, pg. 390). 
@@ -84,6 +85,34 @@ continued from bsnq\_par\_v8.36
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_U.png"> |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_V.png"> |
 
+-----------------------------------------------
+
+### Observations : VertVel : Unidirectional wave [2020-04-08]
+- Modified the expression _Model 1 : uh = p / tD x h_ to _Model 2 : uh = p_, in order to see if there is a non-linearity effect to improve the accuracy for higher kh values.
+- However as seen from the tests for T=2.0s kh=0.5, which were excellent for _Model 1_ are now not as good for _Model 2_. 
+- I cannot do this test for Airy wave and check because the expressions in Airy wave are only valid till z=0 and not above it.
+- As seen from the figures the issue is mainly in the crests of the pressure. Infact the velocities for the z=-0.35 are pretty good match for both models.
+- So for now leaving it at _Model 1_ for which the results are in "Observations : VertVel : Unidirectional wave [2020-03-13]"
+- The results for this test can be seen in 'Output_VertVel/vsrMonoC2_T2p0_dt0p005_uh_eq_p_Model2_Trial'
+
+##### Regular T=2.0s
+| **Figure :** Resuts from Bsnq **(using _Model 2 : uh = p_ (Green) instead of _Model 1_)** compared against FNPT (purple) for <b>eta</b> at x=20m for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_WP6.png"> |
+
+| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, **z=-0.5m**, for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi1_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi1_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi1_V.png"> |
+
+| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple) for <b>Pressure, uVel, wVel</b> at x=20m, **z=-0.35m**, for a regular wave of T=2s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m. |
+| :-------------: |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi2_Pres.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi2_U.png"> |
+| <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi2_V.png"> |
+
+-----------------------------------------------
 
 ### Observations : 3rd Derv consecutive derivative based [2020-03-06]
 - Analytical function sin(x) was used to check till third derivative calculated using the MLS code.
@@ -99,7 +128,6 @@ continued from bsnq\_par\_v8.36
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_1.jpg"> |
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_2.jpg"> |
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_3.jpg"> |
-
 
 -----------------------------------------------
 
