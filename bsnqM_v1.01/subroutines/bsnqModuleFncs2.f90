@@ -66,8 +66,8 @@
 
     b%ur = b%tOb(0)%p / b%tOb(0)%tD
     b%vr = b%tOb(0)%q / b%tOb(0)%tD
-    b%uhr = b%ur * b%dep
-    b%vhr = b%vr * b%dep
+    b%uhr = b%tOb(0)%p
+    b%vhr = b%tOb(0)%q
     b%bDf%u = b%ur
 
     ! Storing ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)    
