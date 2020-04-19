@@ -70,7 +70,7 @@ implicit none
     real(kind=C_K2)::dt,errLim,endTime,rTime,wvHReset
     real(kind=C_K2)::sysRate,sysT(10)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
-    real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)
+    real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)    
     real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::uhr(:),vhr(:)
@@ -110,6 +110,8 @@ implicit none
     procedure ::  initMat
     procedure ::  meshRead
     procedure ::  femInit
+    procedure ::  findEleForLocXY1    !For one location. No OpenMP
+    procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
     procedure ::  setRun
     procedure ::  statMatrices
     procedure ::  dynaMatrices
@@ -169,7 +171,7 @@ contains
   subroutine postInstructs(b)
   implicit none
 
-    class(bsnqCase),intent(inout)::b    
+    class(bsnqCase),intent(inout)::b
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -493,6 +495,94 @@ contains
     enddo
   end subroutine diriBCPQDiff
 !!------------------------End diriBCPQDiff-------------------------!!
+
+
+
+!!-----------------------------initMat-----------------------------!!
+  subroutine initMat(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    i=b%npl
+    j=b%npt
+    i1=b%ivl(0)
+    j1=b%ivq(0)
+
+    !Allocations
+    allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
+    allocate(b%por(j),b%vec6Tmp(j))
+    allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
+    allocate(b%uhr(j),b%vhr(j))
+
+    allocate(b%massW(i1*i),b%massE(i1*i))
+    allocate(b%mass1(j1*j),b%mass2(i1*i))    
+    allocate(b%gBs1(j1*j),b%gBs2(j1*j))
+    allocate(b%gBs3(j1*j),b%gBs4(j1*j))
+    allocate(b%gCxF(j1*i),b%gCyF(j1*i),b%gDMat(i1*i))
+    allocate(b%gBs5(i1*j),b%gBs6(i1*j),b%absC(j))
+    allocate(b%gGx(i1*j),b%gGy(i1*j),b%gNAdv(j1*j))
+    allocate(b%gPGx(j1*j),b%gPGy(j1*j))
+    allocate(b%gFBs1(j1*j),b%gFBs2(j1*j))
+    allocate(b%gFBs3(j1*j),b%gFBs4(j1*j),b%gFW(i1*i))
+    allocate(b%aFull(b%ivf(0)*2*j))
+    allocate(b%rowMaxW(i),b%rowMaxE(i),b%rowMaxPQ(2*j))
+    allocate(b%gRE(i),b%gRPQ(2*j))
+    allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
+    allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
+
+    b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
+    b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
+    b%Sz(3)=i1*j ![6x3] ![ivl(0) * npt]
+    b%Sz(4)=j1*j ![6x6] ![ivq(0) * npt]
+    b%por=1d0
+    
+    b%absC=0d0
+    if(b%absOn)then
+      do i=1,b%absOb(1)%N
+        call b%absOb(i)%calcAbsC(b%npt,b%cor,b%absC)
+      enddo  
+    endif
+
+    b%nTOb=2
+    allocate(b%tOb(0:b%nTOb-1))
+    do i=0,b%nTOb-1
+      call b%tOb(i)%initBsnqVars(b%npl,b%npt)
+    enddo
+
+    b%nSOb=4
+    allocate(b%sOb(b%nSOb))
+    do i=1,b%nSOb
+      call b%sOb(i)%initBsnqVars(b%npl,b%npt)
+    enddo    
+
+    b%tOb(0)%rtm=0d0
+    b%tOb(0)%e=0d0
+    b%tOb(0)%p=0d0
+    b%tOb(0)%q=0d0
+    b%tOb(0)%tD(1:b%npl)=b%dep(1:b%npl)+b%tOb(0)%e
+
+    ! call solitIC(b%npl, b%npt, b%cor, &
+    !   b%tOb(0)%e, b%tOb(0)%p, b%tOb(0)%q)
+    
+    b%etaMin=b%tOb(0)%e
+    b%etaMax=b%tOb(0)%e
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
+
+    b%presr=0d0
+
+    ! call testMls2DDx
+    ! stop
+
+    call paralution_init(b%nthrd)    
+
+    call b%outputXML
+
+    write(9,*)"[MSG] Done initMat"
+    write(9,*)
+
+  end subroutine initMat
+!!---------------------------End initMat---------------------------!!
 
 
 

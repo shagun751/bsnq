@@ -29,6 +29,18 @@ implicit none
   !!  mafi(6)     Porosity file
   !!  mafi(7)     Wave probes files
 
+contains
+  
+  subroutine vecCross2D(v1x,v1y,v2x,v2y,res)
+  implicit none
+
+    real(kind=C_K2),intent(in)::v1x,v1y,v2x,v2y
+    real(kind=C_K2),intent(out)::res
+
+    res = v1x*v2y - v1y*v2x
+
+  end subroutine vecCross2D
+
 
 end module bsnqGlobVars
 !!--------------------------End basicVars--------------------------!!

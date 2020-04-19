@@ -96,7 +96,7 @@ The reason was me not calculating the boundary integral term in the auxiliary va
 The results have been compared with the old code and its matches well with even better performance at the sponge layer than before.  
 
 #### Update-4 [2019-10-07]
-<p align="centre"> <img width='45%' src="./bsnqM_inRed_fberkFWSecP1.svg">  <img width="45%" src="./bsnqM_inRed_fberkFWSecP2.svg">  
+<p align="centre"> <img width='45%' src="./log0001/bsnqM_inRed_fberkFWSecP1.svg">  <img width="45%" src="./log0001/bsnqM_inRed_fberkFWSecP2.svg">  
 
 **Fig :** Wave-heights at alone different line sections. Results from *bsnqM_v1.01* in red &mdash; Results from *bsnq_par_v7.3.3* in black &mdash;. Results from FUNWAVE in black ---. Results from experiment in black &bull;.  
 </p>
@@ -122,7 +122,7 @@ In both RK2 and Predictor-corrector I was using two values for estimating the an
 ### Observations : Time-stepping : Predictor-Corrector
 The predictor-corrector time-stepping had working in the GWCE (Generalised Wave Continuity) equation model pretty well as shown in Dresback(2004). We ourselves had found good results with this time-stepping in our 9-noded FEM-GWCE model, where the oscillations at lower depth and near boundaries were removed. With those results in mind, I tried to implement the algorithm in Bsnq equation. 
 
-<p> <img align="centre" src="./bsnq1d_eqn.svg"> </p>
+<p> <img align="centre" src="./log0001/bsnq1d_eqn.svg"> </p>
 
 We first tested it in one-dimension with a simple Bsnq 1D equation as shown above. This was tested in a MATLAB code and found to work well for pressure source with both predictor-corrector and 3-point explicit Adam-Bashforth time-steppings. We were able to get the leading waves in case of pressure disturbances like in the paper Lee (1989). Therefore, based on this we hoped that it might give us the proper ship-generated wave pattern in 2D Bsnq too.
 

@@ -29,6 +29,20 @@ continued from bsnq\_par\_v8.36
 - [x] Consecutive derivative based - pDx pDxx pDxxx 
 - [x] Calculation of u, w and pr assuming unidirectional waves
 - [ ] Calculation of u, w and pr for directional wave
+- [x] Find element containing a random point with natural coords in XY
+
+### Observations : findEleForLocXY [2020-04-20]
+- Done based on cross product.
+- For triangle in anti-clockwise ABC, with point P, AB x AP, BC x BP, CA x CP should all have +ve sign.
+- Once the element in found, the natural coordinates &epsilon; and &eta; are found using the following formula using the transpose of inverse of Jacobian.
+- A check was performed for both element search and natural coordinates using a random point with sucessful result.
+- **Two forms of the function are written** 
+	1. **findEleForLocXY1** : Single location search. No OpenMP implementation
+	1. **findEleForLocXY2** : An array of locations. OpenMP implemented
+
+| **Figure :** Formula for calculating the natural coordinates &epsilon; and &eta; using transpose of inverse of Jacobian |
+| :-------------: |
+| <img width="60%" src="./log0003/findEleForLoc2D_1.jpg"> |
 
 ### Observations : VertVel : Unidirectional wave [2020-03-13]
 - With the derivatives confirmed I proceeded with calculation of the vertical velocity based on Dingemans (1994, pg. 390). 

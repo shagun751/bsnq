@@ -35,7 +35,7 @@ Q) Wave Probes
 15.0 2
 
 Q) Wave input type (0-file, 1-Airy)
-0
+1
 Q) File | FileName
 vsrMonoC2_T2p0_dt0p005_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height (s) (m)

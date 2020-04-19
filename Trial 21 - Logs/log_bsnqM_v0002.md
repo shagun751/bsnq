@@ -41,7 +41,7 @@
 - This was necessary to calculate ux, uxx, uxxx at any point, because even to calculate uxx at any point you need ux at all points.
 - Thankfully the speed is not effected too much. Per derivative there was addition of about 3 sec in total runtime of rect2D.
 
-<p align="centre">  <img width="90%" src="./cmp_Grad_BlackMLD_RedParaview.png">  
+<p align="centre">  <img width="90%" src="./log0002/cmp_Grad_BlackMLD_RedParaview.png">  
 
 **Fig :** Results of first derivative calculated using paraview (Red) and the code MLS (black), showing excellent comparison.
 </p>
@@ -103,7 +103,7 @@ Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 This version in arounf 6.5 times faster than the previous code. This code took 23 minutes to run a 25 sec simulation case for domain 100m x 43m, water depth 2.5 constant. Ship moving at Froude = 0.7 along the midline. The earlier code took 160 minutes for the same test case.
 
 ### Observations : shipPress : Noise compared to old code
-<p align="centre"> <img width='45%' src="./CmpWith_inl2_v7p3p3.png">  
+<p align="centre"> <img width='45%' src="./log0002/CmpWith_inl2_v7p3p3.png">  
 
 **Fig :** Comparison of the current code results with the bsnq_v7.3.3
 </p>
