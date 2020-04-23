@@ -58,8 +58,9 @@ continued from bsnq\_par\_v8.36
 	1. **findEleForLocXY1** : Single location search. No OpenMP implementation
 	1. **findEleForLocXY2** : An array of locations. OpenMP implemented
 
-| **Figure :** Formula for calculating the natural coordinates &epsilon; and &eta; using transpose of inverse of Jacobian |
+| |
 | :-------------: |
+| **Figure :** Formula for calculating the natural coordinates &epsilon; and &eta; using transpose of inverse of Jacobian |
 | <img width="60%" src="./log0003/findEleForLoc2D_1.jpg"> |
 
 -----------------------------------------------
@@ -76,12 +77,14 @@ continued from bsnq\_par\_v8.36
 
 ##### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
-| **Figure :** Resuts from Bsnq **(using _Model 2 : uh = p_ (Green) instead of _Model 1_)** compared against FNPT (purple) for <b>eta</b> at x=20m |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq **(using _Model 2 : uh = p_ (Green) instead of _Model 1_)** compared against FNPT (purple) for <b>eta</b> at x=20m |
 | <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_WP6.png"> |
 
-| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple)  |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple)  |
 | **Pressure** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi1_Pres.png"> |
 | **uVel** at x=20m, **z=-0.5m** |
@@ -89,8 +92,9 @@ continued from bsnq\_par\_v8.36
 | **wVel** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi1_V.png"> |
 
-| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple) |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) **(using _Model 2 : uh = p_ (Blue) instead of _Model 1 (Green)_)** compared against FNPT (purple) |
 | **Pressure** at x=20m, **z=-0.35m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/M2_T2p0_Poi2_Pres.png"> |
 | **uVel** at x=20m, **z=-0.35m** |
@@ -113,24 +117,28 @@ continued from bsnq\_par\_v8.36
 - The correction for pressure was made using the w momentum equaitons and considering only d(w)/dt = -grad(P)/rho + g, and taking only the first term in the corrected w expression for calculation of d(w)/dt.
 - **From the tests for T=2.0s kh=0.5 we can see that the match is excellent for u, w, and pr. However the match is not very good for T=1.5s kh=1.4 for w and pr.**
 
-| **Figure :** The correction of equations given in Dingemans (1994). |
+| |
 | :-------------: |
+| **Figure :** The correction of equations given in Dingemans (1994). |
 | <img width="70%" src="./VertVel_UnidirectionalWave/DingemansCorrection.jpg"> |
 
-| **Figure :** Comparison of the results for velocity and pressure for Airy wave obtained from the Airy wave theory (u, w, pr) vs Dingemans (uc = uDing, wDing, prDing) and the corrected expressions (uc, wc prc) |
+| |
 | :-------------: |
+| **Figure :** Comparison of the results for velocity and pressure for Airy wave obtained from the Airy wave theory (u, w, pr) vs Dingemans (uc = uDing, wDing, prDing) and the corrected expressions (uc, wc prc) |
 | <img width="90%" src="./VertVel_UnidirectionalWave/AiryuVel.png"> |
 | <img width="90%" src="./VertVel_UnidirectionalWave/AirywVel.png"> |
 | <img width="90%" src="./VertVel_UnidirectionalWave/Airypres.png"> |
 
 ##### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for eta at x=20m |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for eta at x=20m |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_WP6.png"> |
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
 | **Pressure** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi1_Pres.png"> |
 | **uVel** at x=20m, **z=-0.5m** |
@@ -138,8 +146,9 @@ continued from bsnq\_par\_v8.36
 | **wVel** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi1_V.png"> |
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
 | **Pressure** at x=20m, **z=-0.35m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi2_Pres.png"> |
 | **uVel** at x=20m, **z=-0.35m** |
@@ -149,12 +158,14 @@ continued from bsnq\_par\_v8.36
 
 ##### Regular T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for eta at x=20m |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) for eta at x=20m |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_WP6.png"> |
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
 | **Pressure** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi1_Pres.png"> |
 | **uVel** at x=20m, **z=-0.5m** |
@@ -162,8 +173,9 @@ continued from bsnq\_par\_v8.36
 | **wVel** at x=20m, **z=-0.5m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi1_V.png"> |
 
-| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
+| |
 | :-------------: |
+| **Figure :** Resuts from Bsnq (green) compared against FNPT (purple) |
 | **Pressure** at x=20m, **z=-0.35m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T1p5_Poi2_Pres.png"> |
 | **uVel** at x=20m, **z=-0.35m** |
@@ -184,8 +196,9 @@ continued from bsnq\_par\_v8.36
 - The subroutine is _calcDerv_, part of bsnqModule. It will only be called if the pObf is allocated by the subroutine _setMFree_, also a part of bsnqModule.
 - From the results below it can be seen that near the boundaries the 2nd and 3rd derivatives are inaccurate. **This can be a issue in calculating depth resolved velociies for coupling near the boundaries.**
 
-| **Figure :** Results of 1st, 2nd and 3rd derivatives of sin(x) compared for MLS code against. |
+| |
 | :-------------: |
+| **Figure :** Results of 1st, 2nd and 3rd derivatives of sin(x) compared for MLS code against. |
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_1.jpg"> |
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_2.jpg"> |
 | <img width="90%" src="./mlsVsAnalitcalDervSinx/Derv_3.jpg"> |
