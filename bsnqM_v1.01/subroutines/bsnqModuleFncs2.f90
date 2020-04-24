@@ -176,23 +176,23 @@
     real(kind=C_K2),intent(in)::xin,yin
     integer(kind=C_K1),intent(out)::eleOut
     real(kind=C_K2),intent(out)::ep,et
-    integer(kind=C_K1)::ind(3,2),p1,p2,dir
+    integer(kind=C_K1)::ind(3,2),p1,p2,dir,liel,li
     real(kind=C_K2)::xy(3,2),vec1(2),vec2(2),res
 
     ind(1,:)=(/ 1,2 /)
     ind(2,:)=(/ 2,3 /)
     ind(3,:)=(/ 3,1 /)
 
-    do iel = 1, b%nele
-      nl=b%conn(iel,1:3)
-      do i=1,3
-        xy(i,:)=b%cor(nl(i),:)
+    do liel = 1, b%nele
+      nl=b%conn(liel,1:3)
+      do li=1,3
+        xy(li,:)=b%cor(nl(li),:)
       enddo
 
       dir=1
-      do i=1,3
-        p1=ind(i,1)
-        p2=ind(i,2)
+      do li=1,3
+        p1=ind(li,1)
+        p2=ind(li,2)
         vec1(1)=xy(p2,1)-xy(p1,1)
         vec1(2)=xy(p2,2)-xy(p1,2)
         vec2(1)=xin-xy(p1,1)
@@ -202,11 +202,11 @@
       enddo
 
       if(dir.eq.1)then
-        eleOut=iel
-        ep = ( b%invJ(iel,1)*(xin-xy(1,1)) ) &
-          + ( b%invJ(iel,3)*(yin-xy(1,2)) )
-        et = ( b%invJ(iel,2)*(xin-xy(1,1)) ) &
-          + ( b%invJ(iel,4)*(yin-xy(1,2)) )
+        eleOut=liel
+        ep = ( b%invJ(liel,1)*(xin-xy(1,1)) ) &
+          + ( b%invJ(liel,3)*(yin-xy(1,2)) )
+        et = ( b%invJ(liel,2)*(xin-xy(1,1)) ) &
+          + ( b%invJ(liel,4)*(yin-xy(1,2)) )
         return
       endif
 
@@ -226,7 +226,7 @@
     real(kind=C_K2),intent(in)::xin(np),yin(np)
     integer(kind=C_K1),intent(out)::eleOut(np)
     real(kind=C_K2),intent(out)::ep(np),et(np)
-    integer(kind=C_K1)::ind(3,2),p1,p2,dir,pp
+    integer(kind=C_K1)::ind(3,2),p1,p2,dir,pp,liel,li
     real(kind=C_K2)::xy(3,2),vec1(2),vec2(2),res,xp,yp
 
     ind(1,:)=(/ 1,2 /)
@@ -235,22 +235,22 @@
 
 
     !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(pp,xp,yp,iel,nl,xy,dir,i,p1,p2,vec1,vec2,res)
+    !$OMP   PRIVATE(pp,xp,yp,liel,nl,xy,dir,li,p1,p2,vec1,vec2,res)
     !$OMP DO SCHEDULE(dynamic,10)
     do pp=1,np
       xp=xin(pp)
       yp=yin(pp)
 
-      do iel = 1, b%nele
-        nl=b%conn(iel,1:3)
-        do i=1,3
-          xy(i,:)=b%cor(nl(i),:)
+      do liel = 1, b%nele
+        nl=b%conn(liel,1:3)
+        do li=1,3
+          xy(li,:)=b%cor(nl(li),:)
         enddo
 
         dir=1
-        do i=1,3
-          p1=ind(i,1)
-          p2=ind(i,2)
+        do li=1,3
+          p1=ind(li,1)
+          p2=ind(li,2)
           vec1(1)=xy(p2,1)-xy(p1,1)
           vec1(2)=xy(p2,2)-xy(p1,2)
           vec2(1)=xp-xy(p1,1)
@@ -260,11 +260,11 @@
         enddo
 
         if(dir.eq.1)then
-          eleOut(pp)=iel
-          ep(pp) = ( b%invJ(iel,1)*(xp-xy(1,1)) ) &
-            + ( b%invJ(iel,3)*(yp-xy(1,2)) )
-          et(pp) = ( b%invJ(iel,2)*(xp-xy(1,1)) ) &
-            + ( b%invJ(iel,4)*(yp-xy(1,2)) )
+          eleOut(pp)=liel
+          ep(pp) = ( b%invJ(liel,1)*(xp-xy(1,1)) ) &
+            + ( b%invJ(liel,3)*(yp-xy(1,2)) )
+          et(pp) = ( b%invJ(liel,2)*(xp-xy(1,1)) ) &
+            + ( b%invJ(liel,4)*(yp-xy(1,2)) )
           exit
         endif
       enddo
@@ -377,7 +377,7 @@
     yin(3)=2.02d0
     zin(3)=0.20d0
 
-    xin(4)=56.02d0
+    xin(4)=16.02d0
     yin(4)=2.02d0
     zin(4)=0.35d0
 

@@ -46,7 +46,7 @@ implicit none
   call bq%setMFree 
   call bq%initMat  
   call bq%statMatrices    
-  
+
 
   do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
   
@@ -110,7 +110,7 @@ implicit none
   enddo
 
   call system_clock(bq%sysC(2))
-  close(bq%probe(-1))
+  close(bq%wpEle(-1))
   write(9,*)"[MSG] boussinesqQuad End"
   write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
   close(9)  

@@ -48,7 +48,8 @@ implicit none
     integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb,nSOb
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
-    integer(kind=C_K1),allocatable::bndPT(:),probe(:)
+    integer(kind=C_K1),allocatable::bndPT(:)
+    integer(kind=C_K1),allocatable::wpEle(:)
     integer(kind=C_K1),allocatable::ivl(:),linkl(:),ivq(:),linkq(:)            
     integer(kind=C_INT),allocatable::ivsl(:),jvsl(:)
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
@@ -68,7 +69,7 @@ implicit none
     real(kind=C_K2),allocatable::gPGx(:),gPGy(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
-    real(kind=C_K2),allocatable::etaMax(:),etaMin(:),probeLoc(:,:)
+    real(kind=C_K2),allocatable::etaMax(:),etaMin(:),wpLoc(:,:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -111,7 +112,9 @@ implicit none
     procedure ::  diriBCEta
     procedure ::  diriBCPQ
     procedure ::  updateSoln
+    procedure ::  writeWaveProbe
     !procedure ::  destructor
+    
     procedure ::  setMFree
     procedure ::  calcDerv
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
@@ -223,15 +226,7 @@ contains
 
     !write(201,*)
 
-    !Writing probes values
-    k=b%probe(-1)
-    write(k,'(F15.6)',advance='no')b%tOb(0)%rtm
-    do i=1,b%probe(0)
-      j=b%probe(i)
-      write(k,'(5F15.6)',advance='no')b%cor(j,1), b%cor(j,2),&
-        b%tOb(0)%e(j), b%tOb(0)%p(j), b%tOb(0)%q(j)
-    enddo
-    write(k,*)
+    call b%writeWaveProbe    
 
     call system_clock(b%sysC(4))
     tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate
@@ -564,6 +559,48 @@ contains
 
   end subroutine initMat
 !!---------------------------End initMat---------------------------!!
+
+
+
+!!-------------------------writeWaveProbe--------------------------!!
+  subroutine writeWaveProbe(b)
+  implicit none
+
+    class(bsnqCase),intent(in)::b
+    real(kind=C_K2)::N3(3),N6(6)
+
+    !Writing probes value
+    k=b%wpEle(-1)
+    write(k,'(F15.6)',advance='no')b%tOb(0)%rtm
+    do i=1,b%wpEle(0)
+
+      tmpr1=0d0
+      tmpr2=0d0
+      tmpr3=0d0
+
+      if(b%wpEle(i).ne.-1)then
+
+        nq=b%conn(b%wpEle(i),:)
+        call fem_N6i(b%wpLoc(i,3), b%wpLoc(i,4), N6)
+        call fem_N3i(b%wpLoc(i,3), b%wpLoc(i,4), N3)
+
+        do i2=1,3
+          tmpr1 = tmpr1 + b%tOb(0)%e(nq(i2)) * N3(i2) 
+        enddo
+        do i2=1,6
+          tmpr2 = tmpr2 + b%tOb(0)%p(nq(i2)) * N6(i2) 
+          tmpr3 = tmpr3 + b%tOb(0)%q(nq(i2)) * N6(i2) 
+        enddo
+
+      endif
+
+      write(k,'(5F15.6)',advance='no')b%wpLoc(i,1), b%wpLoc(i,2),&
+        tmpr1, tmpr2, tmpr3
+    enddo
+    write(k,*)
+
+  end subroutine writeWaveProbe
+!!-----------------------End writeWaveProbe------------------------!!
 
 
 

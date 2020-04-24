@@ -290,44 +290,34 @@
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%nthrd
     
-    !Probes Code
+    !Wave Probes Code
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpi1
     if(tmpi1.gt.0) then
-      allocate(b%probe(-1:tmpi1),b%probeLoc(tmpi1,4))
-      b%probe(0)=tmpi1
+      allocate(b%wpEle(-1:tmpi1),b%wpLoc(tmpi1,4))
+      b%wpEle(0)=tmpi1      
       
       do i=1,tmpi1
-        read(mf,*,end=81,err=81)b%probeLoc(i,1:2)
-        tmpr1=b%probeLoc(i,1)
-        tmpr2=b%probeLoc(i,2)
-        tmpr4=1e6
-        do j=1,b%npl
-          tmpr3=(b%cor(j,1)-tmpr1)**2 + (b%cor(j,2)-tmpr2)**2
-          if(tmpr3.lt.tmpr4)then
-            tmpr4=tmpr3
-            k=j
-          endif
-        enddo
-        b%probe(i)=k
-        b%probeLoc(i,3)=b%cor(k,1)
-        b%probeLoc(i,4)=b%cor(k,2)
+        read(mf,*,end=81,err=81)b%wpLoc(i,1:2)                
       enddo
-      write(9,'(" [INF] Probe Locations")')
-      write(9,'(" [---] ",3A15)')'PrN','UserX','UserY'
-      write(9,'("       ",3A15)')' ','OutX','OutY'
+
+      call b%findEleForLocXY2(tmpi1, b%wpLoc(:,1), b%wpLoc(:,2), &
+        b%wpEle(1:tmpi1), b%wpLoc(:,3), b%wpLoc(:,4))
+
+      write(9,'(" [INF] Wave Probe Locations")')
+      write(9,'(" [---] ",4A15)')'PrN','UserX','UserY', 'Ele -1=Err'      
       do i=1,tmpi1
-        write(9,'(" [---] ",I15,2F15.6)')i,b%probeLoc(i,1:2)
-        write(9,'("       ",A15,2F15.6)')' ',b%probeLoc(i,3:4)
+        write(9,'(" [---] ",I15,2F15.6,I15)')i,b%wpLoc(i,1:2),&
+          b%wpEle(i)         
       enddo
       write(9,*)
 
       bqtxt='Output/AllProbes_'//trim(b%probname)//'.dat'
-      open(newunit=b%probe(-1),file=trim(bqtxt))      
+      open(newunit=b%wpEle(-1),file=trim(bqtxt))      
     
     else
-      allocate(b%probe(0:1),b%probeLoc(1,4))
-      b%probe(0)=0
+      allocate(b%wpEle(0:1),b%wpLoc(1,4))
+      b%wpEle(0)=0
     endif
 
     !WaveInput Code

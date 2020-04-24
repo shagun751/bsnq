@@ -37,7 +37,7 @@ continued from bsnq\_par\_v8.36
 - [ ] Calculation of u, w and pr for directional wave
 - [x] Find element containing a random point with natural coords in XY
 - [x] Calc vertical velocities at any location
-- [ ] Wave-probe at random location using finEleForLocXY and FEM shape fnc
+- [x] Wave-probe at random XY using findEleForLocXY and FEM shape fnc. Verified.
 
 -----------------------------------------------
 
