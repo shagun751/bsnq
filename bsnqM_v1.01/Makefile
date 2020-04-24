@@ -45,6 +45,7 @@ subroutines/$(HEADER).f90 \
 subroutines/mods.f90 \
 subroutines/modsInletBC.f90 \
 subroutines/modsMFree.f90 \
+subroutines/modsVertVel.f90 \
 subroutines/shipMod.f90 \
 subroutines/bndCondition_v1.0.f90 \
 subroutines/bndIntegral.f90 \

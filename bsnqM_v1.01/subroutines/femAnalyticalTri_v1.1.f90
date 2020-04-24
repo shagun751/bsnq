@@ -1,3 +1,34 @@
+subroutine fem_N6i(ep,et,shF)
+use bsnqGlobVars
+implicit none
+
+  real(kind=C_K2),intent(in)::ep,et
+  real(kind=C_K2),intent(out)::shF(6)
+
+  shF(1) = 1d0 - 3d0*ep - 3d0*et + 2d0*ep*ep &
+    + 2d0*et*et + 4d0*ep*et
+  shF(2) = 2d0*ep*ep - ep
+  shF(3) = 2d0*et*et - et
+  shF(4) = 4d0*ep - 4d0*ep*ep - 4d0*ep*et
+  shF(5) = 4d0*ep*et
+  shF(6) = 4d0*et - 4d0*et*et - 4d0*ep*et
+
+end subroutine fem_N6i
+
+subroutine fem_N3i(ep,et,shF)
+use bsnqGlobVars
+implicit none
+
+  real(kind=C_K2),intent(in)::ep,et
+  real(kind=C_K2),intent(out)::shF(3)
+
+  shF(1) = 1d0 - ep - et
+  shF(2) = ep
+  shF(3) = et  
+
+end subroutine fem_N3i
+
+
 subroutine fem_N6i_Sc3_dN3jdx(mat,h1,h2,h3,b11,b12)
 use bsnqGlobVars
 implicit none

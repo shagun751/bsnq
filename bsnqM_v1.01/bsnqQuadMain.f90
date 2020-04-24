@@ -46,12 +46,7 @@ implicit none
   call bq%setMFree 
   call bq%initMat  
   call bq%statMatrices    
-
-  open(120, file = 'Output/VertVel.dat')  
-  write(9,'(" [INF] Vertical Velocity Location [X Y Dep]")')
-  write(9,'(" [---] ",3F15.6)')bq%cor(14371,:),bq%dep(14371)
-  write(9,*)
-
+  
 
   do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
   

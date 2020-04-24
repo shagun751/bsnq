@@ -284,46 +284,111 @@
 
 
 
-!!---------------------------getVertVel----------------------------!!
-  subroutine vertVelExp(z,h,eta,hx,u,ux,uxx,uxxx,uhx,uhxx,uhxxx,&
-    uxt,uhxt,uc,wc,pc)
-  implicit none
-
-    real(kind=8),intent(in)::z,h,eta,hx,u,ux,uxx,uxxx
-    real(kind=8),intent(in)::uhx,uhxx,uhxxx,uxt,uhxt
-    real(kind=8),intent(out)::uc,wc,pc
-
-    uc = u - (0.5d0*h*uhxx - h*h*uxx/6d0) - (z*uhxx + 0.5d0*z*z*uxx)
-    wc = -uhx - z*ux + z/2d0*( hx*uhxx + h*uhxxx ) &
-      - z/6d0*( 2d0*h*hx*uxx + h*h*uxxx ) &
-      + z*z/2d0*uhxxx + z*z*z/6d0*uxxx
-    pc = rhoW * ( grav*( -z + eta ) + z*(uhxt + 0.5d0*z*uxt) )
-
-  end subroutine vertVelExp
-!!-------------------------End getVertVel--------------------------!!
-
-
-
 !!----------------------------getVertVel---------------------------!!
-  subroutine getVertVel(b,np,xin,yin,zin,uOut,vOut,wOut,pOut,wrki,wrkr)
+  subroutine getVertVel(b,np,xin,yin,zin,uOut,vOut,wOut,pOut,&
+    wrki,wrkr,err)
   implicit none
 
     class(bsnqCase),intent(in)::b
     integer(kind=C_K1),intent(in)::np
     real(kind=C_K2),intent(in)::xin(np),yin(np),zin(np)
 
-    integer(kind=C_K1),intent(out)::wrki(np)
+    integer(kind=C_K1),intent(out)::wrki(np),err(np)
     real(kind=C_K2),intent(out)::uOut(np),vOut(np),wOut(np)
     real(kind=C_K2),intent(out)::pOut(np),wrkr(np,2)    
 
+    real(kind=C_K2)::wei(6),hLoc,zLoc,etaLoc
+    real(kind=C_K2)::uLoc,vLoc,wLoc,pLoc    
+    type(vertVelDerv)::tmp
+
     call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
 
-    uOut=0d0
-    vOut=0d0
-    wOut=0d0
-    pOut=0d0
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(i, nq, wei, tmp, k, hLoc, etaLoc, zLoc, &
+    !$OMP     uLoc, vLoc, wLoc, pLoc)
+    !$OMP DO SCHEDULE(dynamic,10)
+    do i = 1,np
 
+      if(wrki(i).eq.-1)then
+        err(i)=1
+        uOut(i)=0d0
+        vOut(i)=0d0
+        wOut(i)=0d0
+        pOut(i)=0d0     
+        cycle   
+      endif
 
+      nq = b%conn(wrki(i),:)
+      call fem_N6i(wrkr(i,1),wrkr(i,2),wei)      
 
+      call tmp%initByInterp( 6, b%bDf(nq), wei, k )
+
+      hLoc=0d0
+      etaLoc=0d0      
+      do k=1,6
+        hLoc = hLoc + wei(k)*b%dep(nq(k))
+        etaLoc = etaLoc + wei(k)*b%tOb(0)%tD(nq(k))
+      enddo
+      etaLoc = etaLoc - hLoc
+      zLoc = zin(i) - hLoc
+
+      call vertVelExp(zLoc, hLoc, etaLoc, tmp%hx,&
+        tmp%u, tmp%ux, tmp%uxx, tmp%uxxx, &
+        tmp%uhx, tmp%uhxx, tmp%uhxxx, &
+        tmp%uxt, tmp%uhxt, uLoc, wLoc, pLoc)  
+
+      vLoc=0d0
+
+      err(i)=0
+      uOut(i)=uLoc
+      vOut(i)=vLoc
+      wOut(i)=wLoc
+      pOut(i)=pLoc
+
+    enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL    
+    
   end subroutine getVertVel
 !!--------------------------End getVertVel-------------------------!!
+
+
+
+!!--------------------------testGetVertVel-------------------------!!
+  subroutine testGetVertVel(b)
+  implicit none
+
+    class(bsnqCase),intent(in)::b
+    
+    integer,parameter::np=4
+    integer(C_K1)::wrki(np),err(np)
+    real(kind=C_K2)::xin(np),yin(np),zin(np),wrkr(np,2)
+    real(kind=C_K2)::uOut(np),vOut(np),wOut(np),pOut(np)    
+    
+    xin(1)=15d0
+    yin(1)=2.00d0
+    zin(1)=0.20d0
+
+    xin(2)=15d0
+    yin(2)=2.00d0
+    zin(2)=0.35d0
+
+    xin(3)=16.02d0
+    yin(3)=2.02d0
+    zin(3)=0.20d0
+
+    xin(4)=56.02d0
+    yin(4)=2.02d0
+    zin(4)=0.35d0
+
+    call b%getVertVel(np,xin,yin,zin,uOut,vOut,wOut,pOut,&
+      wrki,wrkr,err)
+
+    write(120,'(F15.6)',advance='no')b%tOb(0)%rtm
+    do i=1,np
+      write(120,'(3F15.6)',advance='no')pOut(i),uOut(i),wOut(i)
+    enddo
+    write(120,*)
+
+  end subroutine testGetVertVel
+!!------------------------End testGetVertVel-----------------------!!

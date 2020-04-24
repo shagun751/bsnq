@@ -1,6 +1,7 @@
 include 'mods.f90'
 include 'modsInletBC.f90'
 include 'modsMFree.f90'
+include 'modsVertVel.f90'
 include 'shipMod.f90'
 include 'bndCondition_v1.0.f90'
 include 'bndIntegral.f90'

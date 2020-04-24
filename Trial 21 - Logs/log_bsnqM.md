@@ -24,7 +24,7 @@ continued from bsnq\_par\_v8.36
 1. [Observations : VertVel : Unidirectional wave [2020-03-13]](#log_bsnqM_v0003_2)
 1. [Observations : VertVel : Unidirectional wave [2020-04-08]](#log_bsnqM_v0003_3)
 1. [Observations : findEleForLocXY [2020-04-20]](#log_bsnqM_v0003_4)
-1. [Observations : VertVel : Coupling [2020-04-23]](#log_bsnqM_v0003_5)
+1. [Observations : VertVel : getVertVel [2020-04-24]](#log_bsnqM_v0003_5)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -36,14 +36,26 @@ continued from bsnq\_par\_v8.36
 - [x] Calculation of u, w and pr assuming unidirectional waves
 - [ ] Calculation of u, w and pr for directional wave
 - [x] Find element containing a random point with natural coords in XY
+- [x] Calc vertical velocities at any location
+- [ ] Wave-probe at random location using finEleForLocXY and FEM shape fnc
 
 -----------------------------------------------
 
 
 <a name = 'log_bsnqM_v0003_5' />
 
-### Observations : VertVel : Coupling [2020-04-23]
+### Observations : VertVel : getVertVel [2020-04-24]
 - Restructred vertVelDerv from bDf%u(npt) tp bDf(npt)%u. This is necessary to make it easier in coupling function _getVertVel_ to interpolate all values at the random MLPG point. **It has been tested and verified with T=2s, H=0.1m, d=0.7m, kh=0.95.**
+- Completed _getVertVel_ to obtain vertical velocities at any location inside the bsnq domain.
+	- Uses FEM shape function to interpolate values at the random location from values of 6 nodes within the element.
+	- Extensively tested and verified for location inside triangle, on the edge of teh triangle and on the vertices of triangle. Run _tesyGetVertVel_ (output in fort.120) for testing _getVertVel_. **The results are identical to results in VertVel [2020-04-08]
+	- Works very well with hardly any effect on the speed.
+	- **Currently v-vel is kept 0, as it is still considering only unidirectional waves**.
+	- OpenMP implemented wherever possible. 
+	- **Error reporting:** The matrix err is to check if that point has successfully got velocities from bsnq.
+		- err = 0 : No error
+		- err = 1 : Location is not inside any bsnq element.
+			- uOut, vOut, wOut, pOut will be returned = 0
 
 -----------------------------------------------
 
@@ -57,6 +69,11 @@ continued from bsnq\_par\_v8.36
 - **Two forms of the function are written** 
 	1. **findEleForLocXY1** : Single location search. No OpenMP implementation
 	1. **findEleForLocXY2** : An array of locations. OpenMP implemented
+- **Error reporting**
+	- If point lies inside no element then
+		- eleId = -1
+		- &epsilon; = -1
+		- &eta; = -1
 
 | |
 | :-------------: |

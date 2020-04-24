@@ -4,6 +4,7 @@ use waveFileModule
 use outAbsModule
 use shipMod
 use meshFreeMod
+use vertVelMod
 implicit none
 
   interface
@@ -36,18 +37,6 @@ implicit none
   contains
     procedure ::  initBsnqVars
   end type bsnqVars
-
-  type, public :: vertVelDerv      
-    real(kind=C_K2)::u,ux,uxx,uxxx
-    real(kind=C_K2)::uh,uhx,uhxx,uhxxx
-    real(kind=C_K2)::hx
-    ! d2(U)/dxdt and d2(Uh)/dxdt
-    real(kind=C_K2)::uxt,uhxt      
-    ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)   
-    real(kind=C_K2)::ux_tn(2),uhx_tn(2)    
-  ! contains
-  !   procedure ::  init => initVertVelDerv
-  end type vertVelDerv
 
   
   type, public :: bsnqCase
@@ -128,6 +117,7 @@ implicit none
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
     procedure ::  getVertVel          !using vertVelExp to calculate
+    procedure ::  testGetVertVel          
 
   end type bsnqCase
 
@@ -206,18 +196,10 @@ contains
     !   endif
     ! enddo
 
-    if(allocated(b%pObf)) call b%calcDerv
-    i=14371
-    call vertVelExp(-0.50d0, b%dep(i), b%tOb(0)%e(i), b%bDf(i)%hx,&
-      b%bDf(i)%u, b%bDf(i)%ux, b%bDf(i)%uxx, b%bDf(i)%uxxx, &
-      b%bDf(i)%uhx, b%bDf(i)%uhxx, b%bDf(i)%uhxxx, &
-      b%bDf(i)%uxt, b%bDf(i)%uhxt, tmpr1, tmpr2, tmpr3)  
-    write(120,'(4F15.6)',advance='no')b%tOb(0)%rtm,tmpr3,tmpr1,tmpr2
-    call vertVelExp(-0.35d0, b%dep(i), b%tOb(0)%e(i), b%bDf(i)%hx,&
-      b%bDf(i)%u, b%bDf(i)%ux, b%bDf(i)%uxx, b%bDf(i)%uxxx, &
-      b%bDf(i)%uhx, b%bDf(i)%uhxx, b%bDf(i)%uhxxx, &
-      b%bDf(i)%uxt, b%bDf(i)%uhxt, tmpr1, tmpr2, tmpr3)      
-    write(120,'(3F15.6)')tmpr3,tmpr1,tmpr2  
+    if(allocated(b%pObf))then 
+      call b%calcDerv    
+      !call b%testGetVertVel
+    endif
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%outputXML
@@ -610,29 +592,5 @@ contains
 
   end subroutine initBsnqVars
 !!------------------------End initBsnqVars-------------------------!!
-
-
-
-! !!-------------------------initVertVelDerv-------------------------!!
-!   subroutine initVertVelDerv(b,np)
-!   use bsnqGlobVars
-!   implicit none
-
-!     class(vertVelDerv),intent(inout)::b
-!     integer(kind=C_K1),intent(in)::np
-
-!     allocate(b%u(np), b%ux(np), b%uxx(np), b%uxxx(np))
-!     allocate(b%uh(np), b%uhx(np), b%uhxx(np), b%uhxxx(np))
-!     allocate(b%hx(np))
-!     allocate(b%uxt(np), b%uhxt(np))
-!     allocate(b%uxtn(np,2), b%uhxtn(np,2))
-!     b%ux=0d0
-!     b%uhx=0d0    
-!     b%uxtn=0d0
-!     b%uhxtn=0d0    
-!     b%np=np    
-
-!   end subroutine initVertVelDerv
-! !!-----------------------End initVertVelDerv-----------------------!!
 
 end module bsnqModule
