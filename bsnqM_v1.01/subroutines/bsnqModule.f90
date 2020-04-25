@@ -18,17 +18,8 @@ implicit none
   end interface
   
   private
-  integer(kind=C_K1)::i,i1,i2,j,j1,j2,k,k1,k2,mf
-  integer(kind=C_K1)::iel,n1,n2,n3,n4,n5,n6
-  integer(kind=C_K1)::nq(6),nl(3)
-  integer(kind=C_K1)::tmpi1,tmpi2,tmpi3,tmpi4,tmpi5
   integer(kind=C_K1)::maxNePoi=30
   integer(kind=C_K1)::maxNeEle=10
-
-  integer(kind=8)::sysC(10)
-  real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5,tmpr6
-  character(len=C_KSTR)::bqtxt  
-  logical(kind=C_LG)::ex  
 
   type, public :: bsnqVars
     integer(kind=C_K1)::npl,npt
@@ -135,6 +126,7 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b    
+    integer(kind=C_K1)::i
 
     b%tStep=b%tStep+1    
     b%rTime=b%rTime+b%dt
@@ -164,6 +156,9 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b
+
+    integer(kind=C_K1)::i
+    real(kind=C_K2)::tmpr1,tmpr2
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -251,8 +246,10 @@ contains
     class(bsnqCase),intent(inout)::b    
     integer(kind=4),intent(in)::step
 
-    b%sysT(1)=b%sysT(1)+1d0*(sysC(2)-sysC(1))/b%sysRate
-    b%sysT(2)=b%sysT(2)+1d0*(sysC(4)-sysC(3))/b%sysRate
+    !b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    !b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+    b%sysT(1)=0d0
+    b%sysT(2)=0d0
     
     select case(step)
 
@@ -310,6 +307,9 @@ contains
     real(kind=C_K2),intent(in)::cor(npt,2)
     real(kind=C_K2),intent(out)::er(npl),pr(npt),qr(npt)
 
+    integer(kind=C_K1)::i
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5
+
     ! pr=0d0
     ! qr=0d0
     ! !er=0.045d0*dexp(-2d0*( (cor(1:npl,1)-18.288d0)**2 ))
@@ -351,6 +351,8 @@ contains
     class(bsnqCase),intent(in)::b    
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::mat(b%npl)    
+    integer(kind=C_K1)::i,i2,j2
+    real(kind=C_K2)::tmpr1
 
     !! Note : Consistent with SemiDirect only
     call b%wvF%getEta(rTt0,tmpr1)    
@@ -378,6 +380,8 @@ contains
     class(bsnqCase),intent(in)::b    
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::p(b%npt),q(b%npt)
+    integer(kind=C_K1)::i,i2,j2
+    real(kind=C_K2)::tmpr1,tmpr2
 
     !! Note : Consistent with SemiDirect only
     call b%wvF%getPQ(rTt0,tmpr1,tmpr2)    
@@ -414,6 +418,8 @@ contains
     class(bsnqCase),intent(in)::b
     real(kind=C_K2),intent(in)::rTt0,rTt1
     real(kind=C_K2),intent(inout)::mat(b%npl)    
+    integer(kind=C_K1)::i,i2,j2
+    real(kind=C_K2)::tmpr1,tmpr2
 
     !! Note : Consistent with SemiDirect only
     call b%wvF%getEta(rTt0,tmpr1)
@@ -443,6 +449,8 @@ contains
     class(bsnqCase),intent(in)::b
     real(kind=C_K2),intent(in)::rTt0,rTt1
     real(kind=C_K2),intent(inout)::mat(2*b%npt)
+    integer(kind=C_K1)::i,i2,j2
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
 
     !! Note : Consistent with SemiDirect only
     call b%wvF%getPQ(rTt0,tmpr1,tmpr2)         
@@ -479,6 +487,7 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b
+    integer(kind=C_K1)::i,i1,j,j1
 
     i=b%npl
     j=b%npt
@@ -567,7 +576,8 @@ contains
   implicit none
 
     class(bsnqCase),intent(in)::b
-    real(kind=C_K2)::N3(3),N6(6)
+    integer(kind=C_K1)::nq(6),i,i2,k
+    real(kind=C_K2)::N3(3),N6(6),tmpr1,tmpr2,tmpr3
 
     !Writing probes value
     k=b%wpEle(-1)
@@ -629,5 +639,6 @@ contains
 
   end subroutine initBsnqVars
 !!------------------------End initBsnqVars-------------------------!!
+
 
 end module bsnqModule

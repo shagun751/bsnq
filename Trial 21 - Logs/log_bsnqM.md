@@ -38,6 +38,7 @@ continued from bsnq\_par\_v8.36
 - [x] Find element containing a random point with natural coords in XY
 - [x] Calc vertical velocities at any location
 - [x] Wave-probe at random XY using findEleForLocXY and FEM shape fnc. Verified.
+- [x] Removed all (except 2) private vars from bsnqModule (wasnt a good idea). Verified.
 
 -----------------------------------------------
 

@@ -4,6 +4,10 @@
 
     class(bsnqCase),intent(in)::b 
 
+    integer(kind=C_K1)::mf,i,j,k
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3
+    character(len=C_KSTR)::bqtxt
+
     write(bqtxt,'(I15)')int(b%tOb(0)%rtm*1000)
     bqtxt=adjustl(bqtxt)
     bqtxt="Output/"//trim(b%probname)//"_"//trim(bqtxt)//".vtu"

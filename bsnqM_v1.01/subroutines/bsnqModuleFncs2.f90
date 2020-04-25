@@ -3,9 +3,9 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::nn,err
+    integer(kind=C_K1)::nn,err,i,i2,j,k1
     integer(kind=C_K1),allocatable::neid(:),newrk(:)
-    real(kind=C_K2)::cx,cy,rad
+    real(kind=C_K2)::cx,cy,rad,tmpr3,tmpr5
     real(kind=C_K2),allocatable::nedr(:),phi(:),phiDx(:),phiDy(:)
 
     call system_clock(b%sysC(5))
@@ -26,8 +26,8 @@
         b%cor(neid(1:nn),2), phi(1:nn), phiDx(1:nn), phiDy(1:nn), err)
 
       if(err.ne.0)then
-        write(mf,'(" [ERR] No MFree at node ", I10)')i
-        write(mf,'(" [---] Cx, Cy ",2F15.6)')cx,cy
+        write(9,'(" [ERR] No MFree at node ", I10)')i
+        write(9,'(" [---] Cx, Cy ",2F15.6)')cx,cy
       endif
 
       call b%pObf(i)%setPoi(nn, nn, i, cx, cy, rad, neid(1:nn), &
@@ -70,6 +70,8 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
+    integer(kind=C_K1)::i,i2,j,k,k2
+    real(kind=C_K2)::tmpr1
 
     b%ur = b%tOb(0)%p / b%tOb(0)%tD
     b%vr = b%tOb(0)%q / b%tOb(0)%tD
@@ -176,7 +178,7 @@
     real(kind=C_K2),intent(in)::xin,yin
     integer(kind=C_K1),intent(out)::eleOut
     real(kind=C_K2),intent(out)::ep,et
-    integer(kind=C_K1)::ind(3,2),p1,p2,dir,liel,li
+    integer(kind=C_K1)::ind(3,2),p1,p2,dir,liel,li,nl(3)
     real(kind=C_K2)::xy(3,2),vec1(2),vec2(2),res
 
     ind(1,:)=(/ 1,2 /)
@@ -226,7 +228,7 @@
     real(kind=C_K2),intent(in)::xin(np),yin(np)
     integer(kind=C_K1),intent(out)::eleOut(np)
     real(kind=C_K2),intent(out)::ep(np),et(np)
-    integer(kind=C_K1)::ind(3,2),p1,p2,dir,pp,liel,li
+    integer(kind=C_K1)::ind(3,2),p1,p2,dir,pp,liel,li,nl(3)
     real(kind=C_K2)::xy(3,2),vec1(2),vec2(2),res,xp,yp
 
     ind(1,:)=(/ 1,2 /)
@@ -297,6 +299,7 @@
     real(kind=C_K2),intent(out)::uOut(np),vOut(np),wOut(np)
     real(kind=C_K2),intent(out)::pOut(np),wrkr(np,2)    
 
+    integer(kind=C_K1)::nq(6),i,k
     real(kind=C_K2)::wei(6),hLoc,zLoc,etaLoc
     real(kind=C_K2)::uLoc,vLoc,wLoc,pLoc    
     type(vertVelDerv)::tmp
@@ -361,7 +364,7 @@
     class(bsnqCase),intent(in)::b
     
     integer,parameter::np=4
-    integer(C_K1)::wrki(np),err(np)
+    integer(C_K1)::wrki(np),err(np),i
     real(kind=C_K2)::xin(np),yin(np),zin(np),wrkr(np,2)
     real(kind=C_K2)::uOut(np),vOut(np),wOut(np),pOut(np)    
     

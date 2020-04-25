@@ -5,6 +5,7 @@
     class(bsnqCase),intent(inout)::b    
     real(kind=C_K2),intent(in)::rkTime
     real(kind=C_K2),intent(in)::tDr(b%npt),ur(b%npt),vr(b%npt)
+    integer(kind=C_K1)::i
 
     call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
       b%ivl,b%ivq,b%linkl,b%linkq,b%invJ,b%ele6x6,b%ele6x3,&
@@ -99,7 +100,9 @@
     real(kind=C_K2),intent(in)::er(b%npl),rkTime
     real(kind=C_DOUBLE),intent(out)::gXW(b%npl),gXE(b%npl),gRE(b%npl)
     real(kind=C_DOUBLE),intent(out)::gXPQ(2*b%npt),gRPQ(2*b%npt)
-    real(kind=C_K2)::dt,absC
+    
+    integer(kind=C_K1)::i,j,k,i2,k2
+    real(kind=C_K2)::dt,absC,tmpr1,tmpr2,tmpr3,tmpr4
 
     !!  [Note] : 
     !!  Remeber everything is passed by reference
@@ -110,7 +113,7 @@
     !!  So modify the bq%et1 only after the entire computation
     !!  with its old values is done. Till then store it in bq%er
 
-    call system_clock(sysC(3))
+    !call system_clock(b%sysC(5))
     dt=b%dt
 
     !!------------------solveW-----------------!!
@@ -227,14 +230,14 @@
 
     gRPQ=gRPQ/b%rowMaxPQ
     
-    call system_clock(sysC(1))
+    !call system_clock(b%sysC(7))
     call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,gRPQ,&
       gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'PQ',j,i,tmpr1
     call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
-    call system_clock(sysC(2))
+    !call system_clock(b%sysC(8))
     !!---------------End solvePQ---------------!!
-    call system_clock(sysC(4))
+    !call system_clock(b%sysC(6))
 
     301 format('      |',a6,i10,i10,e15.4)
 
@@ -248,6 +251,11 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
+
+    integer(kind=C_K1)::tmpi1,tmpi2,mf,i
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
+    character(len=C_KSTR)::bqtxt
+    logical(kind=C_LG)::ex  
 
     !Input file open  
     bqtxt=trim(b%probname)//'.inp'
@@ -407,6 +415,7 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b    
+    integer(kind=C_K1)::i,i2,k,k2,j,j1,j2
 
     ! Full Matrice A
     do i=1,b%npt
@@ -527,6 +536,8 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
+
+    integer(kind=C_K1)::nq(6),tmpi1,tmpi4,i,j,k
     integer(kind=C_K1)::nbndpoi
     integer(kind=C_K1),allocatable::tempia(:,:)
     
@@ -776,6 +787,10 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
+
+    integer(kind=C_K1)::tmpi1,tmpi2,mf,i,j,k
+    character(len=C_KSTR)::bqtxt
+    logical(kind=C_LG)::ex  
 
     call system_clock(b%sysC(9),b%sysC(10))
     b%sysRate=real(b%sysC(10),C_K2)
