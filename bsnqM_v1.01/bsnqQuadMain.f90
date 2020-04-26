@@ -61,7 +61,7 @@ implicit none
     call bq%dynaMatrices(rTime,bq%tOb(1)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
     call bq%updateSoln(1)
     !!-----------End RK4 S1------------!!
 
@@ -74,7 +74,7 @@ implicit none
     call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
     call bq%updateSoln(2)
     !!-----------End RK4 S2------------!!
 
@@ -87,7 +87,7 @@ implicit none
     call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
     call bq%updateSoln(3)
     !!-----------End RK4 S3------------!!
 
@@ -100,7 +100,7 @@ implicit none
     call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ)
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
     call bq%updateSoln(4)
     !!-----------End RK4 S4------------!!
   

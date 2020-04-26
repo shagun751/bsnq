@@ -38,6 +38,7 @@ SUBS=\
 subroutines/$(MODULE).f90 \
 subroutines/bsnqModuleFncs.f90 \
 subroutines/bsnqModuleFncs2.f90 \
+subroutines/initialCondition.f90 \
 subroutines/outputXML.f90
 
 SUBS2=\

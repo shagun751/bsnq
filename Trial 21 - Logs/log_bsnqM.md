@@ -39,6 +39,7 @@ continued from bsnq\_par\_v8.36
 - [x] Calc vertical velocities at any location
 - [x] Wave-probe at random XY using findEleForLocXY and FEM shape fnc. Verified.
 - [x] Removed all (except 2) private vars from bsnqModule (wasnt a good idea). Verified.
+	- [x] Added type _C\_KCLK_ and private var _nSysC_ for system clock implementation.
 
 -----------------------------------------------
 
@@ -53,7 +54,7 @@ continued from bsnq\_par\_v8.36
 	- Works very well with hardly any effect on the speed.
 	- **Currently v-vel is kept 0, as it is still considering only unidirectional waves**.
 	- OpenMP implemented wherever possible. 
-	- **Error reporting:** The matrix err is to check if that point has successfully got velocities from bsnq.
+	- **Error reporting:** The array err is to check if that point has successfully got velocities from bsnq.
 		- err = 0 : No error
 		- err = 1 : Location is not inside any bsnq element.
 			- uOut, vOut, wOut, pOut will be returned = 0

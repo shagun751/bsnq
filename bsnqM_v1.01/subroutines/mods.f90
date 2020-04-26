@@ -5,6 +5,7 @@ use, intrinsic :: ISO_C_BINDING, only : C_CHAR, C_NULL_CHAR, C_LOC
 implicit none
   
   integer,parameter::C_K1=C_INT,C_K2=C_DOUBLE,C_KSTR=256,C_LG=1  
+  integer,parameter::C_KCLK=8
 
   !!-----------------------Constants-----------------------!!
   !! Gravity

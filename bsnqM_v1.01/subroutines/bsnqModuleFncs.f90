@@ -91,7 +91,7 @@
 
 !!-----------------------------solveAll----------------------------!!
   subroutine solveAll(b,rkTime,pr,qr,pbpr,qbpr,presr,er,&
-    gXW,gXE,gXPQ,gRE,gRPQ)
+    gXW,gXE,gXPQ,gRE,gRPQ,sysC)
   implicit none
 
     class(bsnqCase),intent(in)::b    
@@ -100,7 +100,8 @@
     real(kind=C_K2),intent(in)::er(b%npl),rkTime
     real(kind=C_DOUBLE),intent(out)::gXW(b%npl),gXE(b%npl),gRE(b%npl)
     real(kind=C_DOUBLE),intent(out)::gXPQ(2*b%npt),gRPQ(2*b%npt)
-    
+    integer(kind=C_KCLK),intent(inout)::sysC(nSysC)
+      
     integer(kind=C_K1)::i,j,k,i2,k2
     real(kind=C_K2)::dt,absC,tmpr1,tmpr2,tmpr3,tmpr4
 
@@ -113,7 +114,7 @@
     !!  So modify the bq%et1 only after the entire computation
     !!  with its old values is done. Till then store it in bq%er
 
-    !call system_clock(b%sysC(5))
+    call system_clock(sysC(5))
     dt=b%dt
 
     !!------------------solveW-----------------!!
@@ -230,14 +231,14 @@
 
     gRPQ=gRPQ/b%rowMaxPQ
     
-    !call system_clock(b%sysC(7))
+    call system_clock(sysC(7))
     call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,gRPQ,&
       gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
     write(9,301)'PQ',j,i,tmpr1
     call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
-    !call system_clock(b%sysC(8))
+    call system_clock(sysC(8))
     !!---------------End solvePQ---------------!!
-    !call system_clock(b%sysC(6))
+    call system_clock(sysC(6))
 
     301 format('      |',a6,i10,i10,e15.4)
 

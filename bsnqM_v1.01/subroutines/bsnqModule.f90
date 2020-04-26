@@ -20,6 +20,8 @@ implicit none
   private
   integer(kind=C_K1)::maxNePoi=30
   integer(kind=C_K1)::maxNeEle=10
+  !! Number of elements in sysC and sysT
+  integer(kind=C_K1),parameter::nSysC=10 
 
   type, public :: bsnqVars
     integer(kind=C_K1)::npl,npt
@@ -47,7 +49,7 @@ implicit none
     integer(kind=C_INT),allocatable::ele6x6(:,:),ele6x3(:,:)
 
     real(kind=C_K2)::dt,errLim,endTime,rTime,wvHReset
-    real(kind=C_K2)::sysRate,sysT(10)
+    real(kind=C_K2)::sysRate,sysT(nSysC)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)    
     real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
@@ -72,7 +74,7 @@ implicit none
     real(kind=C_K2),allocatable::gFBs1(:),gFBs2(:),gFBs3(:),gFBs4(:)
     real(kind=C_K2),allocatable::aFull(:),gFW(:)
 
-    integer(kind=8)::sysC(10)
+    integer(kind=C_KCLK)::sysC(nSysC)
     logical(kind=C_LG)::resume,presOn,absOn    
     type(wvFileType)::wvF
     type(shipType),allocatable::sh(:)
@@ -119,6 +121,7 @@ contains
 
   include 'bsnqModuleFncs.f90'
   include 'bsnqModuleFncs2.f90'
+  include 'initialCondition.f90'
   include 'outputXML.f90'
 
 !!---------------------------preInstructs--------------------------!!
@@ -135,7 +138,7 @@ contains
     call system_clock(b%sysC(3)) 
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
-    b%sysT(2)=0d0 ! solveAll
+    b%sysT(2)=0d0 ! To time solveAll
 
     do i=b%nTOb-1,1,-1
       b%tOb(i)%rtm = b%tOb(i-1)%rtm
@@ -157,8 +160,8 @@ contains
 
     class(bsnqCase),intent(inout)::b
 
-    integer(kind=C_K1)::i
-    real(kind=C_K2)::tmpr1,tmpr2
+    integer(kind=C_K1)::i    
+    real(kind=C_K2)::tmpr1
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -224,11 +227,12 @@ contains
     call b%writeWaveProbe    
 
     call system_clock(b%sysC(4))
-    tmpr1=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate
-    tmpr2=b%sysT(1)
-    !write(9,301)"[TIL]",tmpr1,tmpr2,tmpr2/tmpr1*100d0
-    write(9,301)"[TIL]",tmpr1,tmpr2/tmpr1*100d0,&
-      b%sysT(2)/tmpr1*100d0
+    ! bq%sysT(1) = To time PQ soln in Predictor + Corrector    
+    ! bq%sysT(2) = To time solveAll    
+    ! bq%sysT(3) = To time the current time-step
+    b%sysT(3)=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate    
+    write(9,301)"[TIL]", b%sysT(3), b%sysT(1)/b%sysT(3)*100d0, &
+      b%sysT(2)/b%sysT(3)*100d0
     write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
@@ -246,10 +250,8 @@ contains
     class(bsnqCase),intent(inout)::b    
     integer(kind=4),intent(in)::step
 
-    !b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
-    !b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
-    b%sysT(1)=0d0
-    b%sysT(2)=0d0
+    b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
     
     select case(step)
 
@@ -295,52 +297,6 @@ contains
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!
-
-
-
-!!-----------------------------solitIC-----------------------------!!
-  subroutine solitIC(npl,npt,cor,er,pr,qr)
-  use bsnqGlobVars
-  implicit none
-    
-    integer(kind=C_K1),intent(in)::npl,npt
-    real(kind=C_K2),intent(in)::cor(npt,2)
-    real(kind=C_K2),intent(out)::er(npl),pr(npt),qr(npt)
-
-    integer(kind=C_K1)::i
-    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5
-
-    ! pr=0d0
-    ! qr=0d0
-    ! !er=0.045d0*dexp(-2d0*( (cor(1:npl,1)-18.288d0)**2 ))
-    ! do i=1,npl
-    !   er(i)=(cor(i,1)-18.288d0)**2
-    !   if(er(i).gt.25)then
-    !     er(i)=0d0
-    !   else
-    !     er(i)=0.045*exp(-2d0*er(i))
-    !   endif
-    ! enddo
-
-    er=0d0
-    pr=0d0
-    qr=0d0
-    tmpr1=0.45d0
-    tmpr2=0.045d0
-    tmpr3=dsqrt(grav*(tmpr1+tmpr2))
-    tmpr4=dsqrt(3*tmpr2/(4*(tmpr1**3)))
-    do i=1,npt
-      if((cor(i,1).ge.3d0).and.(cor(i,1).le.19d0)) then
-        tmpr5=tmpr2/(dcosh(tmpr4*(cor(i,1)-(11d0)))**2)
-        pr(i)=tmpr3*tmpr5
-        if(i.le.npl) then
-          er(i)=tmpr5
-        endif
-      endif
-    enddo  
-
-  end subroutine solitIC
-!!---------------------------End solitIC---------------------------!!
 
 
 
