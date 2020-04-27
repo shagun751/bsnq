@@ -106,6 +106,7 @@ implicit none
     procedure ::  diriBCPQ
     procedure ::  updateSoln
     procedure ::  writeWaveProbe
+    procedure ::  getEtaPQForXY
     !procedure ::  destructor
     
     procedure ::  setMFree
@@ -555,7 +556,7 @@ contains
         enddo
         do i2=1,6
           tmpr2 = tmpr2 + b%tOb(0)%p(nq(i2)) * N6(i2) 
-          tmpr3 = tmpr3 + b%tOb(0)%q(nq(i2)) * N6(i2) 
+          tmpr3 = tmpr3 + b%tOb(0)%q(nq(i2)) * N6(i2)                     
         enddo
 
       endif
@@ -567,6 +568,65 @@ contains
 
   end subroutine writeWaveProbe
 !!-----------------------End writeWaveProbe------------------------!!
+
+
+
+!!--------------------------getEtaPQForXY--------------------------!!
+  subroutine getEtaPQForXY(b,np,xin,yin,eta,p,q,wrki,wrkr,err)
+  implicit none
+
+    class(bsnqCase),intent(in)::b    
+    integer(kind=C_K1),intent(in)::np
+    real(kind=C_K2),intent(in)::xin(np),yin(np)
+    integer(kind=C_K1),intent(out)::wrki(np),err(np)
+    real(kind=C_K2),intent(out)::eta(np),p(np),q(np),wrkr(np,2)
+
+    integer(kind=C_K1)::nq(6),i,k
+    real(kind=C_K2)::wei(6),etaLoc,pLoc,qLoc,hLoc
+
+    call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
+
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(i, nq, wei, hLoc, etaLoc, pLoc, qLoc, k)
+    !$OMP DO SCHEDULE(dynamic,10)
+    do i=1,np
+
+      if(wrki(i).eq.-1)then
+        err(i)=1
+        eta(i)=0d0
+        p(i)=0d0
+        q(i)=0d0   
+        cycle     
+      endif
+
+      nq = b%conn(wrki(i),:)
+      call fem_N6i(wrkr(i,1),wrkr(i,2),wei)
+
+      hLoc=0d0
+      etaLoc=0d0
+      pLoc=0d0
+      qLoc=0d0
+
+      do k=1,6
+        hLoc = hLoc + wei(k) * b%dep(nq(k))
+        etaLoc = etaLoc + wei(k) * b%tOb(0)%tD(nq(k)) !Using totalDep 
+        pLoc = pLoc + wei(k) * b%tOb(0)%p(nq(k))
+        qLoc = qLoc + wei(k) * b%tOb(0)%q(nq(k))
+      enddo
+      etaLoc = etaLoc - hLoc
+
+      err(i)=0
+      eta(i)=etaLoc
+      p(i)=pLoc
+      q(i)=qLoc
+
+    enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL    
+
+  end subroutine getEtaPQForXY
+
+!!------------------------End getEtaPQForXY------------------------!!
 
 
 

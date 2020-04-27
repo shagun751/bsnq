@@ -24,7 +24,7 @@ continued from bsnq\_par\_v8.36
 1. [Observations : VertVel : Unidirectional wave [2020-03-13]](#log_bsnqM_v0003_2)
 1. [Observations : VertVel : Unidirectional wave [2020-04-08]](#log_bsnqM_v0003_3)
 1. [Observations : findEleForLocXY [2020-04-20]](#log_bsnqM_v0003_4)
-1. [Observations : VertVel : getVertVel [2020-04-24]](#log_bsnqM_v0003_5)
+1. [Observations : VertVel : getVertVel [2020-04-24, 2020-04-27]](#log_bsnqM_v0003_5)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -40,6 +40,7 @@ continued from bsnq\_par\_v8.36
 - [x] Wave-probe at random XY using findEleForLocXY and FEM shape fnc. Verified.
 - [x] Removed all (except 2) private vars from bsnqModule (wasnt a good idea). Verified.
 	- [x] Added type _C\_KCLK_ and private var _nSysC_ for system clock implementation.
+- [x] Added _getEtaPQForXY_ in bsnqModule to get vars at any location. Verified.
 
 -----------------------------------------------
 
@@ -54,10 +55,19 @@ continued from bsnq\_par\_v8.36
 	- Works very well with hardly any effect on the speed.
 	- **Currently v-vel is kept 0, as it is still considering only unidirectional waves**.
 	- OpenMP implemented wherever possible. 
-	- **Error reporting:** The array err is to check if that point has successfully got velocities from bsnq.
+	- **_getVertVel_ Error reporting:** The array err is to check if that point has successfully got velocities from bsnq.
 		- err = 0 : No error
 		- err = 1 : Location is not inside any bsnq element.
-			- uOut, vOut, wOut, pOut will be returned = 0
+			- uOut, vOut, wOut, pOut will be returned = 0. Here pOut is pressure.
+
+#### Update [2020-04-27]
+- Added _getEtaPQForXY_ into the bsnqModule. 
+- This allows extracting these variables at any location if required in future. It might be useful in coupling two bsnq instances.
+- The subroutine _getVertVel_ was not giving these variables.
+- **_getEtaPQForXY_ Error reporting:** The array err is to check if that point has successfully got velocities from bsnq.
+	- err = 0 : No error
+	- err = 1 : Location is not inside any bsnq element.
+		- etaOut, pOut, qOut will be returned = 0
 
 -----------------------------------------------
 

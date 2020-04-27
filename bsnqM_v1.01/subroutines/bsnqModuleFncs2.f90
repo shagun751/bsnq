@@ -304,6 +304,8 @@
     real(kind=C_K2)::uLoc,vLoc,wLoc,pLoc    
     type(vertVelDerv)::tmp
 
+    !Note: pLoc here is pressure. It is not depth-integrated vel-x
+
     call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
 
     !$OMP PARALLEL DEFAULT(shared) &
