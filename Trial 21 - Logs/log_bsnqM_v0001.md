@@ -1,8 +1,9 @@
 ## Initial Development log
 
-updated on 2020-01-08
-
------------------------------------------------
+1. [Observations : Time-stepping : Predictor-Corrector](#log_bsnqM_v0001_1)
+1. [Observations : Time-stepping : RK2](#log_bsnqM_v0001_2)
+1. [Observations : Time-stepping : AdBaE3 [2020-10-05, 2020-10-07]](#log_bsnqM_v0001_3)
+1. [Observations : Time-stepping : RK4 [2020-01-08]](#log_bsnqM_v0001_4)
 
 ### Attempting
 - Making the code modular so that it can be used by many
@@ -37,6 +38,8 @@ updated on 2020-01-08
 - [x] Improved Makefile - to reduce compilation time by grouping regular files in a header
 - [x] *bsnqVars* class for storing P, Q, &eta;, totDep and time values
 
+-----------------------------------------------
+
 
 ### Matrices with correct signs
 - [x] Mass M1 and M2
@@ -63,6 +66,9 @@ updated on 2020-01-08
 - bsnqGlobVars  
     - Datatypes and constants only
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0001_4' />
 
 ### Observations : Time-stepping : RK4 [2020-01-08]
 - The code was modified for RK4 time-stepping with realtive ease.
@@ -72,6 +78,10 @@ updated on 2020-01-08
 - AdBaE3 is a multi-step method which utilises the information of previous time-steps for calculating the current solution
 - AdBaE3 and RK4 seem to give almost identical results.
 - AdBaE3 is 3 times faster than RK4 in the current implementation for the same time-step size. However a larger time-step can be used for RK4 due to its better stability.
+
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0001_3' />
 
 ### Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.
@@ -112,12 +122,19 @@ The differences from the old code are
 - I have calculated the advection term assuming u = P/(h + &eta;) as 6 point variable, where I interpolate the value of (h + &eta;) at the middle nodes.
 - The Neumann BC for &eta; is applied by making boundary integral in auxiliary variable eqn as zero for *type-12* and *type-13* boundaries. This boundary integral has to be calculated for the *type-11* and *type-14* boundaries otherwise it will create issues of increasing the amplitude of wave generated from inlet BC.
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0001_2' />
+
 
 ### Observations : Time-stepping : RK2
 This too does not work! Similar problems as Predictor-corrector
 
 In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 values. This is porbably the reason for the noise build up.
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0001_1' />
 
 ### Observations : Time-stepping : Predictor-Corrector
 The predictor-corrector time-stepping had working in the GWCE (Generalised Wave Continuity) equation model pretty well as shown in Dresback(2004). We ourselves had found good results with this time-stepping in our 9-noded FEM-GWCE model, where the oscillations at lower depth and near boundaries were removed. With those results in mind, I tried to implement the algorithm in Bsnq equation. 

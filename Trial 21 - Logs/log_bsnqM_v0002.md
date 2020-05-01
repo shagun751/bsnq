@@ -1,5 +1,14 @@
 ## Moving pressure field and Gradient MLS development
 
+1. [Observations : shipPress : Pressure at lin vs quad nods](#log_bsnqM_v0002_1)
+1. [Observations : shipPress : Noise compared to old code](#log_bsnqM_v0002_2)
+1. [Observations : shipPress : Press2 val Linear nodes](#log_bsnqM_v0002_3)
+1. [Observations : shipPress : Soliton generation](#log_bsnqM_v0002_4)
+1. [Observations : gradMLS : MLS with FEM Neigh only [2020-01-30, 2020-02-03]](#log_bsnqM_v0002_5) 
+1. [IMPORTANT BUG : dirichletBC [2020-02-03]](#log_bsnqM_v0002_6)
+1. [IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]](#log_bsnqM_v0002_7)
+1. [Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27, 2020-03-06]](#log_bsnqM_v0002_8)
+
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
 - Calculating the gradient of quantities using mesh-free techniques
@@ -23,6 +32,9 @@
 - [x] IMPORTANT-BUG : dirichlet BC PQ
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_8' />
 
 ### Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27]
 - The radius is calculated using the maximum distance of a node in the immdiate FEM linktable for the node (r<sub>max</sub>). The coef is an option to modify the radius as required. _findRadLinkList_
@@ -46,6 +58,9 @@
 **Fig :** Results of first derivative calculated using paraview (Red) and the code MLS (black), showing excellent comparison.
 </p>
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_7' />
 
 ### IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]
 - In the subroutine _fem_N6i_Sc6_dN6jdx_, I was defining a matrix mat(6,6), but in the declaration I gave mat(6,3)
@@ -64,12 +79,18 @@
 	- Hence the bug fix is concluded.
 - Similar mistake was made in _mls2DDxSAThesis_. Maybe that's the reason behing the code failing with that subroutine, but I have just commented that subroutine as _mls2DDx_ is working perfectly well.
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_6' />
 
 ### IMPORTANT BUG : dirichletBC [2020-02-03]
 - In the functions _diriBCPQ_ and _diriBCPQDiff_, I had made the stupid mistake of using i1 and j2 instead of i2 and j2. 
 - Due to this the normal velocity was not being made = 0 on the 'slip wall' BC
 - Corrected and verified.
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_5' />
 
 ### Observations : gradMLS : MLS with FEM Neigh only [2020-01-30]
 File : modsMFree.f90
@@ -90,6 +111,9 @@ Folder : Output_bsnqM_v1.01_RK4/Output_mlsDx
 Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 - MLS gradient even works well now for partial subdomains, as tested in the function _test2DDx_
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_4' />
 
 ### Observations : shipPress : Soliton generation
 - Check the paper Ertekin (1986) for required conditions for generation of soliton for Fr<sub>h</sub>>1 for the specific case.
@@ -98,9 +122,16 @@ Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 - Check the paper Jian (2002). It says that solitons not generated for non-rectangular bathymetry, even with fully reflecting wall BC.
 - So the above comment says |\_| channel will give soliton, whereas \\\_/ does not generate soliton. Although I think /-\\ may generate a soliton.
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_3' />
 
 ### Observations : shipPress : Press2 val Linear nodes
 This version in arounf 6.5 times faster than the previous code. This code took 23 minutes to run a 25 sec simulation case for domain 100m x 43m, water depth 2.5 constant. Ship moving at Froude = 0.7 along the midline. The earlier code took 160 minutes for the same test case.
+
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_2' />
 
 ### Observations : shipPress : Noise compared to old code
 <p align="centre"> <img width='45%' src="./log0002/CmpWith_inl2_v7p3p3.png">  
@@ -119,6 +150,9 @@ Location : Tallin/Trial_inl/inl2_v7.3.3CC_C12_Rs15_v0p7
 - Another possibility is the inclusion of u on 6 points instead of 3 points in the convective term.
 - **Anyway with this increased stability maybe we will finally be able to make the wave-breaking and run-up algorithms work correctly finally.**
 
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_1' />
 
 ### Observations : shipPress : Pressure at lin vs quad nods
 It appears that the quad nodes gives slightly better results with the deepest pressure value better represented
