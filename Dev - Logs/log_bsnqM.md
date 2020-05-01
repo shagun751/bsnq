@@ -1,6 +1,6 @@
 # Develpoment log for bsnqM
 
-## Versions bsnqM v1.01
+## Versions bsnqM
 
 **Details**  
 continued from bsnq\_par\_v8.36
