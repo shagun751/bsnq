@@ -798,7 +798,7 @@
     write(9,'(" [MSG] sysRate = ",F20.4)')b%sysRate    
 
     !Opening mesh file  
-    bqtxt=trim(b%probname)//'.plt'
+    bqtxt=trim(b%probname)//'.msh'
     inquire(file=trim(bqtxt),exist=ex)
     if(ex) then
       open(newunit=mf,file=trim(bqtxt))    
