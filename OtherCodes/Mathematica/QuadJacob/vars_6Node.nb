@@ -1,0 +1,515 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.2' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     17349,        507]
+NotebookOptionsPosition[     16539,        487]
+NotebookOutlinePosition[     16877,        502]
+CellTagsIndexPosition[     16834,        499]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[{
+ RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"N6i", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"1", "-", 
+       RowBox[{"3", "\[Epsilon]"}], "-", 
+       RowBox[{"3", "\[Eta]"}], "+", 
+       RowBox[{"2", 
+        RowBox[{"\[Epsilon]", "^", "2"}]}], "+", 
+       RowBox[{"2", 
+        RowBox[{"\[Eta]", "^", "2"}]}], "+", 
+       RowBox[{"4", "\[Epsilon]", "*", "\[Eta]"}]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"2", 
+        RowBox[{"\[Epsilon]", "^", "2"}]}], "-", "\[Epsilon]"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"2", 
+        RowBox[{"\[Eta]", "^", "2"}]}], "-", "\[Eta]"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"4", "\[Epsilon]"}], "-", 
+       RowBox[{"4", 
+        RowBox[{"\[Epsilon]", "^", "2"}]}], "-", 
+       RowBox[{"4", "\[Epsilon]", "*", "\[Eta]"}]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"4", "\[Epsilon]", "*", "\[Eta]"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"4", "\[Eta]"}], "-", 
+       RowBox[{"4", 
+        RowBox[{"\[Eta]", "^", "2"}]}], "-", 
+       RowBox[{"4", "\[Epsilon]", "*", "\[Eta]"}]}], "}"}]}], "}"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"MatrixForm", "[", "N6i", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"N6j", "=", 
+   RowBox[{"Transpose", "[", "N6i", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"N3i", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"1", "-", "\[Epsilon]", "-", "\[Eta]"}], "}"}], ",", 
+     RowBox[{"{", "\[Epsilon]", "}"}], ",", 
+     RowBox[{"{", "\[Eta]", "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"MatrixForm", "[", "N3i", "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"N3j", "=", 
+    RowBox[{"Transpose", "[", "N3i", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"xj", "=", 
+   RowBox[{"{", 
+    RowBox[{"{", 
+     RowBox[{"x1", ",", "x2", ",", "x3", ",", "x4", ",", "x5", ",", "x6"}], 
+     "}"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"yj", "=", 
+   RowBox[{"{", 
+    RowBox[{"{", 
+     RowBox[{"y1", ",", "y2", ",", "y3", ",", "y4", ",", "y5", ",", "y6"}], 
+     "}"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"xi", "=", 
+   RowBox[{"Transpose", "[", "xj", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"yi", "=", 
+    RowBox[{"Transpose", "[", "yj", "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"xa", "=", 
+   RowBox[{"N6j", ".", "xi"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"ya", "=", 
+    RowBox[{"N6j", ".", "yi"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"dxade", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"xa", ",", "\[Epsilon]"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"dyade", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"ya", ",", "\[Epsilon]"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"dxadn", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"xa", ",", "\[Eta]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"dyadn", "=", 
+    RowBox[{"D", "[", 
+     RowBox[{"ya", ",", "\[Eta]"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"J", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"dxade", ",", " ", "dyade"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"dxadn", ",", "dyadn"}], "}"}]}], "}"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"mJ", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"dxade", "*", "dyadn"}], ")"}], "-", 
+    RowBox[{"(", 
+     RowBox[{"dyade", "*", "dxadn"}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"mJ", "=", 
+   RowBox[{"mJ", "[", 
+    RowBox[{"[", 
+     RowBox[{"1", ",", "1"}], "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"MatrixForm", "[", 
+  RowBox[{"Collect", "[", 
+   RowBox[{"J", ",", 
+    RowBox[{"{", 
+     RowBox[{"\[Epsilon]", ",", "\[Eta]"}], "}"}]}], "]"}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"MatrixForm", "[", 
+  RowBox[{"Collect", "[", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{"N6i", ",", "\[Epsilon]"}], "]"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"\[Epsilon]", ",", "\[Eta]"}], "}"}]}], "]"}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"MatrixForm", "[", 
+  RowBox[{"Collect", "[", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{"N6i", ",", "\[Eta]"}], "]"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"\[Epsilon]", ",", "\[Eta]"}], "}"}]}], "]"}], 
+  "]"}], "\[IndentingNewLine]"}], "Input",
+ CellChangeTimes->{{3.7558627114361563`*^9, 3.755862816225101*^9}, {
+  3.755863167470821*^9, 3.755863223839075*^9}, {3.755863349871956*^9, 
+  3.7558634627575502`*^9}, {3.755863493444796*^9, 3.755863569777421*^9}, {
+  3.7558649464945908`*^9, 3.755864968576681*^9}, {3.7558650555891047`*^9, 
+  3.755865058940423*^9}, {3.755866667208476*^9, 3.755866787720509*^9}, {
+  3.755866828715867*^9, 3.755866828763027*^9}, {3.755866869964954*^9, 
+  3.755866894201942*^9}, {3.757652978008465*^9, 3.757653003257099*^9}, {
+  3.757653051672411*^9, 3.757653067128951*^9}, {3.757653100107306*^9, 
+  3.757653150794303*^9}},ExpressionUUID->"7d607394-c4c8-4f81-a96f-\
+40ccfdfc062f"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{"1", "-", 
+       RowBox[{"3", " ", "\[Epsilon]"}], "+", 
+       RowBox[{"2", " ", 
+        SuperscriptBox["\[Epsilon]", "2"]}], "-", 
+       RowBox[{"3", " ", "\[Eta]"}], "+", 
+       RowBox[{"4", " ", "\[Epsilon]", " ", "\[Eta]"}], "+", 
+       RowBox[{"2", " ", 
+        SuperscriptBox["\[Eta]", "2"]}]}]},
+     {
+      RowBox[{
+       RowBox[{"-", "\[Epsilon]"}], "+", 
+       RowBox[{"2", " ", 
+        SuperscriptBox["\[Epsilon]", "2"]}]}]},
+     {
+      RowBox[{
+       RowBox[{"-", "\[Eta]"}], "+", 
+       RowBox[{"2", " ", 
+        SuperscriptBox["\[Eta]", "2"]}]}]},
+     {
+      RowBox[{
+       RowBox[{"4", " ", "\[Epsilon]"}], "-", 
+       RowBox[{"4", " ", 
+        SuperscriptBox["\[Epsilon]", "2"]}], "-", 
+       RowBox[{"4", " ", "\[Epsilon]", " ", "\[Eta]"}]}]},
+     {
+      RowBox[{"4", " ", "\[Epsilon]", " ", "\[Eta]"}]},
+     {
+      RowBox[{
+       RowBox[{"4", " ", "\[Eta]"}], "-", 
+       RowBox[{"4", " ", "\[Epsilon]", " ", "\[Eta]"}], "-", 
+       RowBox[{"4", " ", 
+        SuperscriptBox["\[Eta]", "2"]}]}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.757652996371476*^9, 3.757653004659333*^9}, 
+   3.757653117758395*^9, 
+   3.757653151265965*^9},ExpressionUUID->"b52007f6-2ec7-4261-88a4-\
+a35e3d932cd8"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{"1", "-", "\[Epsilon]", "-", "\[Eta]"}]},
+     {"\[Epsilon]"},
+     {"\[Eta]"}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.757652996371476*^9, 3.757653004659333*^9}, 
+   3.757653117758395*^9, 
+   3.757653151267724*^9},ExpressionUUID->"551dcc70-6894-4528-a402-\
+28af14a8f0f2"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", "x1"}], "-", "x2", "+", 
+           RowBox[{"4", " ", "x4"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "x1"}], "+", 
+              RowBox[{"4", " ", "x2"}], "-", 
+              RowBox[{"8", " ", "x4"}]}], ")"}], " ", "\[Epsilon]"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "x1"}], "-", 
+              RowBox[{"4", " ", "x4"}], "+", 
+              RowBox[{"4", " ", "x5"}], "-", 
+              RowBox[{"4", " ", "x6"}]}], ")"}], " ", "\[Eta]"}]}]}
+        },
+        GridBoxAlignment->{
+         "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+        GridBoxSpacings->{"Columns" -> {
+            Offset[0.27999999999999997`], {
+             Offset[0.7]}, 
+            Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {
+            Offset[0.2], {
+             Offset[0.4]}, 
+            Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}], 
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", "y1"}], "-", "y2", "+", 
+           RowBox[{"4", " ", "y4"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "y1"}], "+", 
+              RowBox[{"4", " ", "y2"}], "-", 
+              RowBox[{"8", " ", "y4"}]}], ")"}], " ", "\[Epsilon]"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "y1"}], "-", 
+              RowBox[{"4", " ", "y4"}], "+", 
+              RowBox[{"4", " ", "y5"}], "-", 
+              RowBox[{"4", " ", "y6"}]}], ")"}], " ", "\[Eta]"}]}]}
+        },
+        GridBoxAlignment->{
+         "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+        GridBoxSpacings->{"Columns" -> {
+            Offset[0.27999999999999997`], {
+             Offset[0.7]}, 
+            Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {
+            Offset[0.2], {
+             Offset[0.4]}, 
+            Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}]},
+     {
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", "x1"}], "-", "x3", "+", 
+           RowBox[{"4", " ", "x6"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "x1"}], "-", 
+              RowBox[{"4", " ", "x4"}], "+", 
+              RowBox[{"4", " ", "x5"}], "-", 
+              RowBox[{"4", " ", "x6"}]}], ")"}], " ", "\[Epsilon]"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "x1"}], "+", 
+              RowBox[{"4", " ", "x3"}], "-", 
+              RowBox[{"8", " ", "x6"}]}], ")"}], " ", "\[Eta]"}]}]}
+        },
+        GridBoxAlignment->{
+         "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+        GridBoxSpacings->{"Columns" -> {
+            Offset[0.27999999999999997`], {
+             Offset[0.7]}, 
+            Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {
+            Offset[0.2], {
+             Offset[0.4]}, 
+            Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}], 
+      RowBox[{"(", "\[NoBreak]", GridBox[{
+         {
+          RowBox[{
+           RowBox[{
+            RowBox[{"-", "3"}], " ", "y1"}], "-", "y3", "+", 
+           RowBox[{"4", " ", "y6"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "y1"}], "-", 
+              RowBox[{"4", " ", "y4"}], "+", 
+              RowBox[{"4", " ", "y5"}], "-", 
+              RowBox[{"4", " ", "y6"}]}], ")"}], " ", "\[Epsilon]"}], "+", 
+           RowBox[{
+            RowBox[{"(", 
+             RowBox[{
+              RowBox[{"4", " ", "y1"}], "+", 
+              RowBox[{"4", " ", "y3"}], "-", 
+              RowBox[{"8", " ", "y6"}]}], ")"}], " ", "\[Eta]"}]}]}
+        },
+        GridBoxAlignment->{
+         "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {{Baseline}}, "RowsIndexed" -> {}},
+        GridBoxSpacings->{"Columns" -> {
+            Offset[0.27999999999999997`], {
+             Offset[0.7]}, 
+            Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, 
+          "Rows" -> {
+            Offset[0.2], {
+             Offset[0.4]}, 
+            Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.757652996371476*^9, 3.757653004659333*^9}, 
+   3.757653117758395*^9, 
+   3.757653151269611*^9},ExpressionUUID->"8a402bf5-a403-435f-a6d9-\
+cbe640e6488d"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       RowBox[{"-", "3"}], "+", 
+       RowBox[{"4", " ", "\[Epsilon]"}], "+", 
+       RowBox[{"4", " ", "\[Eta]"}]}]},
+     {
+      RowBox[{
+       RowBox[{"-", "1"}], "+", 
+       RowBox[{"4", " ", "\[Epsilon]"}]}]},
+     {"0"},
+     {
+      RowBox[{"4", "-", 
+       RowBox[{"8", " ", "\[Epsilon]"}], "-", 
+       RowBox[{"4", " ", "\[Eta]"}]}]},
+     {
+      RowBox[{"4", " ", "\[Eta]"}]},
+     {
+      RowBox[{
+       RowBox[{"-", "4"}], " ", "\[Eta]"}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.757652996371476*^9, 3.757653004659333*^9}, 
+   3.757653117758395*^9, 
+   3.757653151271243*^9},ExpressionUUID->"8b2292a6-de6a-49c9-970d-\
+4ef1f2614f8e"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      RowBox[{
+       RowBox[{"-", "3"}], "+", 
+       RowBox[{"4", " ", "\[Epsilon]"}], "+", 
+       RowBox[{"4", " ", "\[Eta]"}]}]},
+     {"0"},
+     {
+      RowBox[{
+       RowBox[{"-", "1"}], "+", 
+       RowBox[{"4", " ", "\[Eta]"}]}]},
+     {
+      RowBox[{
+       RowBox[{"-", "4"}], " ", "\[Epsilon]"}]},
+     {
+      RowBox[{"4", " ", "\[Epsilon]"}]},
+     {
+      RowBox[{"4", "-", 
+       RowBox[{"4", " ", "\[Epsilon]"}], "-", 
+       RowBox[{"8", " ", "\[Eta]"}]}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.757652996371476*^9, 3.757653004659333*^9}, 
+   3.757653117758395*^9, 
+   3.757653151272436*^9},ExpressionUUID->"588effa1-6569-4c12-80dd-\
+02e6a75ea706"]
+}, Open  ]]
+},
+WindowSize->{1535, 876},
+WindowMargins->{{0, Automatic}, {Automatic, 0}},
+FrontEndVersion->"11.2 for Linux x86 (64-bit) (September 10, 2017)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 5385, 156, 653, "Input",ExpressionUUID->"7d607394-c4c8-4f81-a96f-40ccfdfc062f"],
+Cell[5968, 180, 1790, 52, 157, "Output",ExpressionUUID->"b52007f6-2ec7-4261-88a4-a35e3d932cd8"],
+Cell[7761, 234, 827, 23, 83, "Output",ExpressionUUID->"551dcc70-6894-4528-a402-28af14a8f0f2"],
+Cell[8591, 259, 5504, 145, 67, "Output",ExpressionUUID->"8a402bf5-a403-435f-a6d9-cbe640e6488d"],
+Cell[14098, 406, 1209, 38, 137, "Output",ExpressionUUID->"8b2292a6-de6a-49c9-970d-4ef1f2614f8e"],
+Cell[15310, 446, 1213, 38, 194, "Output",ExpressionUUID->"588effa1-6569-4c12-80dd-02e6a75ea706"]
+}, Open  ]]
+}
+]
+*)
+

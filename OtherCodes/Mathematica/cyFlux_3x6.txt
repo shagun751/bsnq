@@ -1,0 +1,35 @@
+cyFlux(1,1)=0
+
+cyFlux(1,2)=0
+
+cyFlux(1,3)=0
+
+cyFlux(1,4)=(1/6)*(-b21 - b22)
+
+cyFlux(1,5)=(1/6)*(-b21 - b22)
+
+cyFlux(1,6)=(1/6)*(-b21 - b22)}
+
+cyFlux(2,1)=0
+
+cyFlux(2,2)=0
+
+cyFlux(2,3)=0
+
+cyFlux(2,4)=b21/6
+
+cyFlux(2,5)=b21/6
+
+cyFlux(2,6)=b21/6}
+
+cyFlux(3,1)=0
+
+cyFlux(3,2)=0
+
+cyFlux(3,3)=0
+
+cyFlux(3,4)=b22/6
+
+cyFlux(3,5)=b22/6
+
+cyFlux(3,6)=b22/6
