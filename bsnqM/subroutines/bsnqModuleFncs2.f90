@@ -65,8 +65,8 @@
 
 
 
-!!-----------------------------calcDerv----------------------------!!
-  subroutine calcDerv(b)
+!!-------------------------calcVertVelDerv-------------------------!!
+  subroutine calcVertVelDerv(b)
   implicit none
 
     class(bsnqCase),intent(inout)::b
@@ -165,8 +165,8 @@
     !$OMP END PARALLEL
 
 
-  end subroutine calcDerv
-!!---------------------------End calcDerv--------------------------!!
+  end subroutine calcVertVelDerv
+!!-----------------------End calcVertVelDerv-----------------------!!
 
 
 

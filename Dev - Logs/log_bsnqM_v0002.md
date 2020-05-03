@@ -27,7 +27,7 @@
 - [x] Neigh search - using FEM linktable for any radius
 - [x] Gradient calculation using MLS
 - [ ] Gradient calculation using Least-square method
-- [ ] Check if stress based approach for second gradient is useful
+- [x] Check if stress based approach for second gradient is useful
 - [x] Calculate ship wave-making resistance.
 - [x] IMPORTANT-BUG : dirichlet BC PQ
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx

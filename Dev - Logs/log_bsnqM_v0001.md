@@ -18,7 +18,6 @@
 - [x] Wave probes - nearest node based
 - [x] Inlet wave characteristics
 - [x] Absorbance coeffs
-- [ ] Porosity initialisation
 - [x] Mass matrices
 - [x] Stationary matrix set 1
 - [x] Dynamic matrix set 1
@@ -26,13 +25,11 @@
 - [x] Full momentum mass matrix
 - [x] Dirichlet BC
 - [x] Conversion to CSR form
-- [ ] Neumann BC for eta
+- [ ] Explicitly applied Neumann BC for eta
 - [x] Time-stepping : RK4
 - [x] Time-stepping : Adam-bashforth
 - [ ] Time-stepping : Predictor Corrector - noise
 - [ ] Time-stepping : RK2 - noise
-- [ ] Bottom shear 
-- [ ] Porosity drag terms
 - [x] WaveType class with constructor for waveLength
 - [x] Paraview XML output
 - [x] Improved Makefile - to reduce compilation time by grouping regular files in a header

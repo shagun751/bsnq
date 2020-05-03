@@ -110,7 +110,7 @@ implicit none
     !procedure ::  destructor
     
     procedure ::  setMFree
-    procedure ::  calcDerv
+    procedure ::  calcVertVelDerv
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
     procedure ::  getVertVel          !using vertVelExp to calculate
@@ -198,8 +198,8 @@ contains
     !   endif
     ! enddo
 
-    if(allocated(b%pObf))then 
-      call b%calcDerv    
+    if(allocated(b%bDf))then 
+      call b%calcVertVelDerv    
       !call b%testGetVertVel
     endif
 
