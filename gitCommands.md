@@ -157,3 +157,57 @@ To remove ignored files, run `git clean -f -X` or `git clean -fX` <br>
 To remove ignored and non-ignored files, run `git clean -f -x` or `git clean -fx` 
 
 ---
+
+### Remove unstaged chnages
+Lets say you have a file FILE.txt.<br>
+You make changes from previous commit and then stage those changes using `git add1`. Now the FILE.txt(v2) is staged.<br>
+After this you make some more changees to FILE.txt(v2),. This will show up and FILE.txt(v3) that is unstaged.<br>
+If you want to remove the unstaged changes FILE.txt(v3) then you do the following
+```
+git checkout <filename>
+```
+If you want to remove all unstages changes then use
+```
+git checkout .
+```
+
+---
+
+### Unstage staged changes
+Lets say you have a commited file FILE.txt. <br>
+You make modifications and stage the changes to FILE.txt(v2). <br>
+If you want to unstage this stages file then type
+```
+git reset HEAD <filename>
+```
+
+---
+
+### git rebase [IMP] \( For editing a previous commit. \)
+```
+git rebase -i HEAD~4
+``` 
+The above statement opens an interactive file with the last 4 commits and gives you option to modify the commit message, remove a commit by combining its changes with the previous commit and many other options.
+
+After finishing the changes you will get the following message on `git status`
+```
+On branch master
+Your branch and 'origin/master' have diverged,
+and have 1 and 1 different commits each, respectively.
+  (use "git pull" to merge the remote branch into yours)
+```
+Thats because the commits on your local repo and remote repo are now different. <br>
+To fix this you wil have to create a new commit merging the remote with the local which may have conflicts that have to be resolved. <br>
+So it may not be the best solution. <br>
+This issue will not arise if you havent yet pushed the commit which you intend to modify. <br>
+A possible solution for this conflict problem is forced update `git push -f origin branch`. <br>
+This will badly mess up workflow in a public repo though.
+
+---
+
+### Edit the previous commit (git commit --amend)
+Follow this article [link](https://medium.com/@igor_marques/git-basics-adding-more-changes-to-your-last-commit-1629344cb9a8).
+
+Its basically doing similar steps as what I have written above for git rebase using `git commit --amend`.
+
+---

@@ -25,7 +25,8 @@ endif
 OTH_FLAGS = -cpp $(TIMESTEPPING)
 
 PARA_CONV=$(PARA_PATH)/src/plug-ins/paralution_fortran.cpp
-PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
+#PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
+PARA_LIB=./libparalution.so 
 PARA_INC=-I$(PARA_PATH)/build/inc
 
 MAIN=bsnqQuadMain
