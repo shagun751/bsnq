@@ -121,3 +121,106 @@
 
   end subroutine outputXML
 !!--------------------------End outputXML--------------------------!!
+
+
+
+!!---------------------------writeResume---------------------------!!
+  subroutine writeResume(b)
+  implicit none
+
+    ! [Note]:
+    ! Check bsnqM/Dev - Logs/log_bsnqM_v0003.md
+    ! to understand why the variables 
+    ! gXW, gXE, gXPQ are being written in 
+    ! resume file.
+
+    class(bsnqCase),intent(in)::b 
+    integer(kind=C_K1)::mf,i
+    character(len=C_KSTR)::bqtxt
+
+    write(bqtxt,'(I15)')int(b%tOb(0)%rtm*1000)
+    bqtxt=adjustl(bqtxt)
+    bqtxt="Output/Resume_"//trim(b%probname)//"_"//trim(bqtxt)//".dat"
+    open(newunit=mf, file=trim(bqtxt), form='unformatted')
+
+    write(mf) b%tOb(0)%rtm
+
+    do i = 1, b%npl
+      write(mf) b%tOb(0)%e(i)
+    enddo
+
+    do i = 1, b%npt
+      write(mf) b%tOb(0)%p(i)
+    enddo
+
+    do i = 1, b%npt
+      write(mf) b%tOb(0)%q(i)
+    enddo    
+
+    do i = 1, b%npl
+      write(mf) b%gXW(i)
+    enddo
+
+    do i = 1, b%npl
+      write(mf) b%gXE(i)
+    enddo
+
+    do i = 1, 2*b%npt
+      write(mf) b%gXPQ(i)
+    enddo
+
+    close(mf)
+
+  end subroutine writeResume
+!!-------------------------End writeResume-------------------------!!
+
+
+
+!!---------------------------readResume----------------------------!!
+  subroutine readResume(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b 
+    integer(kind=C_K1)::mf,i
+    logical(kind=C_LG)::ex
+
+    inquire(file=trim(b%resumeFile),exist=ex)
+    if(ex) then
+      open(newunit=mf, file=trim(b%resumeFile), &
+        form='unformatted')
+    else
+      write(9,*)"[ERR] Missing resume file"
+      write(9,*)"[---]",trim(b%resumeFile)
+      stop
+    endif      
+
+    read(mf) b%tOb(0)%rtm
+    
+    do i = 1, b%npl
+      read(mf) b%tOb(0)%e(i)
+    enddo
+
+    do i = 1, b%npt
+      read(mf) b%tOb(0)%p(i)
+    enddo
+
+    do i = 1, b%npt
+      read(mf) b%tOb(0)%q(i)
+    enddo    
+
+    do i = 1, b%npl
+      read(mf) b%gXW(i)
+    enddo
+
+    do i = 1, b%npl
+      read(mf) b%gXE(i)
+    enddo
+
+    do i = 1, 2*b%npt
+      read(mf) b%gXPQ(i)
+    enddo
+
+    close(mf)    
+
+  end subroutine readResume
+!!-------------------------End readResume--------------------------!!  

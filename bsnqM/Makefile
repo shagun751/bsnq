@@ -61,7 +61,7 @@ subroutines/nodeConnAll.f90 \
 subroutines/solver_v1.0.f90 
 	
 default: $(OBJ)
-	mkdir -p Output Resume
+	mkdir -p Output
 	$(COMPILER) -o bsnq $(OBJ) $(PARA_LIB) $(PARA_FLAGS) $(MODPATH) $(OTH_FLAGS)
 	
 # $(MAIN).o: $(MAIN).f90

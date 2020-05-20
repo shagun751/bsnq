@@ -5,6 +5,8 @@
 1. [Observations : VertVel : Unidirectional wave [2020-04-08]](#log_bsnqM_v0003_3)
 1. [Observations : findEleForLocXY [2020-04-20]](#log_bsnqM_v0003_4)
 1. [Observations : VertVel : getVertVel [2020-04-24, 2020-04-27]](#log_bsnqM_v0003_5)
+1. [Feature : Resume file [2020-05-19]](#log_bsnqM_v0003_6)
+	- [IMPORTANT: Resume file issue solved [2020-05-20]](#log_bsnqM_v0003_6_1)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -24,6 +26,65 @@
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_v0003_6' />
+
+### Feature : Resume file [2020-05-19]
+- Generating resume file using _writeResume_ (done in binary) subroutine inside _outputXML.f90_.
+	- p, q, totDep, eta for 1 to linear nodes
+	- followed by p, q, totDep for linear+1 to total nodes
+	- E20.12
+- Resuming in RK4 is easy because information has to be stored only in 1 time-step.
+	- In Adam-Basforth 3 point uoi will have to store info at 2 time-steps.
+- Reading the resume file using _readResume_ (done in binary)
+- Removing bq%rTime, as it is not used and it confuses with b%tOb(0)%rtm.
+	- Thankfully I have used bq%tOb(0)%rtm everywhere.
+
+<a name = 'log_bsnqM_v0003_6_1' />
+
+#### IMPORTANT: Resume file issue solved [2020-05-20]
+Unfortunately this isnt working. There is slight difference in the results after resuming which is unaaceptable. Looking for reason and then the solution.
+
+The tests were done for _ftc1_ case using airy wave theory wave of T=2s, H=0.1m, d=0.7m. The wave probes were compared for cold start (test41) and hot start (resumed at T=10s, test42) cases, through rms(difference). The rms is non-zero for p, q, &eta; a every wave probe! (zeros are the X Y of probes.)
+
+| |
+| :-------------: |
+| **Figure :** MATLAB rms(hotStart-coldStart) hotstart=test42 coldstart=test41 |
+| <img width="90%" src="./log0003/matlab_test42vstest41.png"> |
+
+And the issue is real as shown in the comparison of p, q, &eta; values over time the fist probe.
+
+| |
+| :-------------: |
+| **Figure :** test41(coldstart)(blue) vs test42(hotstart)(red) |
+| <img width="90%" src="./log0003/test41vs42_eta.jpg"> |
+| <img width="90%" src="./log0003/test41vs42_p.jpg"> |
+| <img width="90%" src="./log0003/test41vs42_q.jpg"> |
+
+Although the difference isn't visible for &eta; and p, it can be seen in q. And the rms clearly shows the existence of error in &eta; and p too. Thought not too significant but ut is not ignorable.
+
+- Tested that the issue is not due to wavemaking by comparing a node on the wavemaker.
+- I shifted from writing text file **to writing binary file** to ensure that exact values of p, q, and &eta; were copied to the resume file and read from the resume file.
+	- This too did not solve the issue of slight differece in results.
+- **The I realised that the issue may be due to the starting values of gXW, gXE, and gXPQ at the beginning of the time-step.**
+	- Lets say you intend to resume the solution at t=10s, with the timestep 0.02s	
+	- In the original run (cold start), the values of gXW, gXE and gXPQ at the beginning of t=10.02s will be non zero.
+	- However in the resumed run (hot start) the values of gXW, gXE and gXPQ at t=10.02s will be zero as the program has just started.
+	- **Due to this the GMRES solver is being given two different start position of the variables at the first RK4 step, which will invariably lead to different converged solutions!**
+	- This was confirmed by making gXW, gXE and gXPQ equal to zero at the beginning od every time-step.
+		- This solved the resume file problem and now the solution obtained from cold start and hot start are identical!
+		- However this made the computation slower (to about 0.5x for the test case) because the first step of RK4 required significantly higher number of iterations to reach convergence.
+		- That was easily sorted by also saving the binary values of gXW, gXE and gXPQ in the resume file thus preventing the need to make them zero at the beginning of every time-step.
+	- **Note how a small difference in starting value of solution given to GMRES at one stage of one time-step calculation made such a big difference!**
+
+So Now the resume file works properly, is stored in binary, and the resume happens exactly, with no difference in results between cold and hot start as shown in the following figure.
+
+| |
+| :-------------: |
+| **Figure :** MATLAB rms(hotStart-coldStart) hotstart=test62 coldstart=test41 |
+| <img width="90%" src="./log0003/matlab_test62vstest41.png"> |
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_v0003_5' />
 

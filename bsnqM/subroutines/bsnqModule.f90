@@ -48,7 +48,7 @@ implicit none
     integer(kind=C_INT),allocatable::ivsf(:),jvsf(:)
     integer(kind=C_INT),allocatable::ele6x6(:,:),ele6x3(:,:)
 
-    real(kind=C_K2)::dt,errLim,endTime,rTime,wvHReset
+    real(kind=C_K2)::dt,errLim,endTime,wvHReset
     real(kind=C_K2)::sysRate,sysT(nSysC)
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)    
@@ -96,7 +96,7 @@ implicit none
     procedure ::  dynaMatrices
     procedure ::  CSRMatrices
     procedure ::  destructR1    
-    procedure ::  outputXML
+    procedure ::  outputXML    
     procedure ::  preInstructs
     procedure ::  postInstructs
     procedure ::  solveAll
@@ -107,6 +107,8 @@ implicit none
     procedure ::  updateSoln
     procedure ::  writeWaveProbe
     procedure ::  getEtaPQForXY
+    procedure ::  writeResume
+    procedure ::  readResume
     !procedure ::  destructor
     
     procedure ::  setMFree
@@ -132,11 +134,9 @@ contains
     class(bsnqCase),intent(inout)::b    
     integer(kind=C_K1)::i
 
-    b%tStep=b%tStep+1    
-    b%rTime=b%rTime+b%dt
-    write(9,'(" ------Time : ",I10," ",F20.6,"------")')&
-      b%tStep,b%rTime
     call system_clock(b%sysC(3)) 
+    
+    b%tStep=b%tStep+1            
 
     b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
     b%sysT(2)=0d0 ! To time solveAll
@@ -148,7 +148,9 @@ contains
       b%tOb(i)%q = b%tOb(i-1)%q
       b%tOb(i)%tD = b%tOb(i-1)%tD
     enddo
-    b%tOb(0)%rtm=b%rTime
+    b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
+
+    write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
 
   end subroutine preInstructs
 !!-------------------------End preInstructs------------------------!!
@@ -207,8 +209,12 @@ contains
       call b%outputXML
     endif
 
+    if(mod(b%tStep,b%resumeOut).eq.0) then
+      call b%writeResume
+    endif
+
     tmpr1=b%wvHReset
-    if(mod(b%rTime,tmpr1).lt.0.05*tmpr1)then
+    if( mod( b%tOb(0)%rtm, tmpr1 ) .lt. 0.1*b%dt )then
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
     endif
@@ -498,20 +504,37 @@ contains
       call b%sOb(i)%initBsnqVars(b%npl,b%npt)
     enddo    
 
-    b%tOb(0)%rtm=0d0
-    b%tOb(0)%e=0d0
-    b%tOb(0)%p=0d0
-    b%tOb(0)%q=0d0
+    b%tStep=0
+
+    if(b%resume)then
+      ! [Note]:
+      ! Check bsnqM/Dev - Logs/log_bsnqM_v0003.md
+      ! to understand why the variables 
+      ! gXW, gXE, gXPQ are being written in 
+      ! resume file.
+      call b%readResume
+    
+    else
+      b%tOb(0)%rtm=0d0
+      b%tOb(0)%e=0d0
+      b%tOb(0)%p=0d0
+      b%tOb(0)%q=0d0      
+
+      b%gXW = 0d0
+      b%gXE = 0d0
+      b%gXPQ = 0d0
+    endif
+    
     b%tOb(0)%tD(1:b%npl)=b%dep(1:b%npl)+b%tOb(0)%e
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)    
 
     ! call solitIC(b%npl, b%npt, b%cor, &
     !   b%tOb(0)%e, b%tOb(0)%p, b%tOb(0)%q)
     
     b%etaMin=b%tOb(0)%e
-    b%etaMax=b%tOb(0)%e
-    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)
+    b%etaMax=b%tOb(0)%e    
 
-    b%presr=0d0
+    b%presr=0d0    
 
     ! call testMls2DDx
     ! stop
