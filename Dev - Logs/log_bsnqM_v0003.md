@@ -7,6 +7,7 @@
 1. [Observations : VertVel : getVertVel [2020-04-24, 2020-04-27]](#log_bsnqM_v0003_5)
 1. [Feature : Resume file [2020-05-19]](#log_bsnqM_v0003_6)
 	- [IMPORTANT: Resume file issue solved [2020-05-20]](#log_bsnqM_v0003_6_1)
+1. [Feature : Removed bsnqQuadHeader [2020-05-22]](#log_bsnqM_v0003_7)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -23,9 +24,25 @@
 - [x] Removed all (except 2) private vars from bsnqModule (wasnt a good idea). Verified.
 	- [x] Added type _C\_KCLK_ and private var _nSysC_ for system clock implementation.
 - [x] Added _getEtaPQForXY_ in bsnqModule to get vars at any location. Verified.
+- [x] BndNodeType preferential allocation code corrected.
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_v0003_7' />
+
+### Feature : Removed bsnqQuadHeader [2020-05-22]
+- Removed bsnqQuadHeader.f90 by moving the include statements to bsnqModule.f90.
+- .mod files it seems are like header files, which have the variable and function declarations, but they seem to also need the associated .o files with the definition of the functions. Not 100% sure about this.
+- For coupling with _mlpgr3D_ I had to copy bsnqModule.o, bsnqQuadHead.o, bqnGlobVars.mod and bsmqModule.mod.
+	- The main program has use bsnqModule and bsnqGlobVars, therefore those .mod files are needed.
+	- The definition of subroutines in those .mod files require the respective .o files.
+	- So, for the subroutines of of all modules used within bsnqModule were inside bsnqQuadHeader.o and all of the subroutines of bsnqModule were inside bsnqModule.o.
+- Now by moving the include statements from bsnqQuadHeader to bsnqModule I have removed the need for bsnqWuadHeader.o, as all of those subroutines will now be within bsnqModule.o. 
+- Therefore I have totally removed bsnqQuadHeader.
+- **Rule of thumb is, make sure the .mod files are there for the modules you are using in the program, and .o files are there for the subroutines within the chosen .mod files.**
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_v0003_6' />
 

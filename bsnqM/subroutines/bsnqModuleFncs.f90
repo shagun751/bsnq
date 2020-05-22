@@ -539,8 +539,8 @@
     class(bsnqCase),intent(inout)::b
 
     integer(kind=C_K1)::nq(6),tmpi1,tmpi4,i,j,k
-    integer(kind=C_K1)::nbndpoi
-    integer(kind=C_K1),allocatable::tempia(:,:)
+    integer(kind=C_K1)::nbndpoi,bndPref(5),pref1,pref2
+    integer(kind=C_K1),allocatable::tempia(:,:)    
     
     b%maxNePoi=maxNePoi
     b%maxNeEle=maxNeEle
@@ -583,6 +583,7 @@
     ! enddo
 
     !Storing boundary nodes in bndNode
+    bndPref = (/ 11, 14, 12, 13, 0 /)
     nbndpoi=0
     allocate(tempia(b%npt,2))
     tempia=0
@@ -598,18 +599,23 @@
         nbndpoi=nbndpoi+1
         tempia(nbndpoi,1)=nq(j)
         tempia(nbndpoi,2)=tmpi4
+        k=nbndpoi
         31 continue
-        !Preferance for bndtype 14 over 12 or 13
-        if((tempia(k,2).ne.14).and.(tmpi4.eq.14)) then
-          tempia(k,2)=14
-        end if
-        !Preferance for bndtype 11 - higher
-        if((tempia(k,2).ne.11).and.(tmpi4.eq.11)) then
-          tempia(k,2)=11
-        end if
-        ! if((tempia(k,2).eq.12).and.(tmpi4.eq.13)) then
-        !   tempia(k,2)=13
-        ! end if
+
+        ! Setting higher pref bndTyp for bndNode
+        do pref1 = 1, 5
+          if( tempia(k,2) .eq. bndPref(pref1) ) exit
+        enddo
+        do pref2 = 1, 5
+          if( tmpi4 .eq. bndPref(pref2) ) exit
+        enddo
+        tempia(k,2) = bndPref(min(pref1,pref2))
+        if(tempia(k,2).eq.0)then
+          write(9,*)"[ERR] Bnd type 0 for node ",tempia(k,1)
+          write(9,*)"[---] BndSideType, bndPoiTyp ", &
+            tmpi4, tempia(k,2)
+          stop
+        endif
       enddo
     enddo
     allocate(b%bndP(nbndpoi),b%bndPT(nbndpoi))
@@ -630,6 +636,11 @@
       35 b%bndPT(i)=tempia(j,2)
     enddo
     deallocate(tempia)
+    if( b%nbndp .ne. (2*b%nbnd) )then
+      write(9,*)'[ERR] Num bndPoi should be = 2 x Num bndSide'
+      write(9,*)'[---] nbndpoi, nbnd : ', b%nbndp, b%nbnd
+      stop
+    endif
     ! write(9,*)nbndpoi
     ! do i=1,nbndpoi
     !   k=bndNode(i)

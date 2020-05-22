@@ -30,20 +30,16 @@ PARA_LIB=./libparalution.so
 PARA_INC=-I$(PARA_PATH)/build/inc
 
 MAIN=bsnqQuadMain
-HEADER=bsnqQuadHeader
 MODULE=bsnqModule
 
-OBJ=paralution_fortran.o $(HEADER).o $(MODULE).o $(MAIN).f90
+OBJ=paralution_fortran.o $(MODULE).o $(MAIN).f90
 
 SUBS=\
 subroutines/$(MODULE).f90 \
 subroutines/bsnqModuleFncs.f90 \
 subroutines/bsnqModuleFncs2.f90 \
 subroutines/initialCondition.f90 \
-subroutines/outputXML.f90
-
-SUBS2=\
-subroutines/$(HEADER).f90 \
+subroutines/outputXML.f90 \
 subroutines/mods.f90 \
 subroutines/modsInletBC.f90 \
 subroutines/modsMFree.f90 \
@@ -70,9 +66,6 @@ default: $(OBJ)
 #g++ $(PARA_FLAGS) $(PARA_INC) -c $(PARA_CONV)
 
 $(MODULE).o: $(SUBS)
-	$(COMPILER) -c $< $(PARA_FLAGS) $(MODPATH)
-
-$(HEADER).o: $(SUBS2)
 	$(COMPILER) -c $< $(PARA_FLAGS) $(MODPATH)
 
 paralution_fortran.o: $(PARA_CONV)	
