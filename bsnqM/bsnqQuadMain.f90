@@ -23,8 +23,6 @@ use bsnqModule
 implicit none
 
 !!--------------------------Declarations---------------------------!!
-  real(kind=C_K2)::rTime
-
   type(bsnqCase)::bq  
   character(len=C_KSTR)::bqtxt
 !!------------------------End Declarations-------------------------!!
@@ -47,65 +45,17 @@ implicit none
   call bq%initMat  
   call bq%statMatrices    
 
-
+  call bq%caseOutputs
+  
   do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
   
     call bq%preInstructs
 
-    !!-------------RK4 S1--------------!!
-    bq%ur = bq%tOb(1)%p / bq%tOb(1)%tD
-    bq%vr = bq%tOb(1)%q / bq%tOb(1)%tD
-    bq%pbpr = bq%tOb(1)%p / bq%por
-    bq%qbpr = bq%tOb(1)%q / bq%por   
-    rTime=bq%tOb(1)%rtm
-    call bq%dynaMatrices(rTime,bq%tOb(1)%tD, bq%ur, bq%vr)
-    call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
-      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
-    call bq%updateSoln(1)
-    !!-----------End RK4 S1------------!!
-
-    !!-------------RK4 S2--------------!!
-    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
-    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
-    bq%pbpr = bq%tOb(0)%p / bq%por
-    bq%qbpr = bq%tOb(0)%q / bq%por   
-    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
-    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
-      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
-    call bq%updateSoln(2)
-    !!-----------End RK4 S2------------!!
-
-    !!-------------RK4 S3--------------!!
-    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
-    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
-    bq%pbpr = bq%tOb(0)%p / bq%por
-    bq%qbpr = bq%tOb(0)%q / bq%por   
-    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
-    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
-      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
-    call bq%updateSoln(3)
-    !!-----------End RK4 S3------------!!
-
-    !!-------------RK4 S4--------------!!
-    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
-    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
-    bq%pbpr = bq%tOb(0)%p / bq%por
-    bq%qbpr = bq%tOb(0)%q / bq%por   
-    rTime=bq%tOb(0)%rtm
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
-    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
-      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
-      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
-    call bq%updateSoln(4)
-    !!-----------End RK4 S4------------!!
+    call bq%timeStepRK4
   
     call bq%postInstructs   
 
+    call bq%caseOutputs
 
   enddo
 

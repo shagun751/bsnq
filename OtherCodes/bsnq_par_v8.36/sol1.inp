@@ -1,0 +1,46 @@
+Q) Resume? (.true. / .false.)
+.false.
+Q) Resume file name (Mention the path in between quotes)
+'Resume/resume_dav3_10000000.vtk'
+
+Q) Time-step (s)
+0.01
+Q) Number of time-steps
+2000
+
+Q) Error limit
+1e-6
+Q) Maximum number of iterations for GMRES solver
+50000
+Q) Dichlet BC method (1-Penalty | 2-SemDirect)
+2
+
+Q) Output file interval (s)
+0.2
+Q) Resume file generation interval (s)
+5.0
+
+Q) Pressure term On? (.true. / .false.)
+.false.
+
+Q) Number of OpenMP Threads
+2
+Q) Wave Probes
+0
+
+Q) Inlet boundary wave time-period amplitude (s) (m)
+2 -0.0075
+Q) Inlet boundary wave Cx Cy angle (m) (m) (deg)
+0 0 0
+
+Q) Outlet Sponge layer (BOUSS2D method)
+Q) Enable? (.true. / .false.)
+.false.
+Q) Regions (Num; Type | Lim | length) (Type: 1234 -> NWSE)
+0
+
+Q) Porous layer definition
+Q) Enable? (.true. / .false.)
+.false.
+Q) Regions (Num; Por | LeftBottom X Y | RightTop X Y) (0 = file)
+0

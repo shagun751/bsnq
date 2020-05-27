@@ -1,0 +1,17 @@
+Ship position file
+Q)Ship shape constants (Cl  Cb  al)
+16  2   16
+
+Q) Ship dimensions (L   B   T) (m m m)
+5   1   0.2
+
+Q) Num of ship position points
+4
+Q) Ship start position (Cx Cy) (m m)
+10	21.5
+Q) Ship centre position (T  V  Th) (s m/s deg)
+0       0.0    0
+10      3.5    0
+20      3.5    0
+30      3.5    0
+

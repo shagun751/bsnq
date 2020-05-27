@@ -125,6 +125,8 @@ implicit none
     procedure ::  getEtaPQForXY
     procedure ::  writeResume
     procedure ::  readResume
+    procedure ::  caseOutputs
+    procedure ::  timeStepRK4
     !procedure ::  destructor
     
     procedure ::  setMFree
@@ -166,6 +168,7 @@ contains
     enddo
     b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
 
+    write(9,*)
     write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
 
   end subroutine preInstructs
@@ -203,6 +206,12 @@ contains
       if(b%etaMax(i).lt.tmpr1) b%etaMax(i)=tmpr1
     enddo
 
+    tmpr1=b%wvHReset
+    if( mod( b%tOb(0)%rtm, tmpr1 ) .lt. 0.1*b%dt )then
+      b%etaMin=b%tOb(0)%e
+      b%etaMax=b%tOb(0)%e
+    endif
+
     ! do i=1,b%nbndp
     !   j2=b%bndPT(i)
     !   if(j2.eq.11)then
@@ -220,20 +229,7 @@ contains
       call b%calcVertVelDerv    
       !call b%testGetVertVel
     endif
-
-    if(mod(b%tStep,b%fileOut).eq.0) then
-      call b%outputXML
-    endif
-
-    if(mod(b%tStep,b%resumeOut).eq.0) then
-      call b%writeResume
-    endif
-
-    tmpr1=b%wvHReset
-    if( mod( b%tOb(0)%rtm, tmpr1 ) .lt. 0.1*b%dt )then
-      b%etaMin=b%tOb(0)%e
-      b%etaMax=b%tOb(0)%e
-    endif
+        
     !! Ship drag calculation
     if(b%presOn)then
       if(b%sh(1)%dragFlag)then !Optional to calc drag
@@ -245,9 +241,7 @@ contains
       endif
     endif
 
-    !write(201,*)
-
-    call b%writeWaveProbe    
+    !write(201,*)    
 
     call system_clock(b%sysC(4))
     ! bq%sysT(1) = To time PQ soln in Predictor + Corrector    
@@ -256,13 +250,109 @@ contains
     b%sysT(3)=1d0*(b%sysC(4)-b%sysC(3))/b%sysRate    
     write(9,301)"[TIL]", b%sysT(3), b%sysT(1)/b%sysT(3)*100d0, &
       b%sysT(2)/b%sysT(3)*100d0
-    write(9,*)
+    !write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
     303 format('      |',a6,2F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!
+
+
+
+!!---------------------------caseOutputs---------------------------!!
+  subroutine caseOutputs(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b    
+
+    call system_clock(b%sysC(7))
+
+    if(mod(b%tStep,b%fileOut).eq.0) then
+      call b%outputXML
+    endif
+
+    if(mod(b%tStep,b%resumeOut).eq.0) then
+      if(b%tStep.ne.0)then
+        call b%writeResume
+      endif
+    endif
+
+    call b%writeWaveProbe    
+
+    call system_clock(b%sysC(8))
+
+    write(9,301) "[TIO]", &
+      1d0*(b%sysC(8) - b%sysC(7))/b%sysRate    
+
+    301 format('      |',a6,F15.4)
+
+  end subroutine caseOutputs
+!!-------------------------End caseOutputs-------------------------!!
+
+
+
+!!---------------------------timeStepRK4---------------------------!!
+  subroutine timeStepRK4(bq)
+  implicit none
+
+    class(bsnqCase),intent(inout)::bq
+    real(kind=C_K2)::rTime
+
+    !!-------------RK4 S1--------------!!
+    bq%ur = bq%tOb(1)%p / bq%tOb(1)%tD
+    bq%vr = bq%tOb(1)%q / bq%tOb(1)%tD
+    bq%pbpr = bq%tOb(1)%p / bq%por
+    bq%qbpr = bq%tOb(1)%q / bq%por   
+    rTime=bq%tOb(1)%rtm
+    call bq%dynaMatrices(rTime,bq%tOb(1)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
+      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
+    call bq%updateSoln(1)
+    !!-----------End RK4 S1------------!!
+
+    !!-------------RK4 S2--------------!!
+    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
+    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
+    bq%pbpr = bq%tOb(0)%p / bq%por
+    bq%qbpr = bq%tOb(0)%q / bq%por   
+    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
+      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
+    call bq%updateSoln(2)
+    !!-----------End RK4 S2------------!!
+
+    !!-------------RK4 S3--------------!!
+    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
+    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
+    bq%pbpr = bq%tOb(0)%p / bq%por
+    bq%qbpr = bq%tOb(0)%q / bq%por   
+    rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
+      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
+    call bq%updateSoln(3)
+    !!-----------End RK4 S3------------!!
+
+    !!-------------RK4 S4--------------!!
+    bq%ur = bq%tOb(0)%p / bq%tOb(0)%tD
+    bq%vr = bq%tOb(0)%q / bq%tOb(0)%tD
+    bq%pbpr = bq%tOb(0)%p / bq%por
+    bq%qbpr = bq%tOb(0)%q / bq%por   
+    rTime=bq%tOb(0)%rtm
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
+      bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
+      bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
+    call bq%updateSoln(4)
+    !!-----------End RK4 S4------------!!
+
+  end subroutine timeStepRK4
+!!-------------------------End timeStepRK4-------------------------!!
 
 
 
@@ -557,7 +647,7 @@ contains
 
     call paralution_init(b%nthrd)    
 
-    call b%outputXML
+    !call b%outputXML
 
     write(9,*)"[MSG] Done initMat"
     write(9,*)

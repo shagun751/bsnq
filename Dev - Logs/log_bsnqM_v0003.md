@@ -8,6 +8,7 @@
 1. [Feature : Resume file [2020-05-19]](#log_bsnqM_v0003_6)
 	- [IMPORTANT: Resume file issue solved [2020-05-20]](#log_bsnqM_v0003_6_1)
 1. [Feature : Removed bsnqQuadHeader [2020-05-22]](#log_bsnqM_v0003_7)
+1. [Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]](#log_bsnqM_v0003_8)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -25,11 +26,34 @@
 	- [x] Added type _C\_KCLK_ and private var _nSysC_ for system clock implementation.
 - [x] Added _getEtaPQForXY_ in bsnqModule to get vars at any location. Verified.
 - [x] BndNodeType preferential allocation code corrected.
+- [x] Subroutines caseOutputs and timeStepRK4.
 
 -----------------------------------------------
 
 
-<a name = 'log_bsnqM_v0003_7' />
+<a name = 'log_bsnqM_v0003_8' ></a>
+
+### Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]
+
+#### caseOutputs
+- Added subroutines _caseOutputs_ to separate _postInstructs_ from the output generation of 
+	- waveProbe 
+	- outputXML - Paraview
+	- resume output
+- This was done for coupling code, where the values may be modifed after tha calculations in RK4 timestep are completed.
+- This is also useful to make a sharable version of the code where people might want to add few more outputs after the calculation in RK4 step are calculated, such as sediment transport values.
+	- The idea is to enable inclusion of extra outputs, such as sediment transport in the Paraview file. For this the output generation has to be separated from the _postInstructs_.
+- It also allows placing initial conditions subroutine in _bsnqQuadMain.f90_, such as _solitIC_ and the first Paraview output will contain the initial condition without going into the _bsnqModule.f90_.
+	- This first output can be crucial in checking the initial condition.
+
+#### timeStepRK4
+- Added subroutine _timeStepRK4_.
+	- Mostly no changes were required to be made to this by anyone once it was developed.
+	- It avoid unnecessary chance of mistake during coupling and reducing a 60 line code to one line in the main file and thus is perfect for coupling and for sharing.
+	
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0003_7' ></a>
 
 ### Feature : Removed bsnqQuadHeader [2020-05-22]
 - Removed bsnqQuadHeader.f90 by moving the include statements to bsnqModule.f90.
@@ -44,7 +68,7 @@
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_6' />
+<a name = 'log_bsnqM_v0003_6' ></a>
 
 ### Feature : Resume file [2020-05-19]
 - Generating resume file using _writeResume_ (done in binary) subroutine inside _outputXML.f90_.
@@ -57,7 +81,7 @@
 - Removing bq%rTime, as it is not used and it confuses with b%tOb(0)%rtm.
 	- Thankfully I have used bq%tOb(0)%rtm everywhere.
 
-<a name = 'log_bsnqM_v0003_6_1' />
+<a name = 'log_bsnqM_v0003_6_1' ></a>
 
 #### IMPORTANT: Resume file issue solved [2020-05-20]
 Unfortunately this isnt working. There is slight difference in the results after resuming which is unaaceptable. Looking for reason and then the solution.
@@ -103,7 +127,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_5' />
+<a name = 'log_bsnqM_v0003_5' ></a>
 
 ### Observations : VertVel : getVertVel [2020-04-24]
 - Restructred vertVelDerv from bDf%u(npt) tp bDf(npt)%u. This is necessary to make it easier in coupling function _getVertVel_ to interpolate all values at the random MLPG point. **It has been tested and verified with T=2s, H=0.1m, d=0.7m, kh=0.95.**
@@ -129,7 +153,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_4' />
+<a name = 'log_bsnqM_v0003_4' ></a>
 
 ### Observations : findEleForLocXY [2020-04-20]
 - Done based on cross product.
@@ -152,7 +176,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_3' />
+<a name = 'log_bsnqM_v0003_3' ></a>
 
 ### Observations : VertVel : Unidirectional wave [2020-04-08]
 - Modified the expression _Model 1 : uh = p / tD x h_ to _Model 2 : uh = p_, in order to see if there is a non-linearity effect to improve the accuracy for higher kh values.
@@ -191,7 +215,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_2' />
+<a name = 'log_bsnqM_v0003_2' ></a>
 
 ### Observations : VertVel : Unidirectional wave [2020-03-13]
 - With the derivatives confirmed I proceeded with calculation of the vertical velocity based on Dingemans (1994, pg. 390). 
@@ -272,7 +296,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 -----------------------------------------------
 
-<a name = 'log_bsnqM_v0003_1' />
+<a name = 'log_bsnqM_v0003_1' ></a>
 
 ### Observations : 3rd Derv consecutive derivative based [2020-03-06]
 - Analytical function sin(x) was used to check till third derivative calculated using the MLS code.
