@@ -1,6 +1,6 @@
 subroutine matrixSet1(npoinl,npoint,nelem,conn,Sz,ivl,ivq,&
   linkl,linkq,invJ,depth,por,mass1,mass2,gBs1,gBs2,gBs3,gBs4,&
-  gCxFlux,gCyFlux,gDMat,gBs5,gBs6,ele6x6,ele6x3)
+  gCxFlux,gCyFlux,gDMat,gBs5,gBs6,ele6x6,ele6x3, gBrkX)
 use bsnqGlobVars
 implicit none
 
@@ -28,6 +28,7 @@ implicit none
   real(kind=C_K2),intent(out)::gCyFlux(Sz(2))
   real(kind=C_K2),intent(out)::gDMat(Sz(1))    
   real(kind=C_K2),intent(out)::gBs5(Sz(3)),gBs6(Sz(3))
+  real(kind=C_K2),intent(out)::gBrkX(Sz(4))
   real(kind=C_K2)::bs1t1(6,6),bs1t2(6,6)
   real(kind=C_K2)::bs2t1(6,6),bs2t2(6,6),bs2t3(6,6)
   real(kind=C_K2)::bs3t1(6,6),bs3t2(6,6),bs3t3(6,6)
@@ -37,6 +38,7 @@ implicit none
   real(kind=C_K2)::lBs5(6,3),lBs6(6,3)
   real(kind=C_K2)::cnst(10)
   real(kind=C_K2)::locM1(6,6),locM2(3,3),lScN3(3)
+  real(kind=C_K2)::locBrkX(6,6),lScN6(6)
 
   cnst(1)=grav                    !gravity
   cnst(2)=BsqC                    !Bsnq constant
@@ -56,6 +58,7 @@ implicit none
   gDMat=0d0
   gBs5=0d0
   gBs6=0d0
+  gBrkX = 0d0
 
   locM1=0d0
   locM1(1,:)=(/ 1d0/60d0,-1d0/360d0,-1d0/360d0,0d0,-1d0/90d0,0d0 /)
@@ -110,7 +113,11 @@ implicit none
       invJ(i,1),invJ(i,2))
     call fem_N6i_Sc3_dN3jdx(lBs6,lScN3(1),lScN3(2),lScN3(3),&
       invJ(i,3),invJ(i,4))
-    
+
+    lScN6=por(n)
+    call fem_N6i_Sc6_dN6jdx(locBrkX, lScN6(1), lScN6(2), &
+      lScN6(3), lScN6(4), lScN6(5), lScN6(6), &
+      invJ(i,1), invJ(i,2))
 
     bs1t1=invJ(i,5)*((cnst(3)*bs1t1)+(cnst(4)*bs1t2))
     bs2t1=invJ(i,5)*((cnst(3)*bs2t1)+(cnst(5)*bs2t2)-(bs2t3/6d0))
@@ -121,6 +128,7 @@ implicit none
     dMat=-invJ(i,5)*dMat   
     lBs5=invJ(i,5)*lBs5 
     lBs6=invJ(i,5)*lBs6 
+    locBrkX = -invJ(i,5)*locBrkX
 
     !6x6
     do lRow=1,6
@@ -140,6 +148,7 @@ implicit none
         gBs3(k+j)=gBs3(k+j)+bs3t1(lRow,lCol)
         gBs4(k+j)=gBs4(k+j)+bs4t1(lRow,lCol)        
         ele6x6(i,(lRow-1)*6+lCol)=k+j
+        gBrkX(k+j) = gBrkX(k+j) + locBrkX(lRow,lCol)
       enddo
     enddo
 

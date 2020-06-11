@@ -13,6 +13,7 @@ include 'matrixSet2.f90'
 include 'mergeSort.f90'
 include 'nodeConnAll.f90'
 include 'solver_v1.0.f90'
+include 'breaking.f90'
 
 module bsnqModule
 use bsnqGlobVars
@@ -78,10 +79,12 @@ implicit none
     real(kind=C_K2),allocatable::gPGx(:),gPGy(:)
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
+    real(kind=C_K2),allocatable::gBrkX(:)
     real(kind=C_K2),allocatable::etaMax(:),etaMin(:),wpLoc(:,:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
+    real(kind=C_K2),allocatable::tDavgt1(:), Rxx(:)
 
     !! Deallocated in destructR1
     integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
@@ -93,6 +96,7 @@ implicit none
     integer(kind=C_KCLK)::sysC(nSysC)
     logical(kind=C_LG)::resume,presOn,absOn    
     type(wvFileType)::wvF
+    logical(kind=C_LG),allocatable::brkOn(:)
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
@@ -212,6 +216,8 @@ contains
       b%etaMax=b%tOb(0)%e
     endif
 
+    b%tDavgt1 = b%tDavgt1 + (b%tOb(0)%tD-b%tDavgt1)/(b%tStep+1)
+
     ! do i=1,b%nbndp
     !   j2=b%bndPT(i)
     !   if(j2.eq.11)then
@@ -305,7 +311,8 @@ contains
     bq%pbpr = bq%tOb(1)%p / bq%por
     bq%qbpr = bq%tOb(1)%q / bq%por   
     rTime=bq%tOb(1)%rtm
-    call bq%dynaMatrices(rTime,bq%tOb(1)%tD, bq%ur, bq%vr)
+    call bq%dynaMatrices(rTime, bq%tOb(1)%tD, bq%ur, bq%vr, &
+      bq%pbpr, bq%qbpr)
     call bq%solveAll(rTime, bq%tOb(1)%p, bq%tOb(1)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(1)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
@@ -318,7 +325,8 @@ contains
     bq%pbpr = bq%tOb(0)%p / bq%por
     bq%qbpr = bq%tOb(0)%q / bq%por   
     rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr, &
+      bq%pbpr, bq%qbpr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
@@ -331,7 +339,8 @@ contains
     bq%pbpr = bq%tOb(0)%p / bq%por
     bq%qbpr = bq%tOb(0)%q / bq%por   
     rTime=(bq%tOb(0)%rtm + bq%tOb(1)%rtm)/2d0
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr, &
+      bq%pbpr, bq%qbpr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
@@ -344,7 +353,8 @@ contains
     bq%pbpr = bq%tOb(0)%p / bq%por
     bq%qbpr = bq%tOb(0)%q / bq%por   
     rTime=bq%tOb(0)%rtm
-    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr)
+    call bq%dynaMatrices(rTime,bq%tOb(0)%tD, bq%ur, bq%vr, &
+      bq%pbpr, bq%qbpr)
     call bq%solveAll(rTime, bq%tOb(0)%p, bq%tOb(0)%q, &
       bq%pbpr, bq%qbpr, bq%presr, bq%tOb(0)%e, &
       bq%gXW, bq%gXE, bq%gXPQ, bq%gRE, bq%gRPQ, bq%sysC)
@@ -584,6 +594,8 @@ contains
     allocate(b%gRE(i),b%gRPQ(2*j))
     allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
     allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
+    allocate(b%tDavgt1(j), b%Rxx(j), b%brkOn(j))
+    allocate(b%gBrkX(j1*j))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
@@ -640,7 +652,10 @@ contains
     b%etaMin=b%tOb(0)%e
     b%etaMax=b%tOb(0)%e    
 
-    b%presr=0d0    
+    b%presr=0d0  
+
+    b%tDavgt1 = b%tOb(0)%tD  
+    b%brkOn = .false.
 
     ! call testMls2DDx
     ! stop

@@ -1,10 +1,11 @@
 !!---------------------------dynaMatrices--------------------------!!
-  subroutine dynaMatrices(b,rkTime,tDr,ur,vr)
+  subroutine dynaMatrices(b, rkTime, tDr, ur, vr, pbpr, qbpr)
   implicit none
 
     class(bsnqCase),intent(inout)::b    
     real(kind=C_K2),intent(in)::rkTime
     real(kind=C_K2),intent(in)::tDr(b%npt),ur(b%npt),vr(b%npt)
+    real(kind=C_K2),intent(in)::pbpr(b%npt), qbpr(b%npt)
     integer(kind=C_K1)::i
 
     call matrixSet2(b%npl,b%npt,b%nele,b%conn,b%Sz,&
@@ -19,6 +20,9 @@
         b%presr=b%presr+b%vec6Tmp
       enddo
     endif
+
+    call breakRoller1(b%npt, tDr, ur, vr, pbpr, qbpr, &
+      b%tDavgt1, b%pObf, b%brkOn, b%Rxx)
 
     !write(9,*)"[MSG] Done dynaMatrices"
     !write(9,*)
@@ -38,7 +42,7 @@
     call matrixSet1(b%npl,b%npt,b%nele,b%conn,b%Sz,b%ivl,b%ivq,&
       b%linkl,b%linkq,b%invJ,b%dep,b%por,b%mass1,b%mass2,&
       b%gBs1,b%gBs2,b%gBs3,b%gBs4,b%gCxF,b%gCyF,b%gDMat,&
-      b%gBs5,b%gBs6,b%ele6x6,b%ele6x3)
+      b%gBs5,b%gBs6,b%ele6x6,b%ele6x3, b%gBrkX)
     write(9,*)"[MSG] Done matrixSet1"
 
     call bndIntegral1(b%npl,b%npt,b%nele,b%nbnd,b%conn,b%mabnd,&
@@ -214,11 +218,12 @@
         
         tmpr3=tmpr3 + ( b%gNAdv(k2)*pbpr(i2) &
           + (b%gPGx(k2)*presr(i2)) &
-          + absC*b%mass1(k2)*pr(i2) )
+          + absC*b%mass1(k2)*pr(i2) ) &
+          + (b%gBrkX(k2) * b%Rxx(i2))
 
         tmpr4=tmpr4 + ( b%gNAdv(k2)*qbpr(i2) &
           + (b%gPGy(k2)*presr(i2)) &
-          + absC*b%mass1(k2)*qr(i2) )
+          + absC*b%mass1(k2)*qr(i2) )          
       enddo
 
       gRPQ(i)=dt*( tmpr1 + tmpr3 )

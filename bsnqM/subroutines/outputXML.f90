@@ -36,6 +36,20 @@
     write(mf,'(F15.6)')-b%dep(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="tDAvg" format="ascii">'
+    write(mf,'(F15.6)')b%tDavgt1(1:b%npl)
+    write(mf,'(T7,a)')'</DataArray>'
+
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="brkOn" format="ascii">'
+    do i=1,b%npl
+      if(b%brkOn(i))then
+        write(mf,'(F5.1)')1.0d0
+      else
+        write(mf,'(F5.1)')0.0d0
+      endif
+    enddo
+    write(mf,'(T7,a)')'</DataArray>'
+
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="porH" format="ascii">'
     ! write(mf,*)porH-depth(1:npoinl)
     ! write(mf,'(T7,a)')'</DataArray>'
@@ -107,7 +121,7 @@
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T7,a)')'<DataArray type="UInt8" Name="types" format="ascii">'  
     do i=1,b%nele
-      write(mf,'(I12)')5
+      write(mf,'(I3)')5
     enddo
     write(mf,'(T7,a)')'</DataArray>'
     write(mf,'(T5,a)')'</Cells>'
