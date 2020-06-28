@@ -9,6 +9,7 @@
 	- [IMPORTANT: Resume file issue solved [2020-05-20]](#log_bsnqM_v0003_6_1)
 1. [Feature : Removed bsnqQuadHeader [2020-05-22]](#log_bsnqM_v0003_7)
 1. [Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]](#log_bsnqM_v0003_8)
+1. [Feature : OpenMP parallel matrixSet2() [2020-06-29]](#log_bsnqM_v0003_9)
 
 ### Attempting
 - Calculate velocities along the depth 
@@ -26,10 +27,25 @@
 	- [x] Added type _C\_KCLK_ and private var _nSysC_ for system clock implementation.
 - [x] Added _getEtaPQForXY_ in bsnqModule to get vars at any location. Verified.
 - [x] BndNodeType preferential allocation code corrected.
-- [x] Subroutines caseOutputs and timeStepRK4.
+- [x] Subroutines _caseOutputs_ and _timeStepRK4_.
+- [x] _matrixSet2()_ made parallel using OpenMP. Upto 1.1x speedup.
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_v0003_9' ></a>
+
+### Feature : OpenMP parallel matrixSet2() [2020-06-29]
+- Made _matrixSet2()_ CPU parallel using OpenMP.
+- I had already before replaced the complex 6x6 and 6x3 writing process with the ele6x6 and ele6x3 arrays.
+- The speedup from OpenMP appears to be upto 1.1x. 
+- This function is called 4 times in a single time-step and is hence important.
+- This slowness of this subroutine was visible during heavy runs such as Chennai port case.
+- Verified to match point to point with earlier results using case rect2D.
+
+<img width="90%" src="./log0003/matrixSet2_openmp.jpg">
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_v0003_8' ></a>
 

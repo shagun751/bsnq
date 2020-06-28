@@ -1,0 +1,25 @@
+Bottom Left
+Mesh Cx Cy 
+0	0
+Map Lon Lat
+0	0
+
+Top Right
+Mesh Cx Cy 
+1	1
+Map Lon Lat
+1	1
+
+
+Bottom Left
+Mesh Cx Cy 
+336173	367251
+Map Lon Lat
+77.559	8.085
+
+Top Right
+Mesh Cx Cy 
+593211	611633
+Map Lon Lat
+79.89	10.32
+

@@ -29,6 +29,10 @@ implicit none
   gPGx=0d0
   gPGy=0d0
 
+  !$OMP PARALLEL DEFAULT(shared) &
+  !$OMP   PRIVATE(i, n, lScN3, lScN6, lGx, lGy, tmp, lNAd, &
+  !$OMP     lPGx, lPGy, lRow, lCol, j2)
+  !$OMP DO SCHEDULE(dynamic,100)  
   do i=1,nelem
     n=conn(i,:)    
     
@@ -59,24 +63,34 @@ implicit none
     lPGx=-invJ(i,5)*lPGx
     lPGy=-invJ(i,5)*lPGy
     
-    !6x6
+    
+    !$OMP CRITICAL
     do lRow=1,6
+      !6x6
       do lCol=1,6        
         j2=ele6x6(i,(lRow-1)*6+lCol)
         gNAdv(j2)=gNAdv(j2)+lNAd(lRow,lCol)
         gPGx(j2)=gPGx(j2)+lPGx(lRow,lCol)
         gPGy(j2)=gPGy(j2)+lPGy(lRow,lCol)
       enddo
-    enddo
 
-    !6x3
-    do lRow=1,6
+      !6x3
       do lCol=1,3        
         j2=ele6x3(i,(lRow-1)*3+lCol)
         gGx(j2)=gGx(j2)+lGx(lRow,lCol)
         gGy(j2)=gGy(j2)+lGy(lRow,lCol)
       enddo
     enddo
+    !$OMP END CRITICAL
+
+    ! !6x3
+    ! do lRow=1,6
+    !   do lCol=1,3        
+    !     j2=ele6x3(i,(lRow-1)*3+lCol)
+    !     gGx(j2)=gGx(j2)+lGx(lRow,lCol)
+    !     gGy(j2)=gGy(j2)+lGy(lRow,lCol)
+    !   enddo
+    ! enddo
 
     ! !6x6
     ! do lRow=1,6
@@ -148,5 +162,7 @@ implicit none
     ! enddo
 
   enddo
+  !$OMP END DO NOWAIT
+  !$OMP END PARALLEL
 
 end subroutine matrixSet2
