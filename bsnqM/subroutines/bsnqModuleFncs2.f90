@@ -366,7 +366,7 @@
     class(bsnqCase),intent(in)::b
     
     integer,parameter::np=4
-    integer(C_K1)::wrki(np),err(np),i
+    integer(kind=C_K1)::wrki(np),err(np),i
     real(kind=C_K2)::xin(np),yin(np),zin(np),wrkr(np,2)
     real(kind=C_K2)::uOut(np),vOut(np),wOut(np),pOut(np)    
     
@@ -397,3 +397,66 @@
 
   end subroutine testGetVertVel
 !!------------------------End testGetVertVel-----------------------!!
+
+
+
+!!----------------------------locWvAng-----------------------------!!
+  ! subroutine locWvAng(b)
+  ! implicit none
+
+  !   class(bsnqCase),intent(inout)::b
+
+  !   integer(kind=C_K1)::i
+  !   real(kind=C_K2)::p,q,pMag2
+  !   real(kind=C_K2),parameter::velLowLimit2=1d-20
+
+  !   !$OMP PARALLEL DEFAULT(shared) PRIVATE(i, p, q, pMag2)
+  !   !$OMP DO SCHEDULE(dynamic,100)
+  !   do i = 1, b%npt
+  !     p = b%tOb(0)%p(i)
+  !     q = b%tOb(0)%q(i)
+  !     pMag2 = p**2 + q**2
+  !     if(pMag2.lt.velLowLimit2) then 
+  !       b%wvAng(i) = 0d0
+  !     else  
+  !       ! RESULT = ATAN2(Y, X) -pi to pi
+  !       b%wvAng(i) = atan2(q, p)
+  !     endif
+  !   enddo
+  !   !$OMP END DO NOWAIT
+  !   !$OMP END PARALLEL    
+
+  ! end subroutine locWvAng
+
+  
+  subroutine locWvAng(b, npt, eta6)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    integer(kind=C_K1),intent(in)::npt
+    real(kind=C_K2),intent(in)::eta6(npt)
+
+    integer(kind=C_K1)::i, i2, nn, j
+    real(kind=C_K2)::etx,ety
+
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(i, i2, nn, j, etx, ety)
+    !$OMP DO SCHEDULE(dynamic,100)    
+    do i = 1, b%npt
+      i2 = b%pObf(i)%bsnqId
+      nn = b%pObf(i)%nn
+
+      call calcGrad( nn, b%pObf(i)%phiDx, &
+        eta6( b%pObf(i)%neid ), etx, j )      
+
+      call calcGrad( nn, b%pObf(i)%phiDy, &
+        eta6( b%pObf(i)%neid ), ety, j )      
+      
+      ! RESULT = ATAN2(Y, X) -pi to pi
+      b%wvAng(i2) = atan2(ety, etx)
+    enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+
+  end subroutine locWvAng
+!!--------------------------End locWvAng---------------------------!!

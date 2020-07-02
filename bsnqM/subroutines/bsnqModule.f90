@@ -79,6 +79,7 @@ implicit none
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::etaMax(:),etaMin(:),wpLoc(:,:)
+    real(kind=C_K2),allocatable::wvAng(:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -135,6 +136,7 @@ implicit none
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
     procedure ::  getVertVel          !using vertVelExp to calculate
     procedure ::  testGetVertVel          
+    procedure ::  locWvAng
 
   end type bsnqCase
 
@@ -224,6 +226,9 @@ contains
     !     exit
     !   endif
     ! enddo
+
+    b%vec6Tmp = b%tOb(0)%tD - b%dep
+    call b%locWvAng( b%npt, b%vec6Tmp ) !-pi to pi
 
     if(allocated(b%bDf))then 
       call b%calcVertVelDerv    
@@ -584,6 +589,7 @@ contains
     allocate(b%gRE(i),b%gRPQ(2*j))
     allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
     allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
+    allocate(b%wvAng(j))
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
@@ -639,6 +645,7 @@ contains
     
     b%etaMin=b%tOb(0)%e
     b%etaMax=b%tOb(0)%e    
+    b%wvAng=0d0
 
     b%presr=0d0    
 
