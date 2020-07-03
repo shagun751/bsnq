@@ -135,6 +135,18 @@ These top options can also be used if you want to delete a “tag”.
 ### Undo a merge
 Please follow [this](https://stackoverflow.com/questions/2389361/undo-a-git-merge-that-hasnt-been-pushed-yet)
 
+The one that I like the most from the above link is the following.
+
+It is strange that the simplest command was missing. Most answers work, but undoing the merge you just did, this is the easy and safe way:
+
+```
+git reset --merge ORIG_HEAD
+```
+
+The ref `ORIG_HEAD` will point to the original commit from before the merge.
+
+(The --merge option has nothing to do with the merge. It's just like git reset --hard ORIG_HEAD, but safer since it doesn't touch uncommitted changes.)
+
 ---
 
 ### Remove all untracked files
@@ -209,5 +221,57 @@ This will badly mess up workflow in a public repo though.
 Follow this article [link](https://medium.com/@igor_marques/git-basics-adding-more-changes-to-your-last-commit-1629344cb9a8).
 
 Its basically doing similar steps as what I have written above for git rebase using `git commit --amend`.
+
+---
+
+### Merge without taking all the commits of the branch
+- Sometimes you may want to develop a feature for which you make a branch
+- But you may be making very small commits in that branch, just to ensure you dont lose some important progress, but you do not want these small commits to show in the final commit list
+- In this case you may want to merge the branch into master, without taking all the commits of the branch to master and only taking the merged commit to the master
+- For this you use `git merger --squash`
+
+The following is taken from [link](https://stackoverflow.com/questions/5308816/how-to-use-git-merge-squash)
+
+Say your bug fix branch is called bugfix and you want to merge it into master:
+
+```
+git checkout master
+git merge --squash bugfix
+git commit
+```
+
+This will take all the commits from the bugfix branch, squash them into 1 commit, and merge it with your master branch.
+
+Explanation:
+```
+git checkout master
+```
+
+Switches to your master branch.
+```
+git merge --squash bugfix
+```
+
+Takes all the commits from the bugfix branch and merges it with your current branch.
+```
+git commit
+```
+
+Creates a single commit from the merged changes.
+
+Omitting the -m parameter lets you modify a draft commit message containing every message from your squashed commits before finalizing your commit.
+
+---
+
+### Merge without committing
+
+`git merge branch --no-commit --no-ff`
+
+`--no-commit`
+Perform the merge and commit the result. This option can be used to override `--no-commit`.
+
+With `--no-commit` perform the merge and stop just before creating a merge commit, to give the user a chance to inspect and further tweak the merge result before committing.
+
+Note that fast-forward updates do not create a merge commit and therefore there is no way to stop those merges with `--no-commit`. Thus, if you want to ensure your branch is not changed or updated by the merge command, use `--no-ff` with `--no-commit`.
 
 ---

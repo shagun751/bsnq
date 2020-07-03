@@ -13,6 +13,7 @@ continued from bsnq\_par\_v8.36
 1. [Initial Development log](./log_bsnqM_v0001.md)
 1. [Moving pressure field and Gradient MLS development](./log_bsnqM_v0002.md)
 1. [Vertical velocity calculation](./log_bsnqM_v0003.md)
+1. [Vertical velocity angular](./log_bsnqM_v0004.md)
 
 -----------------------------------------------
 

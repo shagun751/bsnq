@@ -11,12 +11,12 @@ Q) Run Time (s)
 Q) Error limit
 1e-5
 Q) Maximum number of iterations for GMRES solver
-50000
+5000
 
 Q) Output file interval (s)
-0.5
+1
 Q) Resume file generation interval (s)
-5.0
+50.0
 Q) Wave-height reset time (s)
 4
 
