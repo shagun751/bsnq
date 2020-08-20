@@ -208,8 +208,10 @@ contains
       if(b%etaMax(i).lt.tmpr1) b%etaMax(i)=tmpr1
     enddo
 
-    tmpr1=b%wvHReset
-    if( mod( b%tOb(0)%rtm, tmpr1 ) .lt. 0.1*b%dt )then
+    tmpr1 = mod( b%tOb(0)%rtm, b%wvHReset )
+    if( ( tmpr1 .lt. 0.1*b%dt ) .or. &
+        ( tmpr1 .gt. b%wvHReset-0.1*b%dt ) )then 
+      !the above coz possible mod(11.9999,3) or mod(12.01,3)
       b%etaMin=b%tOb(0)%e
       b%etaMax=b%tOb(0)%e
     endif

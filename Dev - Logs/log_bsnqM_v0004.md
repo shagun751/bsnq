@@ -10,6 +10,7 @@
 
 ### List of Work
 - [x] Calculate local wave-angle. _locWvAng()_
+- [x] BUG_FIX: wavHReset had a mistake. <br>Only mod(12.01,3) would work. mod(11.99,3) wont work. Corrected.
 
 -----------------------------------------------
 
