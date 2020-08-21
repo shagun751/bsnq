@@ -637,6 +637,18 @@ contains
       b%gXW = 0d0
       b%gXE = 0d0
       b%gXPQ = 0d0
+
+      ! Initialis eta to ship shape if instructed by user
+      if(b%presOn)then
+        b%presr=0d0
+        do i=1,b%sh(1)%totNShip
+          if(b%sh(i)%initEtaFlag)then
+            call b%sh(i)%getPress(b%tOb(0)%rtm,b%npt,b%cor,b%vec6Tmp)
+            b%presr=b%presr+b%vec6Tmp
+          endif
+        enddo
+        b%tOb(0)%e = -b%presr
+      endif
     endif
     
     b%tOb(0)%tD(1:b%npl)=b%dep(1:b%npl)+b%tOb(0)%e

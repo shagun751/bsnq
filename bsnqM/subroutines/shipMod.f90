@@ -12,7 +12,7 @@ implicit none
     real(kind=C_K2),allocatable::posData(:,:)
     real(kind=C_K2),allocatable::gP(:,:) !X major form
     real(kind=C_K2),allocatable::gPPres(:)
-    logical(kind=C_LG)::dragFlag
+    logical(kind=C_LG)::dragFlag, initEtaFlag
     type(mfPoiTyp)::gPObj    
   contains
     procedure ::  getPress    
@@ -63,6 +63,9 @@ contains
 
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%L,initShip%B,initShip%T
+
+    read(mf,*,end=83,err=83)bqtxt
+    read(mf,*,end=83,err=83)initShip%initEtaFlag
 
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)bqtxt
