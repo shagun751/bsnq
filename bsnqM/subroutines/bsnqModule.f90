@@ -369,51 +369,97 @@ contains
 
     class(bsnqCase),intent(inout)::b    
     integer(kind=4),intent(in)::step
+    integer(kind=4)::i,j
 
     b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
     b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
     
+    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j)
     select case(step)
 
-      case (1)
-        b%sOb(1)%e = b%gXE
-        b%sOb(1)%p = b%gXPQ(1:b%npt)
-        b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)        
+      case (1) !RK4 - Step1
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npl          
+          b%sOb(1)%e(i) = b%gXE(i)          
+          
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)/2d0          
+          b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
+        enddo
+        !$OMP END DO NOWAIT
         
-        b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
-        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
-        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
-        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npt
+          j = b%npt + i          
+          b%sOb(1)%p(i) = b%gXPQ(i)
+          b%sOb(1)%q(i) = b%gXPQ(j)        
+                    
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)/2d0
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)/2d0          
+        enddo        
+        !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
 
-      case (2)
-        b%sOb(2)%e = b%gXE
-        b%sOb(2)%p = b%gXPQ(1:b%npt)
-        b%sOb(2)%q = b%gXPQ(b%npt+1:2*b%npt)        
+      case (2) !RK4 - Step2
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npl          
+          b%sOb(2)%e(i) = b%gXE(i)          
+          
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)/2d0          
+          b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
+        enddo
+        !$OMP END DO NOWAIT
         
-        b%tOb(0)%e = b%tOb(1)%e + b%gXE/2d0
-        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)/2d0
-        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)/2d0
-        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npt
+          j = b%npt + i          
+          b%sOb(2)%p(i) = b%gXPQ(i)
+          b%sOb(2)%q(i) = b%gXPQ(j)        
+                    
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)/2d0
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)/2d0          
+        enddo        
+        !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
 
-      case (3)
-        b%sOb(3)%e = b%gXE
-        b%sOb(3)%p = b%gXPQ(1:b%npt)
-        b%sOb(3)%q = b%gXPQ(b%npt+1:2*b%npt)        
+      case (3) !RK4 - Step3
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npl          
+          b%sOb(3)%e(i) = b%gXE(i)          
+          
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)
+          b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
+        enddo
+        !$OMP END DO NOWAIT
         
-        b%tOb(0)%e = b%tOb(1)%e + b%gXE
-        b%tOb(0)%p = b%tOb(1)%p + b%gXPQ(1:b%npt)
-        b%tOb(0)%q = b%tOb(1)%q + b%gXPQ(b%npt+1:2*b%npt)
-        b%tOb(0)%tD(1:b%npl) = b%dep(1:b%npl) + b%tOb(0)%e
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npt
+          j = b%npt + i          
+          b%sOb(3)%p(i) = b%gXPQ(i)
+          b%sOb(3)%q(i) = b%gXPQ(j)        
+                    
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)
+        enddo        
+        !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
 
-      case (4)
-        b%sOb(4)%e = b%gXE
-        b%sOb(4)%p = b%gXPQ(1:b%npt)
-        b%sOb(4)%q = b%gXPQ(b%npt+1:2*b%npt)        
+      case (4) !RK4 - Step4
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npl          
+          b%sOb(4)%e(i) = b%gXE(i)                  
+        enddo
+        !$OMP END DO NOWAIT
+        
+        !$OMP DO SCHEDULE(dynamic,1000)
+        do i = 1, b%npt
+          j = b%npt + i          
+          b%sOb(4)%p(i) = b%gXPQ(i)
+          b%sOb(4)%q(i) = b%gXPQ(j)        
+        enddo        
+        !$OMP END DO NOWAIT
 
     end select        
+    !$OMP END PARALLEL          
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!
