@@ -184,8 +184,8 @@ contains
 
     class(bsnqCase),intent(inout)::b
 
-    integer(kind=C_K1)::i    
-    real(kind=C_K2)::tmpr1
+    integer(kind=C_K1)::i, ishp
+    real(kind=C_K2)::tmpr1,tmpr2
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -239,13 +239,15 @@ contains
         
     !! Ship drag calculation
     if(b%presOn)then
-      if(b%sh(1)%dragFlag)then !Optional to calc drag
-        b%vec6Tmp = b%tOb(0)%tD - b%dep
-        i=b%npt
-        call b%sh(1)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
-          b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1)
-        write(9,303)'shFx',b%tOb(0)%rtm,tmpr1
-      endif
+      do ishp = 1, b%sh(1)%totNShip
+        if(b%sh(ishp)%dragFlag)then !Optional to calc drag
+          b%vec6Tmp = b%tOb(0)%tD - b%dep
+          i=b%npt
+          call b%sh(ishp)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
+            b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1,tmpr2)
+          write(9,303)'shF',ishp,b%tOb(0)%rtm,tmpr1,tmpr2
+        endif
+      enddo
     endif
 
     !write(201,*)    
@@ -260,7 +262,7 @@ contains
     !write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
-    303 format('      |',a6,2F15.4)
+    303 format('      |',a6,I10,3F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!

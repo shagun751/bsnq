@@ -8,6 +8,7 @@
 1. [IMPORTANT BUG : dirichletBC [2020-02-03]](#log_bsnqM_v0002_6)
 1. [IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]](#log_bsnqM_v0002_7)
 1. [Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27, 2020-03-06]](#log_bsnqM_v0002_8)
+1. [Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]](#log_bsnqM_v0002_9)
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
@@ -31,6 +32,35 @@
 - [x] Calculate ship wave-making resistance.
 - [x] IMPORTANT-BUG : dirichlet BC PQ
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
+
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_9' />
+
+### Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]
+- Included calculation of the y force for ships
+- The x-force as per Ertekin (1986) is `dFx = - p etaDx dx dy`, where `p = rho * g * localDraft`.
+	- In my code I do not include `rho * g`
+- The `etaDx dx dy` is perpendicular differential plane area at (x,y) along x-axis.
+	- Differential area is `dx dy`.
+	- Local x-slope of surface elevation is `etaDx = tan(theta)`
+	- Tangential area is hence ` (dx dy) / cos(theta) `
+	- Perpendicular area is ` (dx dy) sin(theta) / cos(theta) ` = `etaDx dx dy`
+	- The above area times the local pressure is hence the force.
+- Similarly the y-force should be `dFy = - p etaDy dx dy`, where `p = rho * g * localDraft`.
+- We calculate the drag in module _shipMod_ in subroutine _calcDrag()_. 
+	- We already calculated the gradient for eta along x and y
+	- So using those we are calculating Fx and Fy.
+- In _postInstructs()_ we are now printing drag along x and y for multiple ships.
+	- Outputs are : shF shipNumber time Fx Fy
+- Also corrected the sign of the force calculation in _calcDrag()_.
+
+Test case inl2B was tested for calculation of X and Y wave-making forces. As it is a symmetric case the results for Y for were expected to be 0. Also the results were printed in the .rout file till 4th decimal place only, which is why we have that stepped nature for the Y force.
+
+|     |
+| --- |
+| **Fig :** X and Y wavemaking forces on the ship for case inl2B. X-axis (time = sec). Y-axis (Force = N/(rho * g)) |
+| <img width="90%" src="./log0002/inl2B_drag_X_Y.jpg"> |
 
 -----------------------------------------------
 

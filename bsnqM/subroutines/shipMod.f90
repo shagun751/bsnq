@@ -239,18 +239,18 @@ contains
 
 
 !!--------------------------calcDrag---------------------------!!
-  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx)
+  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx,fy)
   implicit none
 
     class(shipType),intent(inout)::sh
     integer(kind=C_K1),intent(in)::np
     real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
     real(kind=C_K2),intent(in)::eta(np)
-    real(kind=C_K2),intent(out)::fx
+    real(kind=C_K2),intent(out)::fx,fy
 
     integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn,err
-    real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1,etaDx
-    real(kind=C_K2)::dx,dy,x,y
+    real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1
+    real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy
 
     call sh%getLoc(rTime,x0,y0,thDeg)
     csth=dcos(thDeg*deg2rad)
@@ -282,6 +282,7 @@ contains
     call sh%getPress(rTime,k2,sh%gP,sh%gPPres)
 
     fx=0d0
+    fy=0d0
     k2=sh%gridNB
     do shI=1,sh%gridNL
       do shJ=1,sh%gridNB
@@ -301,6 +302,7 @@ contains
               write(9,'("      |",a6,a)')"[ERR]",&
                 "ship%CalcDrag| Increase ship numOfNegh or reduce radius"
               fx=0d0
+              fy=0d0
               return
             endif            
             sh%gPObj%neid(nn) = i
@@ -312,6 +314,7 @@ contains
           ! write(*,'(2I5,2F15.6)')shI,shJ,sh%gPObj%cx,sh%gPObj%cy
           ! write(*,'(I5)')nn
           fx=0d0
+          fy=0d0
           return
         endif            
         sh%gPObj%nn=nn        
@@ -324,13 +327,16 @@ contains
 
         if(err.ne.0) then !If any err in mls2DDx then return fx=0
           fx=0d0
+          fy=0d0
           return
         endif
 
         !! etaDx
         etaDx=0d0
+        etaDy=0d0
         do i=1,nn
           etaDx=etaDx+ sh%gPObj%phiDx(i) * eta(sh%gPObj%neid(i))
+          etaDy=etaDy+ sh%gPObj%phiDy(i) * eta(sh%gPObj%neid(i))
         enddo
 
         !! Simpson's integration
@@ -353,9 +359,9 @@ contains
         else
           tmpr1=tmpr1*4d0
         endif
-        tmpr1=tmpr1*dx*dy/9d0
+        tmpr1=-tmpr1*dx*dy/9d0 !! correct sign for inward normal to area
         fx=fx+tmpr1*sh%gPPres(k)*etaDx
-
+        fy=fy+tmpr1*sh%gPPres(k)*etaDy
 
       enddo
     enddo

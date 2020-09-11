@@ -17,7 +17,7 @@ Q) Ship force calculation paramters
 Q) Calculate ship drag (.true./.false.)
 .false.
 Q) Interpolation (maxNeighbours radius)
-25 0.30d0
+40 0.30d0
 Q) Ship rectangle (NL NB) (min 3 each. odd) (no. of div = NX-1)
 21 21
 
