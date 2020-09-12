@@ -217,6 +217,7 @@ contains
     do i=1,npt
       dx=dc*(cor(i,ix)-b%x0)/b%l
       if(dx.gt.0d0)then
+        dx = min(dx, 1d0)
         absC(i)=b%c1*(dexp(dx**2)-1d0)
       endif
     enddo

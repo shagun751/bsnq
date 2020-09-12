@@ -9,6 +9,7 @@
 1. [IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]](#log_bsnqM_v0002_7)
 1. [Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27, 2020-03-06]](#log_bsnqM_v0002_8)
 1. [Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]](#log_bsnqM_v0002_9)
+1. [Edit : Absorbing layer beyond limit length [2020-09-13]](#log_bsnqM_v0002_10)
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
@@ -32,6 +33,60 @@
 - [x] Calculate ship wave-making resistance.
 - [x] IMPORTANT-BUG : dirichlet BC PQ
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
+
+-----------------------------------------------
+
+<a name = 'log_bsnqM_v0002_10' />
+
+### Edit : Absorbing layer beyond limit length [2020-09-13]
+- The absorbance code was such that if dx is greater than the length of the sponge layer (l) then the absorbace coeff will just grow exponentially.
+- The absorbance coeff is 30/T* \(exp(dr^2) - 1 \)/ \(exp(1) - 1 \) where dr = dx/l.
+- This is supposed to have max value of 30/T for dx>l blows up exponentially
+- So I am limiting it beyond the dx > l so that i can place sponge layers far away from the boundaries.
+- This above feature is required to absorb the waves created when placing stationary ships. 
+	- Place a large sponge layer around the ship when putting it in water to absorb those waves.
+	- Run the simulation without these sponge layers once the tank settles down.
+
+Code is modified from
+```
+    do i=1,npt
+      dx=dc*(cor(i,ix)-b%x0)/b%l
+      if(dx.gt.0d0)then
+        absC(i)=b%c1*(dexp(dx**2)-1d0)
+      endif
+    enddo
+```
+
+Code is modified to
+```
+    do i=1,npt
+      dx=dc*(cor(i,ix)-b%x0)/b%l
+      if(dx.gt.0d0)then
+        dx = min(dx, 1d0)
+        absC(i)=b%c1*(dexp(dx**2)-1d0)
+      endif
+    enddo
+```
+
+Verified by visually plotting the absorbance coefficient.
+
+It is also important to note the preference of the sponge layers in case there are multiple sponge layer.<br>
+In the following case, We put the sponge layers using the following setting in the input file.
+```
+Q) Outlet Sponge layer (BOUSS2D method)
+Q) Enable? (.true. / .false.)
+.true.
+Q) Regions (Num; Type | Lim | length | waveT) (Type: 1234 -> NWSE)
+2
+4 20 6.576 2
+1 3  1     2
+```
+
+So based on the time period of 2 sec the max value of absorbance coef is `30/T = 15`.<br>
+And the sponge layer will look as shown below, with the type(1) absorbance layer being applied superimposing the type(4) absorbance layer. <br>
+Remember this order of preference about the sponge layer.
+
+<img width="90%" src="./log0002/absCoeff.jpg">
 
 -----------------------------------------------
 
