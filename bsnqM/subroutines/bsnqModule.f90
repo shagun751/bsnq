@@ -85,6 +85,8 @@ implicit none
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
     real(kind=C_K2),allocatable::tDavgt1(:), Rxx(:)
+    real(kind=C_K2),allocatable::sedNelX(:),sedNelY(:)
+    real(kind=C_K2),allocatable::sedVanX(:),sedVanY(:)
 
     !! Deallocated in destructR1
     integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
@@ -578,6 +580,8 @@ contains
     allocate(b%por(j),b%vec6Tmp(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
     allocate(b%uhr(j),b%vhr(j))
+    allocate(b%sedNelX(j), b%sedNelY(j))
+    allocate(b%sedVanX(j), b%sedVanY(j))
 
     allocate(b%massW(i1*i),b%massE(i1*i))
     allocate(b%mass1(j1*j),b%mass2(i1*i))    

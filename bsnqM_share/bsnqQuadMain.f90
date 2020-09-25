@@ -25,6 +25,10 @@ implicit none
 !!--------------------------Declarations---------------------------!!
   type(bsnqCase)::bq  
   character(len=C_KSTR)::bqtxt
+
+  real(kind=C_K2),allocatable::u(:),v(:),eta(:)
+  real(kind=C_K2),allocatable::sedNelX(:),sedNelY(:)
+  real(kind=C_K2),allocatable::sedvanX(:),sedVanY(:)
 !!------------------------End Declarations-------------------------!!
   
   call getarg(1,bq%probname)  
@@ -35,7 +39,7 @@ implicit none
   write(*,*)"Problem Name: "//trim(bq%probname)
 
   bqtxt=trim(bq%probname)//'.rout'
-  open(9,file=trim(bqtxt))  
+  open(9,file=trim(bqtxt))    
 
   call system_clock(bq%sysC(1))
   call bq%meshRead
@@ -44,6 +48,10 @@ implicit none
   call bq%setMFree 
   call bq%initMat  
   call bq%statMatrices    
+
+  allocate( u(bq%npt), v(bq%npt), eta(bq%npt) )
+  allocate( sedNelX(bq%npt), sedNelY(bq%npt) )
+  allocate( sedVanX(bq%npt), sedVanY(bq%npt) )
 
   call bq%caseOutputs
   
@@ -55,6 +63,18 @@ implicit none
   
     call bq%postInstructs   
 
+    u = bq%tOb(0)%p / bq%tOb(0)%tD
+    v = bq%tOb(0)%q / bq%tOb(0)%tD
+    eta = bq%tOb(0)%tD - bq%dep 
+
+    call sedimentTrans(bq%npt, bq%dep, bq%cor(:,1), bq%cor(:,2), &
+      u, v, eta, sedNelX, sedNelY, sedVanX, sedVanY)
+
+    bq%sedNelX = sedNelX
+    bq%sedNelY = sedNelY
+    bq%sedVanX = sedVanX
+    bq%sedVanY = sedVanY
+
     call bq%caseOutputs
 
   enddo
@@ -65,3 +85,30 @@ implicit none
   write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
   close(9)  
 end program boussinesqQuad
+
+
+
+subroutine sedimentTrans(npt, dep, corx, cory, u, v, eta, &
+  sedNelX, sedNelY, sedVanX, sedVanY)
+use bsnqGlobVars
+implicit none
+
+  integer(kind=C_K1),intent(in):: npt
+  real(kind=C_K2),intent(in):: dep(npt), u(npt), v(npt), eta(npt)
+  real(kind=C_K2),intent(in):: corx(npt), cory(npt)
+  real(kind=C_K2),intent(out):: sedNelX(npt), sedNelY(npt)
+  real(kind=C_K2),intent(out):: sedVanX(npt), sedVanY(npt)
+
+  !! Note: 
+  !! Do not allocate the above variables again.
+  !! They have already been allocated
+
+  integer(kind=C_K1):: i
+  real(kind=C_K2):: tmpr  
+
+  sedNelX = 0d0
+  sedNelY = 0d0
+  sedVanX = 0d0
+  sedVanY = 0d0
+
+end subroutine sedimentTrans
