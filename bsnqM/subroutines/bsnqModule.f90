@@ -29,8 +29,27 @@ implicit none
       integer(kind=C_INT), value, intent(in)  :: nthreads
     end subroutine paralution_init
 
+    
+
     subroutine paralution_stop() BIND(C)
     end subroutine paralution_stop        
+
+    
+
+    function createLSObj() result(obj) BIND(C, name="createLSObj")
+      use, intrinsic :: ISO_C_BINDING, only : C_PTR
+
+      type(C_PTR) :: obj      
+    end function createLSObj
+
+
+
+    subroutine checkLSObj(obj) BIND(C, name="checkLSObj")
+      use, intrinsic :: ISO_C_BINDING, only : C_PTR 
+
+      type(C_PTR), value, intent(in) :: obj
+    end subroutine checkLSObj
+
   end interface
   
   private
@@ -83,6 +102,7 @@ implicit none
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
+    type(C_PTR)::paralsW, paralsE, paralsPQ
 
     !! Deallocated in destructR1
     integer(kind=C_K1),allocatable::p2p(:,:),p2e(:,:)
@@ -128,6 +148,7 @@ implicit none
     procedure ::  readResume
     procedure ::  caseOutputs
     procedure ::  timeStepRK4
+    procedure ::  setParalutionLS
     !procedure ::  destructor
     
     procedure ::  setMFree
@@ -825,6 +846,38 @@ contains
   end subroutine getEtaPQForXY
 
 !!------------------------End getEtaPQForXY------------------------!!
+
+
+
+!!-------------------------setParalutionLS-------------------------!!
+subroutine setParalutionLS(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    b%paralsW  = createLSObj();
+    b%paralsE  = createLSObj();
+    b%paralsPQ = createLSObj();
+
+    call initLSSys(b%paralsW, b%npl, b%nnzl, b%ivsl, b%jvsl, &
+      b%gMW, b%errLim, 1e-15_C_DOUBLE, 1e+8_C_DOUBLE, b%maxIter)
+
+    call initLSSys(b%paralsE, b%npl, b%nnzl, b%ivsl, b%jvsl, &
+      b%gME, b%errLim, 1e-15_C_DOUBLE, 1e+8_C_DOUBLE, b%maxIter)
+
+    call initLSSys(b%paralsPQ, 2*b%npt, b%nnzf, b%ivsf, b%jvsf, &
+      b%gMPQ, b%errLim, 1e-15_C_DOUBLE, 1e+8_C_DOUBLE, b%maxIter)
+
+    ! call checkLSObj(b%paralsW)
+    ! call checkLSObj(b%paralsE)
+    ! call checkLSObj(b%paralsPQ)            
+
+    write(9,*)
+    write(9,'(" [MSG] Created Linear Solver objects in C++")')
+    write(9,*)
+    !stop
+end subroutine setParalutionLS
+!!-----------------------End setParalutionLS-----------------------!!
 
 
 

@@ -132,8 +132,11 @@
 
     gRE=gRE/b%rowMaxW
 
-    call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gMW,gRE,gXW,&
-      b%errLim,b%maxiter,i,tmpr1,j)
+    ! call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,&
+    !   b%gMW,gRE,gXW,&
+    !   b%errLim,b%maxiter,i,tmpr1,j)
+    call solveSys2(b%paralsW, b%npl, b%nnzl, gRE, gXW,&
+      i, tmpr1, j)
     write(9,301)'W',j,i,tmpr1
     !!----------------End solveW---------------!!    
 
@@ -173,8 +176,11 @@
     !!  Do not modify b%et0 and b%et1 yet, 
     !!  their old vals porbably were passed and calling arguments
     !!  and are required by the PQ equations
-    call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,b%gME,gRE,gXE,&
-      b%errLim,b%maxiter,i,tmpr1,j)
+    ! call solveSys(b%npl,b%nnzl,b%ivsl,b%jvsl,&
+    !   b%gME,gRE,gXE,&
+    !   b%errLim,b%maxiter,i,tmpr1,j)
+    call solveSys2(b%paralsE, b%npl, b%nnzl, gRE, gXE,&
+      i, tmpr1, j)
     write(9,301)'Eta',j,i,tmpr1    
     call b%diriBCEtaDiff(gXE, b%tOb(0)%rtm, b%tOb(1)%rtm)
     !!---------------End solveEta--------------!!
@@ -232,8 +238,11 @@
     gRPQ=gRPQ/b%rowMaxPQ
     
     call system_clock(sysC(7))
-    call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,b%gMPQ,gRPQ,&
-      gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
+    ! call solveSys(2*b%npt,b%nnzf,b%ivsf,b%jvsf,&
+    !   b%gMPQ,gRPQ,&
+    !   gXPQ,b%errLim,b%maxiter,i,tmpr1,j)
+    call solveSys2(b%paralsPQ, 2*b%npt, b%nnzf, gRPQ,&
+      gXPQ, i, tmpr1, j)
     write(9,301)'PQ',j,i,tmpr1
     call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
     call system_clock(sysC(8))

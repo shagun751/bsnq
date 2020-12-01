@@ -44,6 +44,7 @@ implicit none
   call bq%setMFree 
   call bq%initMat  
   call bq%statMatrices    
+  call bq%setParalutionLS  
 
   call bq%caseOutputs
   
