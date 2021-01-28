@@ -33,6 +33,8 @@ Q) Wave Probes
 3.5355 		6.3640
 4.9497 		7.7782
 9.1924 		12.0208
+Q) Velocity 3D Probes (num; X Y Z)
+0
 
 Q) Wave input type (0-file, 1-Airy)
 1

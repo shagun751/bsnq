@@ -16,6 +16,15 @@ implicit none
     procedure ::  initByInterp
   end type vertVelDerv
 
+  type, public :: vertVelProbes
+    integer(kind=C_K1)::np, fileid
+    real(kind=C_K2),allocatable::x(:), y(:), z(:), wrkr(:,:)
+    real(kind=C_K2),allocatable::u(:), v(:), w(:), p(:)
+    integer(kind=C_K1),allocatable::wrki(:), err(:)
+  contains
+    procedure :: initvvProbes    
+  end type  vertVelProbes
+
 contains
 
 ! !!-----------------------initVertVelDerv-----------------------!!
@@ -101,6 +110,28 @@ contains
 
   end subroutine vertVelExp
 !!-----------------------End getVertVel------------------------!!
+
+
+
+!!------------------------initvvProbes-------------------------!!
+  subroutine initvvProbes(b,np)
+  implicit none
+
+    class(vertVelProbes),intent(inout)::b
+    integer(kind=C_K1),intent(in)::np
+
+    b%np = np
+    allocate(b%x(np), b%y(np), b%z(np), b%p(np), b%wrkr(np,2))
+    allocate(b%u(np), b%v(np), b%w(np), b%wrki(np), b%err(np))
+
+    b%x = 0d0
+    b%y = 0d0
+    b%z = 0d0
+    b%err = 0
+
+  end subroutine initvvProbes
+!!----------------------End initvvProbes-----------------------!!
+
 
 end module vertVelMod
 !!---------------------------End shipMod---------------------------!!

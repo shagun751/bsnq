@@ -27,6 +27,8 @@ Q) Number of OpenMP Threads
 4
 Q) Wave Probes
 0
+Q) Velocity 3D Probes (num; X Y Z)
+0
 
 Q) Wave input type (0-file, 1-Airy)
 1

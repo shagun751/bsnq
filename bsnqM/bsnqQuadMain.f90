@@ -62,6 +62,7 @@ implicit none
 
   call system_clock(bq%sysC(2))
   close(bq%wpEle(-1))
+  close(bq%vvPrb%fileid)
   write(9,*)"[MSG] boussinesqQuad End"
   write(9,'(" [TIM] ",F15.4)')1d0*(bq%sysC(2)-bq%sysC(1))/bq%sysRate
   close(9)  

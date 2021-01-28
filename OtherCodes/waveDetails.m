@@ -5,9 +5,9 @@ close all
 
 g=9.81;
 
-T=8;
-h=10;
-amp=0.095;
+T=2;
+h=0.1524;%0.4572; %0.1524
+amp=0.05;
 syms L
 L=solve(L-(g/2/pi*T*T*tanh(2*pi/L*h)));
 L=abs(double(L));
@@ -24,6 +24,7 @@ fprintf('kh = %f\n',2*pi*hByL);
 fprintf('w = %f\n',2*pi/T);
 fprintf('UMax = %f\n',amp*g*T/L);
 fprintf('UMax x T = %f\n',amp*g*T/L*T);
+fprintf('h/g/T/T = %f\n',h/g/T/T);
 
 k=2*pi/L;
 kh=k*h;
@@ -33,7 +34,7 @@ fprintf('S/H = %f\n',tfPis);
 fprintf('s = %f\n',amp*tfPis);
 
 %% Scaled
-sc=1/0.7;
+sc=1;
 scsq=sqrt(sc);
 T=T*scsq;
 amp=amp*sc;

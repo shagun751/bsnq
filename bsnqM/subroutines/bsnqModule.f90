@@ -117,6 +117,7 @@ implicit none
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
+    type(vertVelProbes)::vvPrb
 
     !! Optional initialisation
     type(mfPoiTyp),allocatable::pObf(:)
@@ -142,7 +143,7 @@ implicit none
     procedure ::  diriBCEta
     procedure ::  diriBCPQ
     procedure ::  updateSoln
-    procedure ::  writeWaveProbe
+    procedure ::  writeWaveProbe !and write vertVelProbes
     procedure ::  getEtaPQForXY
     procedure ::  writeResume
     procedure ::  readResume
@@ -206,7 +207,7 @@ contains
     class(bsnqCase),intent(inout)::b
 
     integer(kind=C_K1)::i, ishp
-    real(kind=C_K2)::tmpr1,tmpr2
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -265,8 +266,8 @@ contains
           b%vec6Tmp = b%tOb(0)%tD - b%dep
           i=b%npt
           call b%sh(ishp)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
-            b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1,tmpr2)
-          write(9,303)'shF',ishp,b%tOb(0)%rtm,tmpr1,tmpr2
+            b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1,tmpr2,tmpr3)
+          write(9,303)'shF',ishp,b%tOb(0)%rtm,tmpr1,tmpr2,tmpr3
         endif
       enddo
     endif
@@ -283,7 +284,7 @@ contains
     !write(9,*)
     301 format('      |',a6,3F15.4)
     302 format('      |',a6,4F15.4)
-    303 format('      |',a6,I10,3F15.4)
+    303 format('      |',a6,I10,4F15.4)
 
   end subroutine postInstructs
 !!------------------------End postInstructs------------------------!!
@@ -308,7 +309,7 @@ contains
       endif
     endif
 
-    call b%writeWaveProbe    
+    call b%writeWaveProbe    !and write vertVelProbes
 
     call system_clock(b%sysC(8))
 
@@ -751,11 +752,11 @@ contains
   subroutine writeWaveProbe(b)
   implicit none
 
-    class(bsnqCase),intent(in)::b
+    class(bsnqCase),intent(inout)::b
     integer(kind=C_K1)::nq(6),i,i2,k
     real(kind=C_K2)::N3(3),N6(6),tmpr1,tmpr2,tmpr3
 
-    !Writing probes value
+    !Writing wave probes value
     k=b%wpEle(-1)
     write(k,'(F15.6)',advance='no')b%tOb(0)%rtm
     do i=1,b%wpEle(0)
@@ -784,6 +785,32 @@ contains
         tmpr1, tmpr2, tmpr3
     enddo
     write(k,*)
+
+
+
+    !Write vertVel probes value
+    if(b%vvPrb%np .gt. 0)then
+      k = b%vvPrb%fileid
+      write(k,'(F15.6)',advance='no')b%tOb(0)%rtm
+      
+      call b%getVertVel( b%vvPrb%np, b%vvPrb%x, b%vvPrb%y, &
+        b%vvPrb%z, b%vvPrb%u, b%vvPrb%v, b%vvPrb%w, &
+        b%vvPrb%p, b%vvPrb%wrki, b%vvPrb%wrkr, b%vvPrb%err )
+
+      do i = 1, b%vvPrb%np
+        if(b%vvPrb%err(i).eq.0)then   !noError
+          write(k,'(7F15.6)',advance='no')b%vvPrb%x(i), &
+            b%vvPrb%y(i), b%vvPrb%z(i), b%vvPrb%p(i), &
+            b%vvPrb%u(i), b%vvPrb%v(i), b%vvPrb%w(i)
+        else
+          write(k,'(3F15.6, 4A15)',advance='no')b%vvPrb%x(i), &
+            b%vvPrb%y(i), b%vvPrb%z(i), '---', '---', &
+            '---', '---'
+        endif 
+      enddo
+      write(k,*)
+    endif
+
 
   end subroutine writeWaveProbe
 !!-----------------------End writeWaveProbe------------------------!!

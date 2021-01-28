@@ -239,18 +239,18 @@ contains
 
 
 !!--------------------------calcDrag---------------------------!!
-  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx,fy)
+  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx,fy,fm)
   implicit none
 
     class(shipType),intent(inout)::sh
     integer(kind=C_K1),intent(in)::np
     real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
     real(kind=C_K2),intent(in)::eta(np)
-    real(kind=C_K2),intent(out)::fx,fy
+    real(kind=C_K2),intent(out)::fx,fy,fm
 
     integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn,err
     real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1
-    real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy
+    real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy, lfx, lfy
 
     call sh%getLoc(rTime,x0,y0,thDeg)
     csth=dcos(thDeg*deg2rad)
@@ -283,6 +283,7 @@ contains
 
     fx=0d0
     fy=0d0
+    fm=0d0
     k2=sh%gridNB
     do shI=1,sh%gridNL
       do shJ=1,sh%gridNB
@@ -303,6 +304,7 @@ contains
                 "ship%CalcDrag| Increase ship numOfNegh or reduce radius"
               fx=0d0
               fy=0d0
+              fm=0d0
               return
             endif            
             sh%gPObj%neid(nn) = i
@@ -315,6 +317,7 @@ contains
           ! write(*,'(I5)')nn
           fx=0d0
           fy=0d0
+          fm=0d0
           return
         endif            
         sh%gPObj%nn=nn        
@@ -328,6 +331,7 @@ contains
         if(err.ne.0) then !If any err in mls2DDx then return fx=0
           fx=0d0
           fy=0d0
+          fm=0d0
           return
         endif
 
@@ -360,9 +364,11 @@ contains
           tmpr1=tmpr1*4d0
         endif
         tmpr1=-tmpr1*dx*dy/9d0 !! correct sign for inward normal to area
-        fx=fx+tmpr1*sh%gPPres(k)*etaDx
-        fy=fy+tmpr1*sh%gPPres(k)*etaDy
-
+        lfx = tmpr1*sh%gPPres(k)*etaDx
+        lfy = tmpr1*sh%gPPres(k)*etaDy
+        fx = fx + lfx
+        fy = fy + lfy
+        fm = fm + (sh%gP(k,1)-x0)*lfy - (sh%gP(k,2)-y0)*lfx
       enddo
     enddo
 

@@ -97,6 +97,7 @@ implicit none
   write(*,*)k,nbnd
 
   
+  !! Depth
   ! dep=100d0
   ! do i=1,nbnd
   !   dep(mabnd(i,1))=12

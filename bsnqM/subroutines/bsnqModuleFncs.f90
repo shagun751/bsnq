@@ -338,6 +338,22 @@
       b%wpEle(0)=0
     endif
 
+    !Vertical velocity probe code
+    b%vvPrb%np = 0
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpi1
+    if(tmpi1.gt.0)then
+      call b%vvPrb%initvvProbes(tmpi1) !in modVertVel
+
+      do i = 1, tmpi1
+        read(mf,*,end=81,err=81)b%vvPrb%x(i), &
+          b%vvPrb%y(i), b%vvPrb%z(i)
+      enddo
+
+      bqtxt='Output/AllVel3DProbes_'//trim(b%probname)//'.dat'
+      open(newunit=b%vvPrb%fileid, file=trim(bqtxt))      
+    endif
+
     !WaveInput Code
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)i

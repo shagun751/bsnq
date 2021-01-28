@@ -17,12 +17,12 @@ implicit none
   domy(1)=0d0
 
   !Top right X Y
-  domx(2)=400d0
-  domy(2)=2d0
+  domx(2)=36.576d0
+  domy(2)=6.096d0
 
   !Mesh dx and dy
-  dx=0.10d0
-  dy=0.10d0
+  dx=0.1016d0
+  dy=0.1016d0
 
   !!-------------- Do not change --------------!!
   open(11,file = "test.msh")
@@ -125,23 +125,26 @@ implicit none
   !!---------- Can change depth code-----------!!
 
   ! Constant depth
-  dep=1
+  dep=10
 
   ! ! Depth code  with slope
   ! tmpr5 = 1d0/20d0  !! Slope
-  ! tmpr3 = 25d0
-  ! tmpr4 = 35d0
+  ! tmpr3 = 300d0
+  ! tmpr4 = 376d0
   ! do i=1,npoi
   !   if( corx(i) .le. tmpr3)then
-  !     dep(i) = 1
+  !     dep(i) = 4
     
   !   elseif( ( corx(i) .gt. tmpr3) .and. ( corx(i) .le. tmpr4) )then
-  !     dep(i) = 1 - (corx(i) - tmpr3)*tmpr5
+  !     dep(i) = 4 - (corx(i) - tmpr3)*tmpr5
     
   !   else
-  !     dep(i) = 0.5
+  !     dep(i) = 0.2
   !   endif    
   ! enddo
+
+  ! Whalin
+  
   !!---------End Can change depth code---------!!
   
   
