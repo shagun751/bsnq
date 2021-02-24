@@ -136,6 +136,7 @@ implicit none
     !procedure ::  destructor
     
     procedure ::  setMFree
+    procedure ::  getAllPoiGrad
     procedure ::  calcVertVelDerv
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP

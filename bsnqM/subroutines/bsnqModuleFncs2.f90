@@ -65,6 +65,57 @@
 
 
 
+!!----------------------------getPoiGrad---------------------------!!
+  subroutine getAllPoiGrad(b,inMat,gradMat,typ)
+  implicit none
+    
+    class(bsnqCase),intent(in)::b
+    integer(kind=C_K1),intent(in)::typ
+    real(kind=C_K2),intent(in)::inMat(b%npt)
+    real(kind=C_K2),intent(out)::gradMat(b%npt)
+
+    integer(kind=C_K1)::i,j,i2,nn
+
+    gradMat = 0d0
+
+    if(typ.eq.1)then
+      !! First derivative
+      !$OMP PARALLEL DEFAULT(shared) &
+      !$OMP   PRIVATE(i,i2,j,nn)
+      !$OMP DO SCHEDULE(dynamic,100)    
+      do i=1,b%npt
+        i2 = b%pObf(i)%bsnqId
+        nn = b%pObf(i)%nn
+
+        call calcGrad(nn, b%pObf(i)%phiDx, &
+          inMat( b%pObf(i)%neid ), gradMat(i2), j )
+      enddo
+      !$OMP END DO NOWAIT
+      !$OMP END PARALLEL
+
+    elseif(typ.eq.2)then
+      !! First derivative
+      !$OMP PARALLEL DEFAULT(shared) &
+      !$OMP   PRIVATE(i,i2,j,nn)
+      !$OMP DO SCHEDULE(dynamic,100)    
+      do i=1,b%npt
+        i2 = b%pObf(i)%bsnqId
+        nn = b%pObf(i)%nn
+
+        call calcGrad(nn, b%pObf(i)%phiDy, &
+          inMat( b%pObf(i)%neid ), gradMat(i2), j )
+      enddo
+      !$OMP END DO NOWAIT
+      !$OMP END PARALLEL
+
+    endif    
+
+
+  end subroutine getAllPoiGrad
+!!--------------------------End getPoiGrad-------------------------!!
+
+
+
 !!-------------------------calcVertVelDerv-------------------------!!
   subroutine calcVertVelDerv(b)
   implicit none
