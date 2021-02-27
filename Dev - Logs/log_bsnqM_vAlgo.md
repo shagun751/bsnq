@@ -1,15 +1,17 @@
 ## Common algorithm developments in the code
 
 1. [Paralution solver FORTRAN plugin [2020-10-15]](#log_bsnqM_vAlgo_1)
+2. [Test pressure term with integration by parts [2021-02-28]](#log_bsnqM_vAlgo_2)
 
 
 ### Attempting
 - From 2020-Dec-01 onwards, the common algorithm developments will be noted in this document.
-- This log file should only be updated for a branch if the bug-fix has been done in that branch.
+- This log file should only be updated for a branch if the algorithm has been implemented in that branch.
 
 
 ### List of Work
-
+- [x] Test pressure term with integration by parts [Link](#log_bsnqM_vAlgo_2)
+- [x] Added _fem_dN6iSc6dx_N6j()_ femAnalyticalTri_v1.1.f90
 
 -----------------------------------------------
 
@@ -87,5 +89,34 @@ Although I think this is the best piece of code I have ever written, it gave ver
 #### Speed gains
 - Overall on normal i7-9th Gen system I got upto 1.08x
 - However on Aqua server it hardly made any significant difference.
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_2' ></a>
+
+### Test pressure term with integration by parts [2021-02-28]
+
+- I had originally coded the pressure term without using integration by parts
+	- i.e. <img width="50%" src="./logvAlgo/S2/eq1.png"> <br>`\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ \iint_\Omega \frac{1}{\rho} \phi_i d \frac{\partial \phi_j}{\partial x}  \right] P_i`
+- However I was wondering if removing the differential from the pressure will make any difference. So I changed the code to the following form.
+	- i.e. <img width="76%" src="./logvAlgo/S2/eq2.png"> <br> `\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ - \iint_\Omega \frac{1}{\rho} \frac{\partial (\phi_i d) }{\partial x} \phi_j + \int_\Gamma \frac{1}{\rho} \phi_i d \phi_j n_x \right] P_i`
+- I tried this because we get a lower draft then the FUNWAVE results and we also get lower amplitude for some parts of the waves.
+- However the results obtained in IITM-Bsnq for both forms were identical. Hence it did not make any difference.
+- Retaining the original form without any boundary integrals in the final version.
+
+The following examples are for a 36 x 6 ship in 5m water depth at 0.85 Froude number. 
+**Here comparison is done between FUNWAVE-TVD 3.4 and IITM-Bsnq commit 'fe1e6ad'**
+
+| |
+| :-------------: |
+| **Figure :** y=204 Centreline |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y204.jpg"> |
+| **Figure :** y=207 0.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y207.jpg"> |
+| **Figure :** y=219 2.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y219.jpg"> |
+| **Figure :** y=231 4.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y231.jpg"> |
 
 -----------------------------------------------

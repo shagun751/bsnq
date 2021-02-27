@@ -56,7 +56,6 @@ implicit none
       lScN6(4),lScN6(5),lScN6(6),invJ(i,3),invJ(i,4))
 
 
-
     lGx=-invJ(i,5)*lGx
     lGy=-invJ(i,5)*lGy
     lNAd=-invJ(i,5)*lNAd
