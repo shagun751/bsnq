@@ -10,6 +10,7 @@
 1. [Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27, 2020-03-06]](#log_bsnqM_v0002_8)
 1. [Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]](#log_bsnqM_v0002_9)
 1. [Edit : Absorbing layer beyond limit length [2020-09-13]](#log_bsnqM_v0002_10)
+1. [Observation : Mesh requirement for ship cases [2021-03-12] **VERY IMPORTANT**](#log_bsnqM_v0002_11)
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
@@ -33,6 +34,115 @@
 - [x] Calculate ship wave-making resistance.
 - [x] IMPORTANT-BUG : dirichlet BC PQ
 - [x] IMPORTANT-BUG : fem_N6i_Sc6_dN6jdx
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_v0002_11' />
+
+### Observation : Mesh requirement for ship cases [2021-03-12]
+
+I have finally found all basic guidelines that are needed to be followed for ship wake simulations.
+
+The mesh size depends on two things
+
+- Dominant wave-length in the wake
+- Ship size
+
+#### Dominant wavelength
+- In order to find the dominant we use the observation that the vesel wake moves with the vessel. 
+- Due to this the group celerity of the wake will be the vessel's speed.
+- This translates to C_g = V_s given by the following expression <br> <img width="60%" src="./log0002/C11_groupCelerity.png">
+- Here the wave celerity is determined using the dispersion relationship.
+<br> <img width="20%" src="./log0002/C11_dispersionRelation.png">
+
+By using the following MATLAB code you can hence find the analytical wave-length and time-period of the wave. 
+```
+clc
+clear all
+close all
+
+g=9.81;
+
+h = 5;
+c_g = 0.85*sqrt(g*h);
+amp = 1;
+syms L c kh
+kh = 2*pi/L*h;
+c = sqrt(g*L/2/pi*tanh(kh));
+L=solve(c_g - c/2*(1 + 2*kh/sinh(kh)));
+L=abs(double(L));
+
+kh = 2*pi/L*h;
+c = sqrt(g*L/2/pi*tanh(kh));
+T = L/c;
+
+hByL=h/L;
+fprintf('f = %f\n',1/T);
+fprintf('T = %f\n',T);
+fprintf('Amp = %f\n',amp);
+fprintf('L = %f\n',L);
+fprintf('h = %f\n',h);
+fprintf('h/L = %f\n',hByL);
+fprintf('h/L0 = %f\n',h/(g/2/pi*T*T));
+fprintf('kh = %f\n',2*pi*hByL);
+fprintf('Fr = %f\n',c/sqrt(9.81*h));
+fprintf('UMax x T = %f\n',amp*g*T/L*T);
+```
+
+**This result matched very well with out simulations and was reported in the paper**
+
+|     |
+| --- |
+| **Fig :** The result that was reported in the paper for temporal measurements done at a wave probe. The analytical frequency calculated using the above method matched well with the peak observed in our simulation |
+| <img width="60%" src="./log0002/C11_exp3_WP2.png"> <img width="35%" src="./log0002/C11_exp3_WP2_spec.png"> |
+
+
+#### Ship size
+
+<img width="80%" src="./log0002/C11_mesh_type_annote.png">
+
+- In this paper we had tried the two different kinds of meshes were tested as shown in the figure above. 
+- The Type A mesh is a regular mesh with the orientation of the triangular elements mirrored about the centreline. 
+- The Type B mesh has a 2B_s wide region of finer resolution about the centreline to better capture the vessel's pressure field, and then it gradually transitions to a regular mesh of a coarser size in the outer domain.
+- The following mesh set-ups were tested <br> <img width="80%" src="./log0002/C11_setups.png">
+- The volumes shown in the above table were not included in the paper. These are integral of the &eta; values in the domain beyong x=300 or 350 and excluding the sponge layer. 
+- This was done to monitor the mass under the free surface.
+- M100A and M100B have literally identical results in all probe and sections except for behind the ship as shown below.
+- This is because M100A has 1.0m mesh size near ship and M100B has 0.75m mesh size near the ship. Other than this they both have the same mesh size of 1.0m everywhere else.
+- Ship has width of 6m. This issue is not seen in any of the meshes having finer resolution near ship than 0.75m.
+- **Therefore we can conclude that B_s / &Delta;r >= 8 for ship wake simulations**. 
+- **Here &Delta;r refers to the mesh resolution of the linear nodes, the &eta; nodes**
+- This issue of artificial wake behind the ship wake is mostly due to sharp pressure gradients creating un-natural velocity.
+- For ships with steeper profiles a finer resolution than B_s / &Delta;r >= 8 might be needed.
+- Also note that we had tried a **M150A** as shown below. M150A also was a symmetric mesh about the centreline with triangles oriented in mirrored orientation. In that this un-natural wave behind the ship was huge enough to cause a failure in the code after 110s.
+
+|     |
+| --- |
+| **Fig :** M100A |
+| <img width="80%" src="./log0002/C11_davn100_0p85_dt125.gif"> |
+| **Fig :** M100B |
+| <img width="80%" src="./log0002/C11_davn100b_0p85_dt100.gif"> |
+| **Fig :** M150B |
+| <img width="80%" src="./log0002/C11_davn150b_0p85_dt125.gif"> |
+| **Fig :** M150A |
+| <img width="80%" src="./log0002/C11_davn150a_0p85_dt200.gif"> |
+
+One important thing to note is that in M150B also the mesh resolution near the ship is 1.0m which is same as M100A. But the mesh in M150B is not symmetric about the centreline as is the case in M100A. In every other mesh setup the mesh is symmetric about the centreline as shown in the figure on the top. <br> Anyhow its best to have B_s / &Delta;r >= 8.
+
+|     |     |
+| --- | --- | 
+| **Fig :** M150B | **Fig :** M100A |
+| <img width="90%" src="./log0002/C11_M150B_mesh.png"> | <img width="90%" src="./log0002/C11_M100A_mesh.png"> |
+
+Also please observe the forces in the figures below.
+Only M150B has a non zero mean of F_y, rest all have F_y mean as zero. This is because on M150B as a asymmetric mesh as shown in the figures above. <br>
+**The slight noise in M100B is due to it being Type B mesh**. You can see that no Type A mesh (even M100A which is not shown here) have almost zero F_y throughout. This oscillation in M100B is due to tiny reflection in FEM as the wave moves from a region of one resolution to a region of another resolution in Type B.
+
+|     |     |
+| --- | --- | 
+| **Fig :** Force X | **Fig :** Force Y |
+| <img width="90%" src="./log0002/C11_exp3_Fx.png"> | <img width="90%" src="./log0002/C11_exp3_Fy.png"> |
 
 -----------------------------------------------
 

@@ -2,9 +2,9 @@ clc
 clear all
 %close all
 
-g=1;
+g=9.81;
 
-h = 1;
+h = 5;
 c = 0.85*sqrt(g*h);
 amp = 1;
 syms kh
