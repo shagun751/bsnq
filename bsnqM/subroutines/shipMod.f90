@@ -6,18 +6,23 @@ implicit none
 
   type, public :: shipType    
     integer(kind=C_K1)::posN,posI,totNShip,presFnc
-    integer(kind=C_K1)::gridNL,gridNB
-    real(kind=C_K2)::cl,cb,al    
+    integer(kind=C_K1)::gridNL,gridNB,gridNN
+    real(kind=C_K2)::cl,cb,al,x0,y0,thDeg    
     real(kind=C_K2)::L,B,T
     real(kind=C_K2),allocatable::posData(:,:)
     real(kind=C_K2),allocatable::gP(:,:) !X major form
-    real(kind=C_K2),allocatable::gPPres(:)
+    real(kind=C_K2),allocatable::gPPres(:), gPNatCor(:,:)
+    integer(kind=C_K1),allocatable::gPFEMele(:)
     logical(kind=C_LG)::dragFlag, initEtaFlag
     type(mfPoiTyp)::gPObj    
+
+    !! gPFEMele is the FEM ele whose nodes neighbours will 
+    !! be used by the point-cloud nodes 
   contains
     procedure ::  getPress    
     procedure ::  getLoc
     procedure ::  calcDrag
+    procedure ::  generatePointCloud
   end type shipType  
 
   interface shipType
@@ -71,12 +76,19 @@ contains
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%dragFlag
     read(mf,*,end=83,err=83)bqtxt
-    read(mf,*,end=83,err=83)nnMax,tmpr1
+    read(mf,*,end=83,err=83)nnMax
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%gridNL,initShip%gridNB
-    allocate( initShip%gP( initShip%gridNL*initShip%gridNB, 2 ) )
-    allocate( initShip%gPPres( initShip%gridNL*initShip%gridNB ) )
-    call initShip%gPObj%initPoi(nnMax,0d0,0d0,tmpr1)    
+
+    if(mod(initShip%gridNL,2).eq.0) initShip%gridNL = initShip%gridNL+1
+    if(mod(initShip%gridNB,2).eq.0) initShip%gridNB = initShip%gridNB+1
+
+    initShip%gridNN = initShip%gridNL*initShip%gridNB
+    allocate( initShip%gP( initShip%gridNN, 2 ) )
+    allocate( initShip%gPPres( initShip%gridNN ) )
+    allocate( initShip%gPFEMele( initShip%gridNN ) )
+    allocate( initShip%gPNatCor( initShip%gridNN, 2 ) )
+    call initShip%gPObj%initPoi(nnMax,0d0,0d0,0d0)    
 
     read(mf,*,end=83,err=83)bqtxt
     read(mf,*,end=83,err=83)initShip%posN        
@@ -91,6 +103,13 @@ contains
       write(9,*)"[ERR] Insufficient ship position time information"
       stop
     endif    
+
+    write(9,*)
+    write(9,'(" [INF] Ship Read")')
+    write(9,'(" [---] NN NL NB (made odd if were given as even)")')
+    write(9,'(" [---] ",3I10)') initShip%gridNN, & 
+      initShip%gridNL, initShip%gridNB
+    write(9,*)
 
     goto 84
     83 write(9,*) "[ERR] Check ship file format"
@@ -238,23 +257,23 @@ contains
 
 
 
-!!--------------------------calcDrag---------------------------!!
-  subroutine calcDrag(sh,rTime,np,corx,cory,eta,fx,fy,fm)
+!!---------------------generatePointCloud----------------------!!
+  subroutine generatePointCloud(sh, rTime)
   implicit none
 
     class(shipType),intent(inout)::sh
-    integer(kind=C_K1),intent(in)::np
-    real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
-    real(kind=C_K2),intent(in)::eta(np)
-    real(kind=C_K2),intent(out)::fx,fy,fm
+    real(kind=C_K2),intent(in)::rTime
 
-    integer(kind=C_K1)::i,j,k,k2,shI,shJ,nn,err
-    real(kind=C_K2)::x0,y0,thDeg,csth,snth,dr,tmpr1
-    real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy, lfx, lfy
+    integer(kind=C_K1)::i, j, k, k2
+    real(kind=C_K2)::x0, y0, thDeg, csth, snth, dx, dy
+    real(kind=C_K2)::x, y
 
     call sh%getLoc(rTime,x0,y0,thDeg)
     csth=dcos(thDeg*deg2rad)
     snth=dsin(thDeg*deg2rad)
+    sh%x0 = x0
+    sh%y0 = y0
+    sh%thDeg = thDeg
 
     dx = sh%L / (sh%gridNL-1)
     dy = sh%B / (sh%gridNB-1)
@@ -268,6 +287,31 @@ contains
         sh%gP(k,2) = y0 + x*snth + y*csth  
       enddo
     enddo
+
+  end subroutine generatePointCloud
+!!-------------------End generatePointCloud--------------------!!
+
+
+
+!!--------------------------calcDrag---------------------------!!
+  subroutine calcDrag(sh,rTime,nele,np,conn,corx,cory,&
+    femPObf,eta,fx,fy,fm)
+  implicit none
+
+    class(shipType),intent(inout)::sh
+    integer(kind=C_K1),intent(in)::np,nele, conn(nele,6)
+    real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
+    real(kind=C_K2),intent(in)::eta(np)
+    type(mfPoiTyp),intent(in),target::femPObf(np)
+    real(kind=C_K2),intent(out)::fx,fy,fm
+
+    integer(kind=C_K1)::i,j,j2,k,k2,shI,shJ,nn,err
+    integer(kind=C_K1)::femNode, femEle
+    real(kind=C_K2)::rad2,tmpr1
+    real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy, lfx, lfy
+    type(mfPoiTyp),pointer::femPThis
+
+    
     ! do j=sh%gridNB,1,-1
     !   do i=1,sh%gridNL
     !     k=(i-1)*k2+j
@@ -278,8 +322,10 @@ contains
     ! enddo
     ! stop
 
-    k2=sh%gridNL*sh%gridNB
-    call sh%getPress(rTime,k2,sh%gP,sh%gPPres)
+    dx = sh%L / (sh%gridNL-1)
+    dy = sh%B / (sh%gridNB-1)
+    
+    call sh%getPress(rTime,sh%gridNN,sh%gP,sh%gPPres)    
 
     fx=0d0
     fy=0d0
@@ -291,25 +337,42 @@ contains
         k=(shI-1)*k2+shJ
         sh%gPObj%cx = sh%gP(k,1)
         sh%gPObj%cy = sh%gP(k,2)
+        femEle = sh%gPFEMele(k)            
+        
+        sh%gPObj%rad=0
+        do i = 1,3
+          femPThis => femPObf(conn(femEle, i))
+          sh%gPObj%rad = sh%gPObj%rad + femPThis%rad/3d0
+        enddo
+        rad2 = sh%gPObj%rad**2
 
         nn=0
-        tmpr1=sh%gPObj%rad**2
-        do i=1,np
-          dr=( corx(i)-sh%gPObj%cx )**2 &
-            + ( cory(i)-sh%gPObj%cy )**2 
-          if(dr.lt.tmpr1)then
-            nn=nn+1
-            if(nn .gt. sh%gPObj%nnMax)then
-              write(9,'("      |",a6,a)')"[ERR]",&
-                "ship%CalcDrag| Increase ship numOfNegh or reduce radius"
-              fx=0d0
-              fy=0d0
-              fm=0d0
-              return
-            endif            
-            sh%gPObj%neid(nn) = i
-          endif
+        do i = 1,3
+          femPThis => femPObf(conn(femEle, i))
+          
+          do j = 1,femPThis%nn            
+            j2 = femPThis%neid(j)
+            if( count(sh%gPObj%neid(1:nn).eq.j2).eq.0 )then
+              tmpr1 = (corx(j2)-sh%gPObj%cx)**2 &
+                + (cory(j2)-sh%gPObj%cy)**2
+              if(tmpr1.gt.rad2)cycle
+
+              nn = nn + 1
+              if(nn .gt. sh%gPObj%nnMax)then
+                write(9,'("      |",a6,a)')"[ERR]",&
+                  "ship%CalcDrag| Increase ship max numOfNegh"
+                fx=0d0
+                fy=0d0
+                fm=0d0
+                return
+              endif                            
+
+              sh%gPObj%neid(nn)=j2
+            endif
+          enddo
         enddo
+        sh%gPObj%nn = nn
+                        
         if(nn .lt. 4)then
           write(9,'("      |",a6,a)')"[ERR]",&
             "ship%CalcDrag| Insufficient neghs"
@@ -319,19 +382,20 @@ contains
           fy=0d0
           fm=0d0
           return
-        endif            
-        sh%gPObj%nn=nn        
-
+        endif
+                
         call mls2DDx(sh%gPObj%cx, sh%gPObj%cy, nn, &
-          sh%gPObj%rad, corx(sh%gPObj%neid(1:nn)), &
-          cory(sh%gPObj%neid(1:nn)), &
+          sh%gPObj%rad, corx( sh%gPObj%neid(1:nn) ), &
+          cory( sh%gPObj%neid(1:nn) ), &
           sh%gPObj%phi(1:nn), sh%gPObj%phiDx(1:nn), &
-          sh%gPObj%phiDy(1:nn),err)        
+          sh%gPObj%phiDy(1:nn), err)        
 
         if(err.ne.0) then !If any err in mls2DDx then return fx=0
           fx=0d0
           fy=0d0
           fm=0d0
+          write(9,'("      |",a6,a)')"[ERR]",&
+            "ship%CalcDrag| Error in mls2DDx"
           return
         endif
 
@@ -339,8 +403,9 @@ contains
         etaDx=0d0
         etaDy=0d0
         do i=1,nn
-          etaDx=etaDx+ sh%gPObj%phiDx(i) * eta(sh%gPObj%neid(i))
-          etaDy=etaDy+ sh%gPObj%phiDy(i) * eta(sh%gPObj%neid(i))
+          j = sh%gPObj%neid(i)
+          etaDx=etaDx+ sh%gPObj%phiDx(i) * eta(j)
+          etaDy=etaDy+ sh%gPObj%phiDy(i) * eta(j)
         enddo
 
         !! Simpson's integration
@@ -365,10 +430,10 @@ contains
         endif
         tmpr1=-tmpr1*dx*dy/9d0 !! correct sign for inward normal to area
         lfx = tmpr1*sh%gPPres(k)*etaDx
-        lfy = tmpr1*sh%gPPres(k)*etaDy
+        lfy = tmpr1*sh%gPPres(k)*etaDy        
         fx = fx + lfx
         fy = fy + lfy
-        fm = fm + (sh%gP(k,1)-x0)*lfy - (sh%gP(k,2)-y0)*lfx
+        fm = fm + (sh%gP(k,1)-sh%x0)*lfy - (sh%gP(k,2)-sh%y0)*lfx
       enddo
     enddo
 

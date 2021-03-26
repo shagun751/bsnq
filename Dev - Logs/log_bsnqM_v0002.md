@@ -11,6 +11,7 @@
 1. [Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]](#log_bsnqM_v0002_9)
 1. [Edit : Absorbing layer beyond limit length [2020-09-13]](#log_bsnqM_v0002_10)
 1. [Observation : Mesh requirement for ship cases [2021-03-12] **VERY IMPORTANT**](#log_bsnqM_v0002_11)
+1. [Feature : New drag calculation approach for ship [2021-03-26]](#log_bsnqM_v0002_12)
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
@@ -37,6 +38,78 @@
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_v0002_12' />
+
+### Feature : New drag calculation approach for ship [2021-03-26]
+<img width="60%" src="./log0002/C12_pointCld.png">
+
+- The existing method for drag calculation is using a point cloud system.
+- The &eta; derivatives requires at the nodes of the point cloud are evaluated using MLS.
+- Currently the FEM neighbour nodes for MLS process are found using brute force method where you loop through all nodes of the FEM domain (lin + quad) for each point-cloud node and find by distance if the FEM node is within user prescribed radius.
+- This process didnt pose any speed issues in small domains.
+- **However while testing with large domains this process took just too much time**
+- I was running cases with the following large mesh characteristics with almost 3 million total nodes (**Mesh1**) <br>`[INF]      LinNode    QuadNode     TotNode      nEdges`<br>
+ `[---]       739431     2211430     2950861     2211430`
+- It has 2 ships for which drag has to be calculated.
+- With drag calculation turned off it takes 37.5s per time-step
+- With drag calculation turned on for both ships and using the brute force algorithm it takes 86s per time-step, **which is more than 2x the noDrag time!**
+- This is all because if the slow brute force search method for the neighbouring FEM nodes.
+
+Refer to folder 'Test_inl2B_dragCalc'.
+
+As a demonstration refer to the following table for simulation time of Mesh1 case with 3 million total FEM nodes, run for 21 time-steps with drag calculation for two ships in Aqua with 40 cores.
+
+**Mesh1 Case** 3 million total nodes, 2 ships
+
+| Algo | Total Wall Time (second) | Relative | Remarks |
+| ---- | ------------------------ | -------- | ------- |
+| No-Drag | 784.23  | Ref | |
+| Old brute force| 1974.21 | 2.52x | Ridiculously slow |
+| Algo 1 | 849.4 | 1.08x | Not as fast as no-drag, also noisy |
+| Algo 2 | 861.3 | 1.10x | Not as fast as no-drag, smooth |
+
+**inl2B Case** 141 thousand total nodes, 1 ship
+
+| Algo | Total Wall Time (second) | Relative | Remarks |
+| ---- | ------------------------ | -------- | ------- |
+| No-Drag |   |  | |
+| Old brute force | 1582.6 |  |
+| Algo 1 | 1502.9 |  | As fast as no-drag but noisy |
+| Algo 2 | 1526.8 |  | Fast and smooth |
+
+Its seen than the heavy impact of the old brute force algo is seen in large domains. This is why we didn't realise it during development.
+
+#### Alternate Algo 1 [not used]
+- In this method we find the element in which each of the point-cloud nodes lie and then within that we find the closest linear node of the triangle element using the shape function values.
+- The neighbours and radius of this FEM nodes are taken the the point-cloud node's neighbours and radius
+- This method is faster.
+- But the results are very noisy as shown below in Fx and Fy values.
+- This is likely coz the nearest neighbour keeps changing and also that the neighbours will not be centered.
+
+|     |
+| --- |
+| **Fig:** Algo 1 Fx inl2B Case |
+| <img width="80%" src="./log0002/C12_algo1_sh1Fx_overlap.png"> |
+| **Fig:** Algo 1 Fy inl2B Case |
+| <img width="80%" src="./log0002/C12_algo1_sh1Fy_overlap.png"> |
+
+#### Alternate Algo 2 [used]
+- In this algo we first the element in which the point-cloud node is lying.
+- After that the point-cloud node radius is average of the radius of the three lin nodes of the element. **Hence user doesnt have to prescribe the radius.**
+- The neighbours from the 3 lin nodes of the element are all used as neighbours of the point-cloud nodes.
+- This is marginally slower than Algo 1 because it takes some time to take unique neighbours from the three lin FEM nodes and put then as point-cloud node's neighbours.
+- The results are smooth as before as shown below, but with some loss of speed compared to no-drag as shown in the tables above.
+
+|     |
+| --- |
+| **Fig:** Algo 2 Fx inl2B Case |
+| <img width="80%" src="./log0002/C12_algo2_sh1Fx_overlap.png"> |
+| **Fig:** Algo 2 Fy inl2B Case |
+| <img width="80%" src="./log0002/C12_algo2_sh1Fy_overlap.png"> |
+
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_v0002_11' />
 

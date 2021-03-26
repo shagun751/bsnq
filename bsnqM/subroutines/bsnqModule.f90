@@ -204,10 +204,12 @@ contains
   subroutine postInstructs(b)
   implicit none
 
-    class(bsnqCase),intent(inout)::b
+    class(bsnqCase),intent(inout),target::b
 
-    integer(kind=C_K1)::i, ishp
-    real(kind=C_K2)::tmpr1,tmpr2,tmpr3
+    type(shipType),pointer::shThis
+
+    integer(kind=C_K1)::i, ishp, j, k
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3, wei(3)
 
     
     b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
@@ -259,14 +261,39 @@ contains
       !call b%testGetVertVel
     endif
         
-    !! Ship drag calculation
+    !! Ship drag calculation and position reporting
     if(b%presOn)then
+      b%vec6Tmp = b%tOb(0)%tD - b%dep
+      
       do ishp = 1, b%sh(1)%totNShip
-        if(b%sh(ishp)%dragFlag)then !Optional to calc drag
-          b%vec6Tmp = b%tOb(0)%tD - b%dep
+        if(b%sh(ishp)%dragFlag)then !Optional to calc drag          
+          
+          shThis => b%sh(ishp)
+          ! Ship centre location updated in this function
+          ! along with the generation of the point cloud
+          call shThis%generatePointCloud( b%tOb(0)%rtm )
+
+          write(9,303) 'shP', ishp, b%tOb(0)%rtm, shThis%x0, &
+            shThis%y0, shThis%thDeg
+          
+          ! get the element that each point in pointCloud is
+          call b%findEleForLocXY2( shThis%gridNN, &
+            shThis%gP(:,1), shThis%gP(:,2), &
+            shThis%gPFEMele, shThis%gPNatCor(:,1), & 
+            shThis%gPNatCor(:,2) )
+
+          if(minval(shThis%gPFEMele).eq.-1) then
+            write(9,'("      |",a6,a)')"[ERR]",&
+              "ship%CalcDrag| Ship not fully in domain "
+            write(9,303)'shF',ishp,b%tOb(0)%rtm,0d0,0d0,0d0
+            cycle
+          endif                    
+
           i=b%npt
-          call b%sh(ishp)%calcDrag(b%tOb(0)%rtm,i,b%cor(1:i,1),&
-            b%cor(1:i,2),b%vec6Tmp(1:i),tmpr1,tmpr2,tmpr3)
+          call shThis%calcDrag(b%tOb(0)%rtm, b%nele, i, &
+            b%conn, b%cor(1:i,1), b%cor(1:i,2), &
+            b%pObf(1:i), b%vec6Tmp(1:i), &
+            tmpr1, tmpr2, tmpr3)
           write(9,303)'shF',ishp,b%tOb(0)%rtm,tmpr1,tmpr2,tmpr3
         endif
       enddo
