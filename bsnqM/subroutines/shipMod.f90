@@ -9,7 +9,7 @@ implicit none
     integer(kind=C_K1)::gridNL,gridNB,gridNN
     real(kind=C_K2)::cl,cb,al,x0,y0,thDeg    
     real(kind=C_K2)::L,B,T
-    real(kind=C_K2),allocatable::posData(:,:)
+    real(kind=C_K2),allocatable::posData(:,:),posDadtt(:,:)
     real(kind=C_K2),allocatable::gP(:,:) !X major form
     real(kind=C_K2),allocatable::gPPres(:), gPNatCor(:,:)
     integer(kind=C_K1),allocatable::gPFEMele(:)
@@ -21,8 +21,10 @@ implicit none
   contains
     procedure ::  getPress    
     procedure ::  getLoc
+    procedure ::  getLocCS
     procedure ::  calcDrag
     procedure ::  generatePointCloud
+    procedure ::  setCubicSpline
   end type shipType  
 
   interface shipType
@@ -94,10 +96,13 @@ contains
     read(mf,*,end=83,err=83)initShip%posN        
     read(mf,*,end=83,err=83)bqtxt
     allocate(initShip%posData( initShip%posN, 4))
+    allocate(initShip%posDadtt( initShip%posN, 4))
     do j=1,initShip%posN
-      read(mf,*,end=83,err=84)initShip%posData(j,1:4)
+      read(mf,*,end=83,err=84)initShip%posData(j,1:4)      
     enddo        
+    initShip%posDadtt(:,1)=initShip%posData(:,1)
     initShip%posI=1
+    call initShip%setCubicSpline
 
     if(simEnd.gt.initShip%posData( initShip%posN,1 ))then
       write(9,*)"[ERR] Insufficient ship position time information"
@@ -119,6 +124,91 @@ contains
   end function initShip
 !!----------------------End initShipType-----------------------!!
 
+
+
+!!-----------------------setCubicSpline------------------------!!
+  subroutine setCubicSpline(sh)
+  implicit none
+
+    class(shipType),intent(inout)::sh    
+    integer(kind=C_K1)::i,nn,k    
+    real(kind=C_K2),allocatable::mA(:,:),rhs(:,:)
+
+    nn=sh%posN
+
+    ! mA (n x n)
+    ! [b1 c1 ----------------------]
+    ! [a2 b2 c2 -------------------]
+    ! [-- a3 b3 c3 ----------------]
+    ! [----- a4 b4 c4 -------------]
+    ! [----------------------------]
+    ! [---------------------- an bn]
+    !
+    ! Convert to
+    ! 
+    ! mA (n x 3)
+    ! [ 0 b1 c1]
+    ! [a2 b2 c2]
+    ! [a3 b3 c3]
+    ! [a4 b4 c4]
+    ! [--------]
+    ! [an bn 0 ]
+
+    ! rhs
+    ! corresponding to 
+    ! [x, y, th]
+
+    write(9,*)
+    write(9,'(" [INF] Ship Cublic Spine Coeffs")')    
+    
+    allocate(mA(nn,3), rhs(nn,3))
+    mA=0d0
+    rhs=0d0
+
+    ! natural spline setup
+    mA(1,2)=1d0 !b1
+    mA(nn,2)=1d0 !bn
+    do i=2,nn-1
+      mA(i,1) = (sh%posData(i,1)-sh%posData(i-1,1))/6d0
+      mA(i,2) = (sh%posData(i+1,1)-sh%posData(i-1,1))/3d0
+      mA(i,3) = (sh%posData(i+1,1)-sh%posData(i,1))/6d0
+
+      k=2
+      rhs(i,k-1) = (sh%posData(i+1,k) - sh%posData(i,k)) &
+        / (sh%posData(i+1,1) - sh%posData(i,1)) - &
+        (sh%posData(i,k) - sh%posData(i-1,k)) &
+        / (sh%posData(i,1) - sh%posData(i-1,1)) 
+
+      k=3
+      rhs(i,k-1) = (sh%posData(i+1,k) - sh%posData(i,k)) &
+        / (sh%posData(i+1,1) - sh%posData(i,1)) - &
+        (sh%posData(i,k) - sh%posData(i-1,k)) &
+        / (sh%posData(i,1) - sh%posData(i-1,1)) 
+
+      k=4
+      rhs(i,k-1) = (sh%posData(i+1,k) - sh%posData(i,k)) &
+        / (sh%posData(i+1,1) - sh%posData(i,1)) - &
+        (sh%posData(i,k) - sh%posData(i-1,k)) &
+        / (sh%posData(i,1) - sh%posData(i-1,1)) 
+    enddo    
+
+    call triDiagSolver(nn, mA, rhs(:,1), sh%posDadtt(:,2))
+    call triDiagSolver(nn, mA, rhs(:,2), sh%posDadtt(:,3))
+    call triDiagSolver(nn, mA, rhs(:,3), sh%posDadtt(:,4))
+    
+    ! write(*,*)sh%posN
+    ! do i = 1,nn
+    !   !write(*,'(3F15.6," | ",F15.6)')mA(i,1:3), rhs(i,3)
+    !   write(*,'(3F15.6," | ",F15.6)')mA(i,1:3), sh%posDadtt(i,4)
+    !   !write(*,'(3F15.6," | ",F15.6)')sh%posData(i,1:4)
+    ! enddo            
+
+    deallocate(mA, rhs)
+    write(9,'(" [---] Done")')    
+    write(9,*)
+    
+  end subroutine setCubicSpline
+!!---------------------End setCubicSpline----------------------!!
 
 
 
@@ -168,6 +258,55 @@ contains
 
 
 
+!!--------------------------getLocCS---------------------------!!
+  subroutine getLocCS(sh,rTime,x0,y0,thDeg)
+  implicit none
+
+    class(shipType),intent(inout)::sh    
+    integer(kind=C_K1)::i,k,lPosI
+    real(kind=C_K2),intent(in)::rTime
+    real(kind=C_K2),intent(out)::x0,y0,thDeg
+
+    real(kind=C_K2)::cA, cB, cC, cD, dx
+
+    if((rTime.ge.sh%posData(sh%posI,1)) .and. &
+      (rTime.lt.sh%posData(sh%posI+1,1)))then
+      lPosI=sh%posI      
+    
+    else
+      do i=1,sh%posN
+        if(sh%posData(i,1).gt.rTime) exit      
+      enddo
+      lPosI=i-1
+      if((lPosI.eq.0) .or. (rTime.gt.sh%posData(sh%posN,1)) )then
+        write(9,*)"[ERR] Ship position unavailable at time ",rTime
+        stop
+      endif
+      sh%posI=lPosI
+    endif
+
+    dx = (sh%posData(lPosI+1,1) - sh%posData(lPosI,1))
+    cA = (sh%posData(lPosI+1,1) - rTime) / dx
+    cB = 1d0 - cA
+    cC = (cA**3 - cA)*dx*dx/6d0
+    cD = (cB**3 - cB)*dx*dx/6d0
+
+    k=2
+    x0 = (cA * sh%posData(lposI,k)) + (cB * sh%posData(lposI+1,k)) &
+      + (cC * sh%posDadtt(lposI,k)) + (cD * sh%posDadtt(lposI+1,k))
+  
+    k=3
+    y0 = (cA * sh%posData(lposI,k)) + (cB * sh%posData(lposI+1,k)) &
+      + (cC * sh%posDadtt(lposI,k)) + (cD * sh%posDadtt(lposI+1,k))      
+
+    k=4
+    thDeg = (cA * sh%posData(lposI,k)) + (cB * sh%posData(lposI+1,k)) &
+      + (cC * sh%posDadtt(lposI,k)) + (cD * sh%posDadtt(lposI+1,k))
+  end subroutine getLocCS
+!!------------------------End getLocCS-------------------------!!
+
+
+
 
 !!--------------------------getPress---------------------------!!
   subroutine getPress(sh,rTime,npt,cor,pres)
@@ -182,7 +321,7 @@ contains
     real(kind=C_K2)::x0,y0,thDeg,thRad,rRef,cost,sint
     real(kind=C_K2)::x,y,dr2,lx,ly,px,py
     
-    call sh%getLoc(rTime,x0,y0,thDeg)
+    call sh%getLocCS(rTime,x0,y0,thDeg)
     thRad=thDeg*deg2rad
 
     pres=0d0
@@ -268,7 +407,7 @@ contains
     real(kind=C_K2)::x0, y0, thDeg, csth, snth, dx, dy
     real(kind=C_K2)::x, y
 
-    call sh%getLoc(rTime,x0,y0,thDeg)
+    call sh%getLocCS(rTime,x0,y0,thDeg)
     csth=dcos(thDeg*deg2rad)
     snth=dsin(thDeg*deg2rad)
     sh%x0 = x0
@@ -439,6 +578,64 @@ contains
 
   end subroutine calcDrag
 !!------------------------End calcDrag-------------------------!!
+
+
+
+!!------------------------triDiagSolver------------------------!!
+  subroutine triDiagSolver(n,A,B,x)
+  implicit none
+
+    integer(kind=C_K1),intent(in)::n
+    real(kind=C_K2),intent(in)::A(n,3),B(n)
+    real(kind=C_K2),intent(out)::x(n)
+
+    integer(kind=C_K1)::i    
+    real(kind=C_K2),allocatable::prC(:),prD(:)    
+
+    ! A (n x n)
+    ! [b1 c1 ----------------------]
+    ! [a2 b2 c2 -------------------]
+    ! [-- a3 b3 c3 ----------------]
+    ! [----- a4 b4 c4 -------------]
+    ! [----------------------------]
+    ! [---------------------- an bn]
+    !
+    ! Converted to following in input itself
+    ! 
+    ! A (n x 3)
+    ! [ 0 b1 c1]
+    ! [a2 b2 c2]
+    ! [a3 b3 c3]
+    ! [a4 b4 c4]
+    ! [--------]
+    ! [an bn 0 ]
+
+    ! [ai bi ci][xi] = [di]      
+
+    allocate(prC(n), prD(n))
+
+    prC(1) = A(1,3)/A(1,2)
+    prD(1) = B(1)/A(1,2)
+
+    do i = 2,n-1
+      prC(i) = A(i,3) / ( A(i,2) - A(i,1)*prC(i-1) )      
+    enddo
+
+    do i = 2,n      
+      prD(i) = ( B(i) - A(i,1)*prD(i-1) ) &
+        / ( A(i,2) - A(i,1)*prC(i-1) )
+    enddo
+
+    x(n) = prD(n)
+
+    do i = n-1,1,-1
+      x(i) = prD(i) - prC(i)*x(i+1)
+    enddo
+
+    deallocate(prC, prD)
+
+  end subroutine triDiagSolver
+!!----------------------End triDiagSolver----------------------!!
 
 
 end module shipMod

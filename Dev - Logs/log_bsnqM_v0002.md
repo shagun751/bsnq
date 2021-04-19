@@ -12,6 +12,7 @@
 1. [Edit : Absorbing layer beyond limit length [2020-09-13]](#log_bsnqM_v0002_10)
 1. [Observation : Mesh requirement for ship cases [2021-03-12] **VERY IMPORTANT**](#log_bsnqM_v0002_11)
 1. [Feature : New drag calculation approach for ship [2021-03-26]](#log_bsnqM_v0002_12)
+1. [Feature : Cubic Spline path for ship [2021-04-07]](#log_bsnqM_v0002_13)
 
 ### Attempting
 - Add moving pressure to simulate ship-generated waves
@@ -38,6 +39,37 @@
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_v0002_13' />
+
+### Feature : Cubic Spline path for ship [2021-04-07]
+- The path of the ship is speicifed in '.pos' file by the user.
+- The user specifies time, X, Y, &theta; for the ship at any interval in ascending order of time.
+- The position at any time instant was estimated using linear interpolation between interval k and k+1.
+- This is alright when the ship is moving in straight lines at various angles and was probably how i tested it.
+- However it works really poorly for curves.
+
+#### Issues with linear interpolation
+- The path faces jerks at every user point because linear interpolation doesnt ensure that the gradients are continuous across the specified points.
+	- dX/dt, dY/dt and d&theta;/dt are not continuous across the user specified points. The grid in the below plot are locations at which user specified the ship position and orientation.<br><img width="100%" src="./log0002/C13_CS_vs_L_pos.jpg">
+- Due to this it appears like you are dropping the ship again at new angle, whenever the time goes from range (k,k+1) to (k+1,k+2)
+- Please observe these two instances below showing the effect of ship being dropped again seen through ripples in the free surface. Left - cubic spline. Right - linear.<br><img width="90%" src="./log0002/C13_CS_vs_LT250.png"><br><img width="90%" src="./log0002/C13_CS_vs_LT275.png">
+- Another influence of this linear interpolation related shock is seen very evidently in the force plots as shown below. The force plots get huge shocks indicating the apparent sharp change in orientation of the ship.<br><img width="90%" src="./log0002/C13_CS_vs_L_Force.jpg">
+
+#### Cubic spline
+- Murali sir had taught us in the 'Numerical methods' course about how to interpolate any dataset using Lagrangian polynomial and cubic spline.
+- Lagrangian polynomial gives wild oscillations near the end points.
+- Cubic spline provides piecewise third order polynomial between beach interval (k,k+1) while ensure that upto second derivative is continuous at every point.
+- This provides smooth result in position as was shown in the plots above.
+- The evaluation requires a one time calculation of second derivative at ever user specified point through inversion of a tri-diagonal matrix. All of this is done in shipType%setCubicSpline() in the beginning of the simulation. After this position is obtained using very simple algebraic expressions.
+- The significance of this cubic spline interpolation of the position is seen in the following plot.
+	- The repeated shocks in the position of the vessel at user specified points leads to ripples which create unnecessary waves in the domain.
+
+<img width="100%" src="./log0002/C13_ulb02_CS_vs_L_elev.gif">
+
+The case name here is 'Test_ulb/ulb02_CS' and 'Test_ulb/ulb02_t2'
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_v0002_12' />
 
