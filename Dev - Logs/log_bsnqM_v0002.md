@@ -25,7 +25,6 @@
 - [x] Moving Press - Press2 - Press val at quad nodes
 - [ ] Moving Press - Press1 - Press val at linear nodes
 - [x] Moving Press - Press1 - Press val at quad nodes
-- [ ] waveInputFile search to binary instead of sequential
 - [ ] Check soliton generation in /-\\
 - [ ] Verify point to point with Ertekin (1986)
 - [ ] Neigh search - immediate FEM linktable only
@@ -64,6 +63,9 @@
 - The evaluation requires a one time calculation of second derivative at ever user specified point through inversion of a tri-diagonal matrix. All of this is done in shipType%setCubicSpline() in the beginning of the simulation. After this position is obtained using very simple algebraic expressions.
 - The significance of this cubic spline interpolation of the position is seen in the following plot.
 	- The repeated shocks in the position of the vessel at user specified points leads to ripples which create unnecessary waves in the domain.
+
+
+The code for cubic spline was written based on the algorithm given in the assignment which I did for Murali sir's Numerical Techniques course [PDF file](./log0002/Assignment_A.pdf)
 
 <img width="100%" src="./log0002/C13_ulb02_CS_vs_L_elev.gif">
 

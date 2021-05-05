@@ -238,7 +238,7 @@ implicit none
   type, public :: wvFileType        
     character(len=256)::fileName
     integer(kind=C_K1)::numP,posI
-    real(kind=C_K2),allocatable::data(:,:)
+    real(kind=C_K2),allocatable::data(:,:), datadtt(:,:)
   contains
     procedure ::  chkWaveFileInput
     procedure ::  initWaveFile
@@ -278,14 +278,16 @@ contains
     write(9,'(" [INF] Number of wave file point = ",i10)')b%numP
     close(mf)
 
-    allocate(b%data(b%numP,4))
+    allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
     open(newunit=mf,file=trim(b%fileName))    
     do i=1,b%numP
       read(mf,*,end=21,err=21)b%data(i,1:4)      
     enddo
+    b%datadtt(:,1) = b%data(:,1)
     write(9,*)"[INF] Done wave file read"
 
-    b%posI=2
+    call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    b%posI=1
 
     return
     21 write(9,*)"[ERR] Check wave file format"
@@ -322,7 +324,7 @@ contains
     totT=1.2d0*inTotT
     b%numP=floor(totT/dt)+2
 
-    allocate(b%data(b%numP,4))
+    allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
     do i=0,b%numP-1
       t=i*dt
       call wv%getEta(t,0d0,0d0,eta)
@@ -334,7 +336,9 @@ contains
       !write(201,'(4F15.6)')b%data(i+1,1:4)
     enddo    
 
-    b%posI=2
+    b%datadtt(:,1) = b%data(:,1)
+    call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    b%posI=1  
 
   end subroutine initAiryFile
 !!----------------------End initAiryFile-----------------------!!
@@ -343,40 +347,113 @@ contains
 
 
 !!---------------------------getEta----------------------------!!
+  ! subroutine getEta(b,rTime,eta)
+  ! implicit none
+
+  !   class(wvFileType),intent(in)::b
+
+  !   integer(kind=C_K1)::k,posI
+
+  !   real(kind=C_K2),intent(in)::rTime
+  !   real(kind=C_K2),intent(out)::eta
+
+  !   posI=2
+    
+  !   if((rTime.gt.b%data(b%numP,1)).or.&
+  !     (rTime.lt.b%data(1,1)))then
+  !     write(9,*)"[ERR] Wave query exceeds supplied time range"
+  !     write(9,'( "[---] ",F15.6)')rTime
+  !     write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
+  !     stop
+  !   endif
+
+  !   do while(b%data(posI+1,1).le.rTime)
+  !     posI=posI+1
+  !   enddo
+
+  !   ! do while(b%data(posI-1,1).gt.rTime)
+  !   !   if(posI.eq.2)exit
+  !   !   posI=posI-1
+  !   ! enddo
+
+  !   k=2
+  !   eta=b%data(posI,k) &
+  !     + (b%data(posI+1,k)-b%data(posI-1,k)) &
+  !     / (b%data(posI+1,1)-b%data(posI-1,1)) &
+  !     * (rTime-b%data(posI,1))
+
+  !   !write(222,'(3F20.6)')rTime,b%data(posI,1),rTime-b%data(posI,1)
+
+  ! end subroutine getEta
+
+
+
   subroutine getEta(b,rTime,eta)
   implicit none
 
     class(wvFileType),intent(in)::b
 
-    integer(kind=C_K1)::k,posI
+    integer(kind=C_K1)::k, posI, i
 
     real(kind=C_K2),intent(in)::rTime
     real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2)::dx, cA, cB, cC, cD
 
-    posI=2
+    ! if((rTime.ge.b%data(b%posI,1)) .and. &
+    !   (rTime.lt.b%data(b%posI+1,1)))then
+      
+    !   posI=b%posI      
+
+    ! elseif((rTime.ge.b%data(b%posI+1,1)) .and. &
+    !   (rTime.lt.b%data(b%posI+2,1)))then
+      
+    !   b%posI = b%posI + 1
+    !   posI=b%posI
+
+    ! elseif(b%posI.ge.2)then
+    !   if((rTime.ge.b%data(b%posI-1,1)) .and. &
+    !     (rTime.lt.b%data(b%posI,1)))then
+
+    !     b%posI = b%posI - 1
+    !     posI=b%posI
+    !   endif
     
-    if((rTime.gt.b%data(b%numP,1)).or.&
-      (rTime.lt.b%data(1,1)))then
+    ! else
+      
+    !   do i = 1, b%numP
+    !     if(b%data(i,1).gt.rTime) exit      
+    !   enddo
+    !   posI=i-1      
+    !   if((posI.eq.0) .or. (rTime.gt.b%data(b%numP,1)) )then        
+    !     write(9,*)"[ERR] Wave query exceeds supplied time range"
+    !     write(9,'( "[---] ",F15.6)')rTime
+    !     write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
+    !     stop
+    !   endif
+    !   b%posI=posI
+    !   write(9,*)"[INF] Looped for waveInput"
+    ! endif  
+
+    do i = 1, b%numP
+      if(b%data(i,1).gt.rTime) exit      
+    enddo
+    posI=i-1      
+    if((posI.eq.0) .or. (rTime.gt.b%data(b%numP,1)) )then        
       write(9,*)"[ERR] Wave query exceeds supplied time range"
       write(9,'( "[---] ",F15.6)')rTime
       write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
       stop
-    endif
+    endif  
 
-    do while(b%data(posI+1,1).le.rTime)
-      posI=posI+1
-    enddo
-
-    ! do while(b%data(posI-1,1).gt.rTime)
-    !   if(posI.eq.2)exit
-    !   posI=posI-1
-    ! enddo
+    dx = (b%data(posI+1,1) - b%data(posI,1))
+    cA = (b%data(posI+1,1) - rTime) / dx
+    cB = 1d0 - cA
+    cC = (cA**3 - cA)*dx*dx/6d0
+    cD = (cB**3 - cB)*dx*dx/6d0          
 
     k=2
-    eta=b%data(posI,k) &
-      + (b%data(posI+1,k)-b%data(posI-1,k)) &
-      / (b%data(posI+1,1)-b%data(posI-1,1)) &
-      * (rTime-b%data(posI,1))
+    eta = (cA * b%data(posI,k)) + (cB * b%data(posI+1,k)) &
+      + (cC * b%datadtt(posI,k)) + (cD * b%datadtt(posI+1,k))    
 
     !write(222,'(3F20.6)')rTime,b%data(posI,1),rTime-b%data(posI,1)
 
@@ -391,42 +468,37 @@ contains
 
     class(wvFileType),intent(in)::b
 
-    integer(kind=C_K1)::k,posI
+    integer(kind=C_K1)::k, posI, i
 
     real(kind=C_K2),intent(in)::rTime
     real(kind=C_K2),intent(out)::p,q
+    real(kind=C_K2)::dx, cA, cB, cC, cD
 
-    posI=2
-    
-    if((rTime.gt.b%data(b%numP,1)).or.&
-      (rTime.lt.b%data(1,1)))then
+    do i = 1, b%numP
+      if(b%data(i,1).gt.rTime) exit      
+    enddo
+    posI=i-1      
+    if((posI.eq.0) .or. (rTime.gt.b%data(b%numP,1)) )then        
       write(9,*)"[ERR] Wave query exceeds supplied time range"
       write(9,'( "[---] ",F15.6)')rTime
       write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
       stop
-    endif
+    endif 
 
-    do while(b%data(posI+1,1).le.rTime)
-      posI=posI+1
-    enddo
-
-    ! do while(b%data(posI-1,1).gt.rTime)
-    !   if(posI.eq.2)exit
-    !   posI=posI-1
-    ! enddo
+    dx = (b%data(posI+1,1) - b%data(posI,1))
+    cA = (b%data(posI+1,1) - rTime) / dx
+    cB = 1d0 - cA
+    cC = (cA**3 - cA)*dx*dx/6d0
+    cD = (cB**3 - cB)*dx*dx/6d0          
 
     k=3
-    p=b%data(posI,k) &
-      + (b%data(posI+1,k)-b%data(posI-1,k)) &
-      / (b%data(posI+1,1)-b%data(posI-1,1)) &
-      * (rTime-b%data(posI,1))
+    p = (cA * b%data(posI,k)) + (cB * b%data(posI+1,k)) &
+      + (cC * b%datadtt(posI,k)) + (cD * b%datadtt(posI+1,k)) 
 
     k=4
-    q=b%data(posI,k) &
-      + (b%data(posI+1,k)-b%data(posI-1,k)) &
-      / (b%data(posI+1,1)-b%data(posI-1,1)) &
-      * (rTime-b%data(posI,1))
-
+    q = (cA * b%data(posI,k)) + (cB * b%data(posI+1,k)) &
+      + (cC * b%datadtt(posI,k)) + (cD * b%datadtt(posI+1,k)) 
+    
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
 
@@ -457,6 +529,134 @@ contains
 
   end subroutine chkWaveFileInput
 !!--------------------End chkWaveFileInput---------------------!!
+
+
+
+!!-----------------------setCubicSpline------------------------!!
+  subroutine setCubicSpline(nn, nc, da, dadtt)
+  implicit none
+    
+    integer(kind=C_K1),intent(in)::nn, nc
+    integer(kind=C_K1)::i,k    
+    real(kind=C_K2),intent(in)::da(nn, nc)
+    real(kind=C_K2),intent(out)::dadtt(nn, nc)
+    real(kind=C_K2),allocatable::mA(:,:),rhs(:,:)
+    
+
+    ! mA (n x n)
+    ! [b1 c1 ----------------------]
+    ! [a2 b2 c2 -------------------]
+    ! [-- a3 b3 c3 ----------------]
+    ! [----- a4 b4 c4 -------------]
+    ! [----------------------------]
+    ! [---------------------- an bn]
+    !
+    ! Convert to
+    ! 
+    ! mA (n x 3)
+    ! [ 0 b1 c1]
+    ! [a2 b2 c2]
+    ! [a3 b3 c3]
+    ! [a4 b4 c4]
+    ! [--------]
+    ! [an bn 0 ]
+
+    ! rhs
+    ! corresponding to 
+    ! [x, y, th]
+
+    write(9,*)
+    write(9,'(" [INF] waveInput Cublic Spine Coeffs")')    
+    
+    allocate(mA(nn,3), rhs(nn,nc-1))
+    mA=0d0
+    rhs=0d0
+
+    ! natural spline setup
+    mA(1,2)=1d0 !b1
+    mA(nn,2)=1d0 !bn
+    do i=2,nn-1
+      mA(i,1) = (da(i,1)-da(i-1,1))/6d0
+      mA(i,2) = (da(i+1,1)-da(i-1,1))/3d0
+      mA(i,3) = (da(i+1,1)-da(i,1))/6d0
+
+      do k = 2,nc
+        rhs(i,k-1) = (da(i+1,k) - da(i,k)) &
+          / (da(i+1,1) - da(i,1)) - &
+          (da(i,k) - da(i-1,k)) &
+          / (da(i,1) - da(i-1,1)) 
+      enddo
+      
+    enddo    
+
+    do k = 2,nc
+      call triDiagSolver(nn, mA, rhs(:,k-1), dadtt(:,k))
+    enddo
+
+    deallocate(mA, rhs)
+    write(9,'(" [---] Done")')    
+    write(9,*)
+    
+  end subroutine setCubicSpline
+!!---------------------End setCubicSpline----------------------!!
+
+
+
+!!------------------------triDiagSolver------------------------!!
+  subroutine triDiagSolver(n,A,B,x)
+  implicit none
+
+    integer(kind=C_K1),intent(in)::n
+    real(kind=C_K2),intent(in)::A(n,3),B(n)
+    real(kind=C_K2),intent(out)::x(n)
+
+    integer(kind=C_K1)::i    
+    real(kind=C_K2),allocatable::prC(:),prD(:)    
+
+    ! A (n x n)
+    ! [b1 c1 ----------------------]
+    ! [a2 b2 c2 -------------------]
+    ! [-- a3 b3 c3 ----------------]
+    ! [----- a4 b4 c4 -------------]
+    ! [----------------------------]
+    ! [---------------------- an bn]
+    !
+    ! Converted to following in input itself
+    ! 
+    ! A (n x 3)
+    ! [ 0 b1 c1]
+    ! [a2 b2 c2]
+    ! [a3 b3 c3]
+    ! [a4 b4 c4]
+    ! [--------]
+    ! [an bn 0 ]
+
+    ! [ai bi ci][xi] = [di]      
+
+    allocate(prC(n), prD(n))
+
+    prC(1) = A(1,3)/A(1,2)
+    prD(1) = B(1)/A(1,2)
+
+    do i = 2,n-1
+      prC(i) = A(i,3) / ( A(i,2) - A(i,1)*prC(i-1) )      
+    enddo
+
+    do i = 2,n      
+      prD(i) = ( B(i) - A(i,1)*prD(i-1) ) &
+        / ( A(i,2) - A(i,1)*prC(i-1) )
+    enddo
+
+    x(n) = prD(n)
+
+    do i = n-1,1,-1
+      x(i) = prD(i) - prC(i)*x(i+1)
+    enddo
+
+    deallocate(prC, prD)
+
+  end subroutine triDiagSolver
+!!----------------------End triDiagSolver----------------------!!
 
 
 end module waveFileModule

@@ -12,6 +12,9 @@
 ### List of Work
 - [x] Test pressure term with integration by parts [Link](#log_bsnqM_vAlgo_2)
 - [x] Added _fem_dN6iSc6dx_N6j()_ femAnalyticalTri_v1.1.f90
+- [ ] waveFileModule search to binary instead of sequential
+- [x] waveFileModule time-series interpolated by cubic spline instead of linear. Verified implementation.
+	- Check the importance of this for shipMod. May not matter in this though [link](./log_bsnqM_v0002.md#log_bsnqM_v0002_13)
 
 -----------------------------------------------
 
