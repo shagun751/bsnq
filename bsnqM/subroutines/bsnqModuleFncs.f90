@@ -371,6 +371,17 @@
         ! initAiryFile(dt,totTime,inT,inD,inH,inAngDeg)
         call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
           tmpr2,tmpr4)
+
+      case (2)      
+        ! initStokes2File(dt,totTime,inT,inD,inH,inAngDeg)
+        call b%wvF%initStokes2File(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
+          tmpr2,tmpr4)
+
+      case DEFAULT
+        write(*,*)"[ERR] Invalid wave input type", i
+        write(9,*)"[ERR] Invalid wave input type", i
+        stop        
+
     end select    
 
     read(mf,*,end=81,err=81)bqtxt

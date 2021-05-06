@@ -2,6 +2,7 @@
 
 1. [Paralution solver FORTRAN plugin [2020-10-15]](#log_bsnqM_vAlgo_1)
 2. [Test pressure term with integration by parts [2021-02-28]](#log_bsnqM_vAlgo_2)
+3. [Stokes2 wave input added [2021-04-06]](#log_bsnqM_vAlgo_3)
 
 
 ### Attempting
@@ -13,8 +14,75 @@
 - [x] Test pressure term with integration by parts [Link](#log_bsnqM_vAlgo_2)
 - [x] Added _fem_dN6iSc6dx_N6j()_ femAnalyticalTri_v1.1.f90
 - [ ] waveFileModule search to binary instead of sequential
-- [x] waveFileModule time-series interpolated by cubic spline instead of linear. Verified implementation.
+- [x] waveFileModule time-series interpolated by cubic spline instead of linear. Verified implementation. [2021-04-05]
 	- Check the importance of this for shipMod. May not matter in this though [link](./log_bsnqM_v0002.md#log_bsnqM_v0002_13)
+- [x] Stokes2 wave input in 'modsInletBC.f90' [2021-04-06] [link](#log_bsnqM_vAlgo_3)
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_3' ></a>
+
+### Stokes2 wave input added [2021-04-06]
+
+- Corrected the implementation of airy wave input by changing the phase (kx - wt) to cos and adding a (kx - wt + phi0) to start from eta=0 followed by a crest
+	- **Note that the phase moves backward w.r.t time t in (kx - wt + phi0), therefore for eta=0 followed by a creast in cosine, phi=90deg and not phi = 270deg**
+- Now there is no longer a need for the -ve sign of the wave height in the user input.
+
+Additionally Dean and Darlymple book had the expression for eta and u which I coded into _stokes2WaveModule_. Subsequently added the function _initStokes2File()_ to _waveFileModule_. A option for Stokes2 has been added in the user input .inp file, with option '2' for Stokes2
+
+The expression for eta from Dean and Darlymple book is as below.<br>
+<img width="70%" src="./logvAlgo/C03_stokes2_eta.png">
+
+This expression cannot be simple converted to a sine expression to make it start from eta=0 at t=0. One cannot simply write `A cos(th) + B cos(2th)` as `A sin(th) + B sin(2th)` <br>
+Therefore we add phi0 to the phase, (kx - wt + phi0).<br>
+This phi0 has to be evaluated as follows. At (kx-wt)=0, eta = 0. Hence<br>
+<img width="50%" src="./logvAlgo/C03_stokes2_eqn1.png"><br>
+Here the larger solution with + sign obtained gives us the required phi0 to start the solution for eta = 0 at t=0.<br>
+Note that for stokes2 the vel at this eta=0 will not be zero but that's alright. Its a small mismatch is velocity only for the 1 initial time-step.
+
+Note the shape of first order and second order components as given in Dean and Darlymple book is <br>
+<img width="70%" src="./logvAlgo/C03_stokes2_etaprofile.png">
+
+The comparison of first and second order stokes wave in Sundar book is<br>
+<img width="70%" src="./logvAlgo/C03_stokes2_sundarcmp.png">
+
+The comparison that we get is similar. Measured at inlet. H=0.022m T=2.5s d=0.4m<br>
+<img width="100%" src="./logvAlgo/C03_stokes2_beji01_eta.png"><br>
+**Fig: eta**<br>
+<img width="100%" src="./logvAlgo/C03_stokes2_beji01_velP.png"><br>
+**Fig: velP**
+
+All results in "Test_beji/Airy_vs_Stokes2"
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_2' ></a>
+
+### Test pressure term with integration by parts [2021-02-28]
+
+- I had originally coded the pressure term without using integration by parts
+	- i.e. <img width="50%" src="./logvAlgo/S2/eq1.png"> <br>`\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ \iint_\Omega \frac{1}{\rho} \phi_i d \frac{\partial \phi_j}{\partial x}  \right] P_i`
+- However I was wondering if removing the differential from the pressure will make any difference. So I changed the code to the following form.
+	- i.e. <img width="76%" src="./logvAlgo/S2/eq2.png"> <br> `\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ - \iint_\Omega \frac{1}{\rho} \frac{\partial (\phi_i d) }{\partial x} \phi_j + \int_\Gamma \frac{1}{\rho} \phi_i d \phi_j n_x \right] P_i`
+- I tried this because we get a lower draft then the FUNWAVE results and we also get lower amplitude for some parts of the waves.
+- However the results obtained in IITM-Bsnq for both forms were identical. Hence it did not make any difference.
+- Retaining the original form without any boundary integrals in the final version.
+
+The following examples are for a 36 x 6 ship in 5m water depth at 0.85 Froude number. 
+**Here comparison is done between FUNWAVE-TVD 3.4 and IITM-Bsnq commit 'fe1e6ad'**
+
+| |
+| :-------------: |
+| **Figure :** y=204 Centreline |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y204.jpg"> |
+| **Figure :** y=207 0.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y207.jpg"> |
+| **Figure :** y=219 2.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y219.jpg"> |
+| **Figure :** y=231 4.50 x shipWidth |
+| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y231.jpg"> |
 
 -----------------------------------------------
 
@@ -92,34 +160,5 @@ Although I think this is the best piece of code I have ever written, it gave ver
 #### Speed gains
 - Overall on normal i7-9th Gen system I got upto 1.08x
 - However on Aqua server it hardly made any significant difference.
-
------------------------------------------------
-
-
-<a name = 'log_bsnqM_vAlgo_2' ></a>
-
-### Test pressure term with integration by parts [2021-02-28]
-
-- I had originally coded the pressure term without using integration by parts
-	- i.e. <img width="50%" src="./logvAlgo/S2/eq1.png"> <br>`\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ \iint_\Omega \frac{1}{\rho} \phi_i d \frac{\partial \phi_j}{\partial x}  \right] P_i`
-- However I was wondering if removing the differential from the pressure will make any difference. So I changed the code to the following form.
-	- i.e. <img width="76%" src="./logvAlgo/S2/eq2.png"> <br> `\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ - \iint_\Omega \frac{1}{\rho} \frac{\partial (\phi_i d) }{\partial x} \phi_j + \int_\Gamma \frac{1}{\rho} \phi_i d \phi_j n_x \right] P_i`
-- I tried this because we get a lower draft then the FUNWAVE results and we also get lower amplitude for some parts of the waves.
-- However the results obtained in IITM-Bsnq for both forms were identical. Hence it did not make any difference.
-- Retaining the original form without any boundary integrals in the final version.
-
-The following examples are for a 36 x 6 ship in 5m water depth at 0.85 Froude number. 
-**Here comparison is done between FUNWAVE-TVD 3.4 and IITM-Bsnq commit 'fe1e6ad'**
-
-| |
-| :-------------: |
-| **Figure :** y=204 Centreline |
-| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y204.jpg"> |
-| **Figure :** y=207 0.50 x shipWidth |
-| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y207.jpg"> |
-| **Figure :** y=219 2.50 x shipWidth |
-| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y219.jpg"> |
-| **Figure :** y=231 4.50 x shipWidth |
-| <img width="90%" src="./logvAlgo/S2/funwave_vs_iitm_y231.jpg"> |
 
 -----------------------------------------------

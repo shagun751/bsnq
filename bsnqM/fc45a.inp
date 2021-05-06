@@ -36,12 +36,12 @@ Q) Wave Probes
 Q) Velocity 3D Probes (num; X Y Z)
 0
 
-Q) Wave input type (0-file, 1-Airy)
+Q) Wave input type (0-file, 1-Airy, 2-Stokes2)
 1
 Q) File | FileName
 vsrMonoC2_T2p0_dt0p005_wav.dat
 Q) Airy | Inlet boundary wave Time-period Height (s) (m)
-2 -0.1
+2 0.1
 Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
 0.7 45
 
