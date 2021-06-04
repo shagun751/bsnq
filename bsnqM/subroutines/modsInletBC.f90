@@ -75,6 +75,11 @@ contains
     waveLenCalc%kx=waveLenCalc%k*waveLenCalc%csth
     waveLenCalc%ky=waveLenCalc%k*waveLenCalc%snth
 
+    write(9,'(" [INF] Airy. Vel Wheeler Stretching")')
+    write(9,'(" [---] Vel Integrated [-h 0] and multiplied by (h+eta)/h ")')
+    write(9,'(" [---] because of Wheeler stretching. Ref doc log_bsnqM_vAlgo.md")')
+    write(9,*)
+
   end function waveLenCalc
 !!-----------------------End waveLenCalc-----------------------!!
 
@@ -102,22 +107,29 @@ contains
 
 
 !!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,x,y,p,q)
+  subroutine getPQ(b,rTime,x,y,eta,p,q)
   implicit none
 
     class(airyType),intent(in)::b
 
     !integer(kind=C_K1)::
 
-    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(in)::rTime,x,y,eta
     real(kind=C_K2),intent(out)::p,q
-    real(kind=C_K2)::dx, dy, phi
-
+    real(kind=C_K2)::dx, dy, phi, pn 
+    
     dx=(x-b%x0)
     dy=(y-b%y0)
     phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
-    p=b%H/2d0 * b%w / b%k * b%csth * dcos(phi)
-    q=b%H/2d0 * b%w / b%k * b%snth * dcos(phi)
+
+    ! Integrating from -h to 0
+    pn = b%H/2d0 * b%w / b%k * dcos(phi) 
+
+    ! Using Wheeler stretching
+    pn = pn * (b%d + eta)/b%d
+
+    p = pn * b%csth 
+    q = pn * b%snth 
 
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
@@ -216,6 +228,10 @@ contains
 
     phi0 = (-qa + dsqrt(qa*qa + 8d0*qb*qb))/(4d0*qb)
     waveLenCalc%phi0 = acos(phi0)
+    write(9,'(" [INF] Stokes2. Vel Integrated [-h eta]")')
+    write(9,'(" [INF] Stokes2 phase-0 radians", 2F15.6)') &
+      waveLenCalc%phi0
+    write(9,*)
 
   end function waveLenCalc
 !!-----------------------End waveLenCalc-----------------------!!
@@ -248,25 +264,38 @@ contains
 
 
 !!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,x,y,p,q)
+  subroutine getPQ(b,rTime,x,y,eta,p,q)
   implicit none
 
     class(stokes2Type),intent(in)::b
 
     !integer(kind=C_K1)::
 
-    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(in)::rTime,x,y,eta
     real(kind=C_K2),intent(out)::p, q
     real(kind=C_K2)::dx, dy, phi, kh, pn
 
+    
     dx=(x-b%x0)
     dy=(y-b%y0)
     phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
     kh = b%k * b%d
 
-    pn = ( b%H/2d0 * b%w / b%k * dcos(phi) ) + &
-      ( 3d0/16d0 * b%H**2 * b%w / dtanh(kh) &
-        / (dsinh(kh)**2) * dcos(2d0*phi) )
+    ! No wheeler stretching, Integrating -h to eta
+    ! First order
+    pn = grav * b%H/2d0 / b%w / dcosh(kh) &
+      * dsinh(kh + b%k*eta) * dcos(phi)
+    ! Second order
+    pn = pn + ( 3d0/32d0 * b%H**2 * b%w / (dsinh(kh)**4) &
+      * dsinh(2d0*b%k*(b%d+eta)) ) * dcos(2d0*phi)    
+
+    ! Wheeler stretching and Integrating -h to 0
+    ! ! First order
+    ! pn = b%H/2d0 * b%w / b%k * dcos(phi)
+    ! ! Second order
+    ! pn = pn + ( 3d0/16d0 * b%H**2 * b%w / dtanh(kh)  &
+    !   / (dsinh(kh)**2) ) * dcos(2d0*phi)    
+    ! pn = pn * (b%d + eta)/b%d
 
     p = pn * b%csth
 
@@ -462,7 +491,7 @@ contains
     write(9,'(" [INF] At 2.25 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
     call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
-    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,p,q)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
     write(9,'(" [---] ",3F15.6)')eta,p,q
 
     totT=1.2d0*inTotT
@@ -472,7 +501,7 @@ contains
     do i=0,b%numP-1
       t=i*dt
       call wv%getEta(t,0d0,0d0,eta)
-      call wv%getPQ(t,0d0,0d0,p,q)
+      call wv%getPQ(t,0d0,0d0,eta,p,q)
       b%data(i+1,1)=t
       b%data(i+1,2)=eta
       b%data(i+1,3)=p
@@ -510,12 +539,12 @@ contains
     write(9,'(" [INF] At 0.00 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
     call wv%getEta(0d0,wv%x0,wv%y0,eta)
-    call wv%getPQ(0d0,wv%x0,wv%y0,p,q)
+    call wv%getPQ(0d0,wv%x0,wv%y0,eta,p,q)
     write(9,'(" [---] ",3F15.6)')eta,p,q
     write(9,'(" [INF] At 2.25 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
     call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
-    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,p,q)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
     write(9,'(" [---] ",3F15.6)')eta,p,q
 
     totT=1.2d0*inTotT
@@ -525,7 +554,7 @@ contains
     do i=0,b%numP-1
       t=i*dt
       call wv%getEta(t,0d0,0d0,eta)
-      call wv%getPQ(t,0d0,0d0,p,q)
+      call wv%getPQ(t,0d0,0d0,eta,p,q)
       b%data(i+1,1)=t
       b%data(i+1,2)=eta
       b%data(i+1,3)=p

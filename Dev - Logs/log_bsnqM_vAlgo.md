@@ -3,6 +3,7 @@
 1. [Paralution solver FORTRAN plugin [2020-10-15]](#log_bsnqM_vAlgo_1)
 2. [Test pressure term with integration by parts [2021-02-28]](#log_bsnqM_vAlgo_2)
 3. [Stokes2 wave input added [2021-04-06]](#log_bsnqM_vAlgo_3)
+4. [Wave input - Wheeler stretching [2021-04-28]](#log_bsnqM_vAlgo_4)
 
 
 ### Attempting
@@ -17,6 +18,28 @@
 - [x] waveFileModule time-series interpolated by cubic spline instead of linear. Verified implementation. [2021-04-05]
 	- Check the importance of this for shipMod. May not matter in this though [link](./log_bsnqM_v0002.md#log_bsnqM_v0002_13)
 - [x] Stokes2 wave input in 'modsInletBC.f90' [2021-04-06] [link](#log_bsnqM_vAlgo_3)
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_4' ></a>
+
+### Wave input - Wheeler stretching [2021-04-28]
+
+- The wheeler stretching linearly stretches the z axis from [-h, &eta;] to [-h, 0].
+- It is for sure to be applied for Airy theory.<br><img width="80%" src="./logvAlgo/C04_eqn1.jpg">
+- Earlier I had only integrated the normal velocity expression from [-h, 0] and given in the wave input for Airy case thinking it doesnt matter much. Now I have applied wheeler stretching and hence multiplied the [-h, 0] integrated expression with (h+&eta;)/h as seen from the equation above.
+
+
+#### Stokes2 and higher
+- In stokes derivation, the FS BC about z=&eta; is expanded using Taylor series about z=0.
+- It is explained surprisingly well in thus Wikipedia article [link](https://en.wikipedia.org/wiki/Stokes_wave) <br><img width="100%" src="./logvAlgo/C04_eqn2.png">
+- The same is also seen in the Dean and Darlymple book.<br><img width="80%" src="./logvAlgo/C04_eqn3.png">
+- Dr. Yan says "My understanding is that Linear theory definitely need stretching and the Stokes 5th does not need.  I did not look at the Stokes 2nd and 3Rd.  You can compare Stokes 2nd and 3Rd theory with linear for the free surface velocity to find out the answer."
+- Sriram sir says "Yes, use stokes 5th order or Fenton 5th order with wheeler stretching. Shaswat has the code."
+- Murali sir says that stretching is only needed for Airy.
+- I think stretching is not needed for anything other than the Airy wave theory.
+	- Therefore in the wave generation, I will edit the velocity calculation limiting to [-h, &eta;] instead of [-h, 0] which was done earlier.
 
 -----------------------------------------------
 
