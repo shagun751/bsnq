@@ -49,10 +49,10 @@
     !call b%bDf%init( b%npt )
     allocate(b%bDf( b%npt ))
     do i=1,b%npt
-      b%bDf(i)%ux=0d0
-      b%bDf(i)%uhx=0d0    
-      b%bDf(i)%ux_tn=0d0
-      b%bDf(i)%uhx_tn=0d0    
+      b%bDf(i)%ug=0d0
+      b%bDf(i)%Pg=0d0    
+      b%bDf(i)%ug_tn=0d0
+      b%bDf(i)%Pg_tn=0d0    
     enddo
 
     call system_clock(b%sysC(6))
@@ -70,8 +70,8 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::i,i2,j,k,k2
-    real(kind=C_K2)::tmpr1
+    integer(kind=C_K1)::i,i2,j,k2
+    real(kind=C_K2)::tmpr1, tmpx, tmpy
 
     b%ur = b%tOb(0)%p / b%tOb(0)%tD
     b%vr = b%tOb(0)%q / b%tOb(0)%tD
@@ -83,11 +83,15 @@
     !$OMP DO SCHEDULE(dynamic,100)    
     do i=1,b%npt
       b%bDf(i)%u = b%ur(i)
+      b%bDf(i)%v = b%vr(i)
+      b%bDf(i)%P = b%uhr(i) ! P = uh , note its not u(h+eta)
+      b%bDf(i)%Q = b%vhr(i)
+
       ! Storing ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)    
-      b%bDf(i)%ux_tn(2) = b%bDf(i)%ux_tn(1)  
-      b%bDf(i)%ux_tn(1) = b%bDf(i)%ux
-      b%bDf(i)%uhx_tn(2) = b%bDf(i)%uhx_tn(1)    
-      b%bDf(i)%uhx_tn(1) = b%bDf(i)%uhx
+      b%bDf(i)%ug_tn(2) = b%bDf(i)%ug_tn(1)  
+      b%bDf(i)%ug_tn(1) = b%bDf(i)%ug
+      b%bDf(i)%Pg_tn(2) = b%bDf(i)%Pg_tn(1)    
+      b%bDf(i)%Pg_tn(1) = b%bDf(i)%Pg
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
@@ -96,24 +100,46 @@
 
     !! First derivative
     !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k,k2)
+    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
     !$OMP DO SCHEDULE(dynamic,100)    
     do i=1,b%npt
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
+      ! dudx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%ur( b%pObf(i)%neid ), b%bDf(i2)%ux, j )
+        b%ur( b%pObf(i)%neid ), tmpx, j )
 
+      ! dvdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%vr( b%pObf(i)%neid ), tmpy, j )
+
+      ! du
+      b%bDf(i2)%ug = tmpx + tmpy
+
+      ! dPdx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%uhr( b%pObf(i)%neid ), b%bDf(i2)%uhx, j )
+        b%uhr( b%pObf(i)%neid ), tmpx, j )
 
+      ! dQdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%vhr( b%pObf(i)%neid ), tmpy, j )
+
+      ! dP
+      b%bDf(i2)%Pg = tmpx + tmpy
+
+      ! dhdx
       call calcGrad( k2, b%pObf(i)%phiDx, &
         b%dep( b%pObf(i)%neid ), b%bDf(i2)%hx, j )
+
+      ! dhdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%dep( b%pObf(i)%neid ), b%bDf(i2)%hy, j )      
 
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
+
 
     !! Second derivative
     !$OMP PARALLEL DEFAULT(shared) &
@@ -123,43 +149,71 @@
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
+      ! d( del.(u) ) / dx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%ux, b%bDf(i2)%uxx, j )
+        b%bDf(b%pObf(i)%neid)%ug, b%bDf(i2)%ugx, j )
 
+      ! d( del.(u) ) / dy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%bDf(b%pObf(i)%neid)%ug, b%bDf(i2)%ugy, j )
+
+      ! d( del.(P) ) / dx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%uhx, b%bDf(i2)%uhxx, j )
+        b%bDf(b%pObf(i)%neid)%Pg, b%bDf(i2)%Pgx, j )
+
+      ! d( del.(P) ) / dy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%bDf(b%pObf(i)%neid)%Pg, b%bDf(i2)%Pgy, j )
 
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
 
+
     !! Third derivative
     !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k2)
+    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
     !$OMP DO SCHEDULE(dynamic,100)    
     do i=1,b%npt
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
+      ! ugxx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%uxx, b%bDf(i2)%uxxx, j )
+        b%bDf(b%pObf(i)%neid)%ugx, tmpx, j )
 
+      !ugyy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%bDf(b%pObf(i)%neid)%ugy, tmpy, j )
+
+      ! del.( del( del.(u) ) )
+      b%bDf(i2)%uggg = tmpx + tmpy      
+
+      ! Pgxx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%uhxx, b%bDf(i2)%uhxxx, j )
+        b%bDf(b%pObf(i)%neid)%Pgx, tmpx, j )
+
+      !Pgyy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%bDf(b%pObf(i)%neid)%Pgy, tmpy, j )
+
+      ! del.( del( del.(P) ) )
+      b%bDf(i2)%Pggg = tmpx + tmpy            
 
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL    
+
 
     tmpr1=2d0*b%dt
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i)
     !$OMP DO SCHEDULE(dynamic,100)    
     do i=1,b%npt
-      b%bDf(i)%uxt = ( 3d0*b%bDf(i)%ux - 4d0*b%bDf(i)%ux_tn(1) &
-        + b%bDf(i)%ux_tn(2) )/tmpr1
-      b%bDf(i)%uhxt = ( 3d0*b%bDf(i)%uhx - 4d0*b%bDf(i)%uhx_tn(1) &
-        + b%bDf(i)%uhx_tn(2) )/tmpr1
+      b%bDf(i)%ugt = ( 3d0*b%bDf(i)%ug - 4d0*b%bDf(i)%ug_tn(1) &
+        + b%bDf(i)%ug_tn(2) )/tmpr1
+      b%bDf(i)%Pgt = ( 3d0*b%bDf(i)%Pg - 4d0*b%bDf(i)%Pg_tn(1) &
+        + b%bDf(i)%Pg_tn(2) )/tmpr1
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
@@ -302,7 +356,7 @@
     integer(kind=C_K1)::nq(6),i,k
     real(kind=C_K2)::wei(6),hLoc,zLoc,etaLoc
     real(kind=C_K2)::uLoc,vLoc,wLoc,pLoc    
-    type(vertVelDerv)::tmp
+    type(vertVelDerv3D)::tmp
 
     !Note: pLoc here is pressure. It is not depth-integrated vel-x
 
@@ -326,7 +380,7 @@
       nq = b%conn(wrki(i),:)
       call fem_N6i(wrkr(i,1),wrkr(i,2),wei)      
 
-      call tmp%initByInterp( 6, b%bDf(nq), wei, k )
+      call tmp%initByInterp3D( 6, b%bDf(nq), wei, k )
 
       hLoc=0d0
       etaLoc=0d0      
@@ -335,14 +389,18 @@
         etaLoc = etaLoc + wei(k)*b%tOb(0)%tD(nq(k))
       enddo
       etaLoc = etaLoc - hLoc
-      zLoc = zin(i) - hLoc
+      zLoc = zin(i) !zRef is mean sea level
 
-      call vertVelExp(zLoc, hLoc, etaLoc, tmp%hx,&
-        tmp%u, tmp%ux, tmp%uxx, tmp%uxxx, &
-        tmp%uhx, tmp%uhxx, tmp%uhxxx, &
-        tmp%uxt, tmp%uhxt, uLoc, wLoc, pLoc)  
+      ! call vertVelExp(zLoc, hLoc, etaLoc, tmp%hx, tmp%hy, &
+      !   tmp%u, tmp%ux, tmp%uxx, tmp%uxxx, &
+      !   tmp%uhx, tmp%uhxx, tmp%uhxxx, &
+      !   tmp%uxt, tmp%uhxt, uLoc, wLoc, pLoc)  
 
-      vLoc=0d0
+      call vertVelExp3D(zLoc, hLoc, etaLoc, tmp%hx, tmp%hy, &
+        tmp%u, tmp%v, tmp%P, tmp%Q, tmp%ug, tmp%Pg, &
+        tmp%ugx, tmp%ugy, tmp%Pgx, tmp%Pgy, &
+        tmp%uggg, tmp%Pggg, tmp%ugt, tmp%Pgt, &
+        uLoc, vLoc, wLoc, pLoc)      
 
       err(i)=0
       uOut(i)=uLoc
@@ -372,26 +430,27 @@
     
     xin(1)=15d0
     yin(1)=2.00d0
-    zin(1)=0.20d0
+    zin(1)=-0.20d0
 
     xin(2)=15d0
     yin(2)=2.00d0
-    zin(2)=0.35d0
+    zin(2)=-0.35d0
 
     xin(3)=16.02d0
     yin(3)=2.02d0
-    zin(3)=0.20d0
+    zin(3)=-0.20d0
 
     xin(4)=16.02d0
     yin(4)=2.02d0
-    zin(4)=0.35d0
+    zin(4)=-0.35d0
 
     call b%getVertVel(np,xin,yin,zin,uOut,vOut,wOut,pOut,&
       wrki,wrkr,err)
 
     write(120,'(F15.6)',advance='no')b%tOb(0)%rtm
     do i=1,np
-      write(120,'(3F15.6)',advance='no')pOut(i),uOut(i),wOut(i)
+      write(120,'(4F15.6)',advance='no')pOut(i),uOut(i),&
+        vOut(i),wOut(i)
     enddo
     write(120,*)
 

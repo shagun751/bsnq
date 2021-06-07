@@ -24,7 +24,7 @@ fprintf('w = %f\n',w);
 fprintf('C = %f\n\n',L/T);
 
 t=1.25;
-wvAngDeg = 60;
+wvAngDeg = 45;
 if(wvAngDeg==90)
     nx = 0;
 else    
@@ -121,7 +121,7 @@ figure(1)
 subplot(1,4,4)
 hold on
 plot(data(:,4), data(:,1), 'k', 'LineWidth', 2)
-plot(data(:,7), data(:,1), 'r', 'LineWidth', 2)
+plot(data(:,7), data(:,1), 'r-.', 'LineWidth', 2)
 plot(data(:,10), data(:,1), 'b', 'LineWidth', 2)
 legend('u', 'v', 'w', 'Location', 'southeast')
 grid on
@@ -145,13 +145,9 @@ function [u0c, v0c, w0c, uErr, vErr, wErr] = calcAll(d, indX, indY, et0, u0, v0,
     umd0_xx = ( umdM(indY, indX+1) - 2*umdM(indY, indX) + umdM(indY, indX-1) ) / dx/dx;
     um0_xxx = ( 0.5*umM(indY, indX+2) - umM(indY, indX+1) + umM(indY, indX-1) -0.5*umM(indY, indX-2) ) / dx^3;
     umd0_xxx = ( 0.5*umdM(indY, indX+2) - umdM(indY, indX+1) + umdM(indY, indX-1) -0.5*umdM(indY, indX-2) ) / dx^3;
-       
-    um0_y = ( umM(indY+1, indX) - umM(indY-1, indX) ) / 2/dx;
-    umd0_y = ( umdM(indY+1, indX) - umdM(indY-1, indX) ) / 2/dx;
-    um0_yy = ( umM(indY+1, indX) - 2*umM(indY, indX) + umM(indY-1, indX) ) / dx/dx;
-    umd0_yy = ( umdM(indY+1, indX) - 2*umdM(indY, indX) + umdM(indY-1, indX) ) / dx/dx;
-    um0_yyy = ( 0.5*umM(indY+2, indX) - umM(indY+1, indX) + umM(indY-1, indX) -0.5*umM(indY-2, indX) ) / dx^3;
-    umd0_yyy = ( 0.5*umdM(indY+2, indX) - umdM(indY+1, indX) + umdM(indY-1, indX) -0.5*umdM(indY-2, indX) ) / dx^3;
+    
+    um0_xy = ( umM(indY+1, indX+1) - umM(indY-1, indX+1) - umM(indY+1, indX-1) + umM(indY-1, indX-1) ) / 4/dx/dx;
+    umd0_xy = ( umdM(indY+1, indX+1) - umdM(indY-1, indX+1) - umdM(indY+1, indX-1) + umdM(indY-1, indX-1) ) / 4/dx/dx;               
 
     vm0 = vmM(indY, indX);
     vm0_y = ( vmM(indY+1, indX) - vmM(indY-1, indX) ) / 2/dx;
@@ -161,40 +157,17 @@ function [u0c, v0c, w0c, uErr, vErr, wErr] = calcAll(d, indX, indY, et0, u0, v0,
     vm0_yyy = ( 0.5*vmM(indY+2, indX) - vmM(indY+1, indX) + vmM(indY-1, indX) -0.5*vmM(indY-2, indX) ) / dx^3;
     vmd0_yyy = ( 0.5*vmdM(indY+2, indX) - vmdM(indY+1, indX) + vmdM(indY-1, indX) -0.5*vmdM(indY-2, indX) ) / dx^3;
     
-    vm0_x = ( vmM(indY, indX+1) - vmM(indY, indX-1) ) / 2/dx;
-    vmd0_x = ( vmdM(indY, indX+1) - vmdM(indY, indX-1) ) / 2/dx;
-    vm0_xx = ( vmM(indY, indX+1) - 2*vmM(indY, indX) + vmM(indY, indX-1) ) / dx/dx;
-    vmd0_xx = ( vmdM(indY, indX+1) - 2*vmdM(indY, indX) + vmdM(indY, indX-1) ) / dx/dx;
-    vm0_xxx = ( 0.5*vmM(indY, indX+2) - vmM(indY, indX+1) + vmM(indY, indX-1) -0.5*vmM(indY, indX-2) ) / dx^3;
-    vmd0_xxx = ( 0.5*vmdM(indY, indX+2) - vmdM(indY, indX+1) + vmdM(indY, indX-1) -0.5*vmdM(indY, indX-2) ) / dx^3;
-    
-    um0_xy = ( umM(indY, indX+1) - umM(indY, indX-1) ) * ( umM(indY+1, indX) - umM(indY-1, indX) ) / 4/dx/dx;
-    umd0_xy = ( umdM(indY, indX+1) - umdM(indY, indX-1) ) * ( umdM(indY+1, indX) - umdM(indY-1, indX) ) / 4/dx/dx;
-    vm0_xy = ( vmM(indY, indX+1) - vmM(indY, indX-1) ) * ( vmM(indY+1, indX) - vmM(indY-1, indX) ) / 4/dx/dx;
-    vmd0_xy = ( vmdM(indY, indX+1) - vmdM(indY, indX-1) ) * ( vmdM(indY+1, indX) - vmdM(indY-1, indX) ) / 4/dx/dx;
-    
-    u0c = um0 - 0.5*d * ( umd0_xx + umd0_yy ) ...
-           + d*d/6 * ( um0_xx + um0_yy ) ...
-           - z0 * ( umd0_xx + umd0_yy ) ...
-           - z0*z0/2 * ( um0_xx + um0_yy );
+    vm0_yx = ( vmM(indY+1, indX+1) - vmM(indY+1, indX-1) - vmM(indY-1, indX+1) + vmM(indY-1, indX-1) ) / 4/dx/dx;
+    vmd0_yx = ( vmdM(indY+1, indX+1) - vmdM(indY+1, indX-1) - vmdM(indY-1, indX+1) + vmdM(indY-1, indX-1) ) / 4/dx/dx;
+        
 
-    v0c = vm0 - 0.5*d * ( vmd0_yy + vmd0_xx  ) ...
-           + d*d/6 * ( vm0_yy + vm0_xx  ) ...
-           - z0 * ( vmd0_yy + vmd0_xx  ) ...
-           - z0*z0/2 * ( vm0_yy + vm0_xx );
+    u0c = um0 + (d*d/6 - z0*z0/2)*( um0_xx + vm0_yx ) ...
+            - (d/2 + z0)*( umd0_xx + vmd0_yx );    
 
-    w0c = - ( umd0_x ) ...
-          - z0 * ( um0_x ) ...
-          + z0*d/2 * ( umd0_xxx ) ...
-          - z0*d*d/6 * ( um0_xxx ) ...
-          + z0*z0/2 * ( umd0_xxx ) ...
-          + z0*z0*z0/6 * ( um0_xxx );
-    w0c = w0c - ( vmd0_y ) ...
-          - z0 * ( vm0_y ) ...
-          + z0*d/2 * ( vmd0_yyy ) ...
-          - z0*d*d/6 * ( vm0_yyy ) ...
-          + z0*z0/2 * ( vmd0_yyy ) ...
-          + z0*z0*z0/6 * ( vm0_yyy );
+    v0c = vm0 + (d*d/6 - z0*z0/2)*( um0_xy + vm0_yy ) ...
+            - (d/2 + z0)*( umd0_xy + vmd0_yy );
+
+    w0c = 0;
      
     uErr = (u0c - u0)/u0*100;
     vErr = (v0c - v0)/v0*100;

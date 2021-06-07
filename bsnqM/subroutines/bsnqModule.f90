@@ -121,7 +121,7 @@ implicit none
 
     !! Optional initialisation
     type(mfPoiTyp),allocatable::pObf(:)
-    type(vertVelDerv),allocatable::bDf(:)
+    type(vertVelDerv3D),allocatable::bDf(:)
     
 
   contains    
