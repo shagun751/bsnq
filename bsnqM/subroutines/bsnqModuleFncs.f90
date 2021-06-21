@@ -20,6 +20,19 @@
       enddo
     endif
 
+
+    if(b%botFricOn)then
+      !$OMP PARALLEL DEFAULT(shared) PRIVATE(i)
+      !$OMP DO SCHEDULE(dynamic,1000)
+      do i = 1, b%npt
+        b%botFricN6(i) = -b%botFricCd &
+          * dsqrt( ur(i)**2 + vr(i)**2 ) &
+          / ( tDr(i)**(4d0/3d0) )
+      enddo
+      !$OMP END DO NOWAIT
+      !$OMP END PARALLEL
+    endif
+
     !write(9,*)"[MSG] Done dynaMatrices"
     !write(9,*)
 
@@ -220,11 +233,13 @@
         
         tmpr3=tmpr3 + ( b%gNAdv(k2)*pbpr(i2) &
           + (b%gPGx(k2)*presr(i2)) &
-          + absC*b%mass1(k2)*pr(i2) )
+          + absC*b%mass1(k2)*pr(i2) &
+          + b%mass1(k2) * b%botFricN6(i2)*pbpr(i2) )
 
         tmpr4=tmpr4 + ( b%gNAdv(k2)*qbpr(i2) &
           + (b%gPGy(k2)*presr(i2)) &
-          + absC*b%mass1(k2)*qr(i2) )
+          + absC*b%mass1(k2)*qr(i2) &
+          + b%mass1(k2) * b%botFricN6(i2)*qbpr(i2))
       enddo
 
       gRPQ(i)=dt*( tmpr1 + tmpr3 )
@@ -384,6 +399,27 @@
 
     end select    
 
+
+    !Bottom Friction setup
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%botFricOn
+    read(mf,*,end=81,err=81)bqtxt
+    ! Manning Coeff
+    read(mf,*,end=81,err=81)tmpr1
+    if(b%botFricOn)then
+      b%botFricCd = grav * tmpr1*tmpr1
+    else
+      b%botFricCd = 0d0
+    endif
+    write(9,*)
+    write(9,'(" [INF] Bottom Friction ")')
+    write(9,*)"[---] ", b%botFricOn
+    write(9,'(" [---] Bottom Friction Cd ")')
+    write(9,*)"[---] ", b%botFricCd
+    write(9,*)
+
+
+    !Sponge Layer Code
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%absOn

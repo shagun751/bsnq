@@ -85,6 +85,7 @@ implicit none
 
     real(kind=C_K2)::dt,errLim,endTime,wvHReset
     real(kind=C_K2)::sysRate,sysT(nSysC)
+    real(kind=C_K2)::botFricCd=0d0
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)    
     real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
@@ -98,7 +99,7 @@ implicit none
     real(kind=C_K2),allocatable::gCxF(:),gCyF(:),gDMat(:)
     real(kind=C_K2),allocatable::gBs1(:),gBs2(:),gBs3(:),gBs4(:)
     real(kind=C_K2),allocatable::etaMax(:),etaMin(:),wpLoc(:,:)
-    real(kind=C_K2),allocatable::wvAng(:)
+    real(kind=C_K2),allocatable::wvAng(:), botFricN6(:)
     real(kind=C_DOUBLE),allocatable::gXW(:),gXE(:),gXPQ(:)
     real(kind=C_DOUBLE),allocatable::gRE(:),gRPQ(:)
     real(kind=C_DOUBLE),allocatable::gMW(:),gME(:),gMPQ(:)
@@ -112,7 +113,7 @@ implicit none
     real(kind=C_K2),allocatable::aFull(:),gFW(:)
 
     integer(kind=C_KCLK)::sysC(nSysC)
-    logical(kind=C_LG)::resume,presOn,absOn    
+    logical(kind=C_LG)::resume, presOn, absOn, botFricOn
     type(wvFileType)::wvF
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
@@ -688,7 +689,7 @@ contains
     allocate(b%gRE(i),b%gRPQ(2*j))
     allocate(b%etaMax(i),b%etaMin(i),b%presr(j))
     allocate(b%ele6x6(b%nele,36),b%ele6x3(b%nele,18))
-    allocate(b%wvAng(j))
+    allocate( b%wvAng(j), b%botFricN6(j) )
 
     b%Sz(1)=i1*i ![3x3] ![ivl(0) * npl]
     b%Sz(2)=j1*i ![3x6] ![ivq(0) * npl]
@@ -757,6 +758,7 @@ contains
     b%etaMin=b%tOb(0)%e
     b%etaMax=b%tOb(0)%e    
     b%wvAng=0d0
+    b%botFricN6 = 0d0
 
     b%presr=0d0    
 

@@ -39,6 +39,11 @@ Q) Airy | Inlet boundary wave Time-period Height (s) (m)
 Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
 0.4572 0
 
+Q) Bottom Friction On ? (.true. / .false.)
+.false.
+Q) Manning Coefficient (Default: 0.033)
+0.033
+
 Q) Outlet Sponge layer (BOUSS2D method)
 Q) Enable? (.true. / .false.)
 .true.

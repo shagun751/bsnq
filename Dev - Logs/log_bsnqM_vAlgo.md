@@ -4,6 +4,7 @@
 2. [Test pressure term with integration by parts [2021-02-28]](#log_bsnqM_vAlgo_2)
 3. [Stokes2 wave input added [2021-04-06]](#log_bsnqM_vAlgo_3)
 4. [Wave input - Wheeler stretching [2021-04-28]](#log_bsnqM_vAlgo_4)
+5. [Bottom Friction [2021-06-21]](#log_bsnqM_vAlgo_5)
 
 
 ### Attempting
@@ -18,6 +19,30 @@
 - [x] waveFileModule time-series interpolated by cubic spline instead of linear. Verified implementation. [2021-04-05]
 	- Check the importance of this for shipMod. May not matter in this though [link](./log_bsnqM_v0002.md#log_bsnqM_v0002_13)
 - [x] Stokes2 wave input in 'modsInletBC.f90' [2021-04-06] [link](#log_bsnqM_vAlgo_3)
+- [x] Bottom Friction [link](#log_bsnqM_vAlgo_5)
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_5' ></a>
+
+### Bottom Friction [2021-06-21]
+- Bottom friction using Chezy model with a constant Manning roughness coefficient as per what shown in Dyakonova (2018)
+- Similar bottom friction implementation done by Fang (2017)
+- The Sorenson (2004) implementation was same quadratic low, however the drag coefficient was extremely confusing. 
+
+<img width="100%" src="./logvAlgo/C05_botF_eqn1.jpg"> 
+
+Tested Whalin shoal without bottom (blue) and with bottom friction (red) with Manning coeff 0.033 sm^(-1/3)
+
+<img width="100%" src="./logvAlgo/C05_botF_onRed_offBlue.png"> 
+
+
+#### References
+
+1. Fang, K., He, D., Liu, Z., & Sun, J. (2017). Numerical simulation of wave motion over fringing reefs using a shock-capturing Boussinesq model. Twenty-Seventh (2017) International Ocean and Polar Engineering Conference, 399–405.
+
+1. Dyakonova, T., & Khoperskov, A. (2018). Bottom friction models for shallow water equations: Manning’s roughness coefficient and small-scale bottom heterogeneity. Journal of Physics: Conference Series, 973(1), 012032. [link](https://doi.org/10.1088/1742-6596/973/1/012032)
 
 -----------------------------------------------
 

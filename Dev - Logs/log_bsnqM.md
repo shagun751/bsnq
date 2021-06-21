@@ -20,9 +20,8 @@ continued from bsnq\_par\_v8.36
 -----------------------------------------------
 
 ### List of Work
-- [ ] 0001 : Bottom shear 
-- [ ] 0001 : Porosity
+- [ ] [algo](./log_bsnqM_vAlgo.md) : Porosity
 - [ ] 0002 : Second and third derivates using exact expression.
-- [ ] 0003 : Calculation of u, w and pr for directional wave
+- [ ] [0004](./log_bsnqM_v0004.md) : Calculation of u, w and pr for directional wave
 
 -----------------------------------------------
