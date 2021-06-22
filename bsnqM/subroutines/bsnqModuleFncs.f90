@@ -278,7 +278,7 @@
     class(bsnqCase),intent(inout)::b
 
     integer(kind=C_K1)::tmpi1,tmpi2,mf,i
-    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5,tmpr6
     character(len=C_KSTR)::bqtxt
     logical(kind=C_LG)::ex  
 
@@ -378,19 +378,22 @@
     read(mf,*,end=81,err=81)tmpr1,tmpr2
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpr3,tmpr4
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)tmpr5, tmpr6
     select case (i)
       case(0)
-        call b%wvF%initWaveFile
+        ! (rampt0,rampt1)
+        call b%wvF%initWaveFile(tmpr5,tmpr6)
       
       case (1)      
-        ! initAiryFile(dt,totTime,inT,inD,inH,inAngDeg)
+        ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
-          tmpr2,tmpr4)
+          tmpr2,tmpr4,tmpr5,tmpr6)
 
       case (2)      
-        ! initStokes2File(dt,totTime,inT,inD,inH,inAngDeg)
+        ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         call b%wvF%initStokes2File(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
-          tmpr2,tmpr4)
+          tmpr2,tmpr4,tmpr5,tmpr6)
 
       case DEFAULT
         write(*,*)"[ERR] Invalid wave input type", i

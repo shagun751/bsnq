@@ -44,6 +44,8 @@ Q) Airy | Inlet boundary wave Time-period Height (s) (m)
 2 0.1
 Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
 0.7 0
+Q) Time Ramp | start(s) end(s) | (-1 -1 to disable)
+-1 -1
 
 Q) Bottom Friction On ? (.true. / .false.)
 .false.

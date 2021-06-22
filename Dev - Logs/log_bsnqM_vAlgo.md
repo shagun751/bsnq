@@ -5,6 +5,7 @@
 3. [Stokes2 wave input added [2021-04-06]](#log_bsnqM_vAlgo_3)
 4. [Wave input - Wheeler stretching [2021-04-28]](#log_bsnqM_vAlgo_4)
 5. [Bottom Friction [2021-06-21]](#log_bsnqM_vAlgo_5)
+6. [Time ramping for wave-making [2021-06-22]](#log_bsnqM_vAlgo_6)
 
 
 ### Attempting
@@ -20,6 +21,50 @@
 	- Check the importance of this for shipMod. May not matter in this though [link](./log_bsnqM_v0002.md#log_bsnqM_v0002_13)
 - [x] Stokes2 wave input in 'modsInletBC.f90' [2021-04-06] [link](#log_bsnqM_vAlgo_3)
 - [x] Bottom Friction [link](#log_bsnqM_vAlgo_5)
+- [x] Wave-making time ramped [link](#log_bsnqM_vAlgo_6)
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_6' ></a>
+
+### Time ramping for wave-making [2021-06-22]
+- The wave making has to be time ramped to avoid spurious waves.
+- I have used a cosine function as shown below.<br><img width="100%" src="./logvAlgo/C06_eqn1.jpeg"> 
+- There was another option from a Turnbull (2003) paper which Sriram sir had mentioned. However this seems to take 6 x Time period which is just too long
+	- Also it is asymptotic, cosine one is not asymptotic
+
+The cosine plot is shown below.<br>
+**The period from rampt0 to rampt1 should be (2 x Time period)**<br>
+<img width="100%" src="./logvAlgo/C06_ramp.jpg"> 
+
+#### Output
+
+| SN  | Regime | h/(gT^2) | H/(gT^2) | h <br> (m) | T <br> (s)| H <br> (m) | L <br> (m) | kh | ka |
+| --- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| 3 | Stokes2 | 1.5079 e-2 | 0.181 e-3 | 1.00 | 2.6000 | 0.0120 | 7.3320 | 0.8570 | 0.5142 e-2 | 
+
+| Surface elevation Without ramping (Red) vs With Ramping (Green) |
+| -------------- |
+| WP x = 0 |
+| <img width="100%" src="./logvAlgo/C06_WP3.png"> |
+| WP x = 40 |
+| <img width="100%" src="./logvAlgo/C06_WP1.png"> |
+| WP x = 46 |
+| <img width="100%" src="./logvAlgo/C06_WP2.png"> |
+
+| 2DH VelX Without ramping (Red) vs With Ramping (Green) |
+| -------------- |
+| 2DH VelX x = 0 |
+| <img width="100%" src="./logvAlgo/C06_V2dHX_3.png"> |
+| 2DH VelX x = 40 |
+| <img width="100%" src="./logvAlgo/C06_V2dHX_1.png"> |
+| 2DH VelX x = 46 |
+| <img width="100%" src="./logvAlgo/C06_V2dHX_2.png"> |
+
+#### References
+
+1. Turnbull, M. S., Borthwick, A. G. L., & Taylor, R. E. (2003). Numerical wave tank based on a ?-transformed finite element inviscid flow solver. International Journal for Numerical Methods in Fluids, 42(6), 641–663. https://doi.org/10.1002/fld.539
 
 -----------------------------------------------
 

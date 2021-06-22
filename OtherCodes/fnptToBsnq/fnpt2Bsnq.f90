@@ -9,6 +9,7 @@ implicit none
   open(9,file='output.dat')
 
   call depIntVelFNPT(t0,eta,p)    
+  write(*,'("[---] ",a30,F15.6)')"Actual Start time (s) ",t0
 
   q=0d0
   do while(.not.fnptEOF)

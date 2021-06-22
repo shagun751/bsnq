@@ -411,6 +411,7 @@ implicit none
     character(len=256)::fileName
     integer(kind=C_K1)::numP,posI
     real(kind=C_K2),allocatable::data(:,:), datadtt(:,:)
+    real(kind=C_K2)::rampt0, rampt1, rampdt
   contains
     procedure ::  chkWaveFileInput
     procedure ::  initWaveFile
@@ -423,12 +424,13 @@ implicit none
 contains
 
 !!------------------------initWaveFile-------------------------!!
-  subroutine initWaveFile(b)
+  subroutine initWaveFile(b, rampt0, rampt1)
   implicit none
 
     class(wvFileType),intent(inout)::b
+    real(kind=C_K2),intent(in)::rampt0, rampt1
     integer(kind=C_K1)::mf,i
-    real(kind=C_K2)::tmpra(4)
+    real(kind=C_K2)::tmpra(4), ramptw, t
     logical::ex
 
     inquire(file=trim(b%fileName),exist=ex)
@@ -451,10 +453,28 @@ contains
     write(9,'(" [INF] Number of wave file point = ",i10)')b%numP
     close(mf)
 
+    b%rampt0 = rampt0
+    b%rampt1 = rampt1
+    b%rampdt = (rampt1 - rampt0)
+
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
     open(newunit=mf,file=trim(b%fileName))    
     do i=1,b%numP
-      read(mf,*,end=21,err=21)b%data(i,1:4)      
+      read(mf,*,end=21,err=21)b%data(i,1:4) 
+
+      t = b%data(i,1)
+
+      !Time Ramp
+      ramptw = 1d0
+      if(t.le.b%rampt0)then
+        ramptw = 0d0
+      else if(t.ge.b%rampt1)then
+        ramptw = 1d0
+      else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
+        ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
+      endif
+
+      b%data(i,2:4) = b%data(i,2:4) * ramptw
     enddo
     b%datadtt(:,1) = b%data(:,1)
     write(9,*)"[INF] Done wave file read"
@@ -471,14 +491,16 @@ contains
 
 
 !!------------------------initAiryFile-------------------------!!
-  subroutine initAiryFile(b,dt,inTotT,inT,inD,inH,inAng)
+  subroutine initAiryFile(b,dt,inTotT,inT,inD,inH,inAng,&
+    rampt0, rampt1)
   use airyWaveModule
   implicit none
 
     class(wvFileType),intent(inout)::b
     integer(kind=C_K1)::i
     real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
-    real(kind=C_K2)::t,eta,p,q,totT
+    real(kind=C_K2),intent(in)::rampt0, rampt1
+    real(kind=C_K2)::t, eta, p, q, totT, ramptw
     type(airyType)::wv    
 
     ! airyType(T,d,H,X0,Y0,thDeg)
@@ -496,16 +518,31 @@ contains
 
     totT=1.2d0*inTotT
     b%numP=floor(totT/dt)+2
+    b%rampt0 = rampt0
+    b%rampt1 = rampt1
+    b%rampdt = (rampt1 - rampt0)
 
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
     do i=0,b%numP-1
       t=i*dt
+
+      !Time Ramp
+      ramptw = 1d0
+      if(t.le.b%rampt0)then
+        ramptw = 0d0
+      else if(t.ge.b%rampt1)then
+        ramptw = 1d0
+      else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
+        ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
+      endif
+
       call wv%getEta(t,0d0,0d0,eta)
       call wv%getPQ(t,0d0,0d0,eta,p,q)
+
       b%data(i+1,1)=t
-      b%data(i+1,2)=eta
-      b%data(i+1,3)=p
-      b%data(i+1,4)=q
+      b%data(i+1,2)=eta * ramptw
+      b%data(i+1,3)=p * ramptw
+      b%data(i+1,4)=q * ramptw
       !write(201,'(4F15.6)')b%data(i+1,1:4)
     enddo    
 
@@ -519,14 +556,16 @@ contains
 
 
 !!-----------------------initStokes2File-----------------------!!
-  subroutine initStokes2File(b,dt,inTotT,inT,inD,inH,inAng)
+  subroutine initStokes2File(b,dt,inTotT,inT,inD,inH,inAng, &
+    rampt0, rampt1)
   use stokes2WaveModule
   implicit none
 
     class(wvFileType),intent(inout)::b
     integer(kind=C_K1)::i
     real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
-    real(kind=C_K2)::t,eta,p,q,totT
+    real(kind=C_K2),intent(in)::rampt0, rampt1
+    real(kind=C_K2)::t, eta, p, q, totT, ramptw
     type(stokes2Type)::wv    
 
     ! stokes2Type(T,d,H,X0,Y0,thDeg)
@@ -549,16 +588,31 @@ contains
 
     totT=1.2d0*inTotT
     b%numP=floor(totT/dt)+2
+    b%rampt0 = rampt0
+    b%rampt1 = rampt1
+    b%rampdt = (rampt1 - rampt0)
 
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
     do i=0,b%numP-1
       t=i*dt
+
+      !Time Ramp
+      ramptw = 1d0
+      if(t.le.b%rampt0)then
+        ramptw = 0d0
+      else if(t.ge.b%rampt1)then
+        ramptw = 1d0
+      else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
+        ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
+      endif
+
       call wv%getEta(t,0d0,0d0,eta)
       call wv%getPQ(t,0d0,0d0,eta,p,q)
+
       b%data(i+1,1)=t
-      b%data(i+1,2)=eta
-      b%data(i+1,3)=p
-      b%data(i+1,4)=q
+      b%data(i+1,2)=eta * ramptw
+      b%data(i+1,3)=p * ramptw
+      b%data(i+1,4)=q * ramptw
       !write(201,'(4F15.6)')b%data(i+1,1:4)
     enddo    
 
