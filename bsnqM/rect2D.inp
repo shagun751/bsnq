@@ -30,13 +30,13 @@ Q) Wave Probes
 Q) Velocity 3D Probes (num; X Y Z)
 0
 
-Q) Wave input type (0-file, 1-Airy, 2-Stokes2)
+Q) Wave input type (0-file, 1-Airy, 2-Stokes2, 11-Fourier3)
 1
 Q) File | FileName
 none
-Q) Airy | Inlet boundary wave Time-period Height (s) (m)
+Q) NoFile | Inlet boundary wave Time-period Height (s) (m)
 2 0.015 
-Q) Airy | Inlet boundary wave Depth Angle (m) (deg)
+Q) NoFile | Inlet boundary wave Depth Angle (m) (deg)
 0.4572 0
 Q) Time Ramp | start(s) end(s) | (-1 -1 to disable)
 -1 -1

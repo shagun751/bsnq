@@ -313,6 +313,232 @@ end module stokes2WaveModule
 
 
 
+!!------------------------fourier3WaveModule-----------------------!!
+module fourier3WaveModule
+use bsnqGlobVars
+implicit none
+
+  ! Reference
+  ! Madsen, P. A., & Sørensen, O. R. (1993). 
+  ! Bound waves and triad interactions in shallow water. 
+  ! Ocean Engineering, 20(4), 359–388. 
+  ! https://doi.org/10.1016/0029-8018(93)90002-Y
+
+  type, public :: fourier3Type    
+    real(kind=C_K2)::T,d,H,L,w
+    real(kind=C_K2)::x0,y0
+    real(kind=C_K2)::k,kx,ky
+    real(kind=C_K2)::thDeg,thRad,csth,snth      
+    real(kind=C_K2)::coefG2, coefG3, c !c=w/k
+    !To make cos signal start from eta=0 with crest
+    real(kind=C_K2)::phi0 
+  contains
+    procedure ::  getEta
+    procedure ::  getPQ
+  end type fourier3Type
+
+  interface fourier3Type
+     procedure :: waveLenCalc
+  end interface fourier3Type
+
+contains
+
+!!-------------------------waveLenCalc-------------------------!!
+  type(fourier3Type) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
+  implicit none
+
+    !! WaveLen using dispersion relation from Airy wave-theory
+
+    integer(kind=C_K1)::iterMax,i
+    real(kind=C_K2)::l0,newl,oldl,x,errLim
+    real(kind=C_K2)::qa, qb, phi0, kh, kh2
+    real(kind=C_K2),intent(in)::inT,inD,inH,inX0,inY0,inThDeg
+
+
+    waveLenCalc%T=inT
+    waveLenCalc%d=inD
+    waveLenCalc%H=inH
+    waveLenCalc%x0=inX0
+    waveLenCalc%y0=inY0
+    waveLenCalc%thDeg=inThDeg
+    waveLenCalc%w=2d0*pi/waveLenCalc%T
+    waveLenCalc%thRad=waveLenCalc%thDeg*pi/180d0
+    waveLenCalc%csth=dcos(waveLenCalc%thRad)
+    waveLenCalc%snth=dsin(waveLenCalc%thRad)
+
+    ! Calculate L using linear dispersion relationship
+    iterMax=50000
+    errLim=1d-6
+    l0 = (grav/2d0/pi)*(waveLenCalc%T)**2
+    oldl = l0  
+    do i = 1,iterMax
+      newl = l0*dtanh(2d0*pi*(waveLenCalc%d)/oldl)
+      !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
+      x = abs(newl-oldl)
+      if (x.le.errLim) then
+        waveLenCalc%L = newl
+        exit
+      else
+        oldl = newl
+      end if
+    end do
+
+    if(i.ge.iterMax) then
+      write(*,*)
+      write(*,*)"[ERR] Lin waveCalculator Error waveL",newl
+      write(*,*)
+      stop
+    endif    
+
+    write(9,'(" [INF] Fourier3")')
+    write(9,'(" [---] ", A20, F15.6)') "Linear waveLen", &
+      waveLenCalc%L    
+
+    ! Bsnq Fourier 3rd order
+    call fourier3waveLen(waveLenCalc%d, waveLenCalc%T, &
+      waveLenCalc%H, waveLenCalc%L, newl, errLim, iterMax)
+    waveLenCalc%L = newl
+
+    write(9,'(" [---] ", A20, F15.6)') "Fourier3 waveLen", &
+      waveLenCalc%L
+    write(9,*)
+
+    waveLenCalc%k=2d0*pi/waveLenCalc%L
+    waveLenCalc%kx=waveLenCalc%k*waveLenCalc%csth
+    waveLenCalc%ky=waveLenCalc%k*waveLenCalc%snth
+
+    waveLenCalc%c = waveLenCalc%w / waveLenCalc%k
+
+    kh2 = (waveLenCalc%k * waveLenCalc%d)**2
+    
+    waveLenCalc%coefG2 = 3d0/4d0/kh2 &
+      * ( 1d0 + (BsqC+1d0/9d0)*kh2 )
+
+    waveLenCalc%coefG3 = 27d0/64d0/kh2/kh2 &
+      * ( 1d0 + 2d0*(BsqC+1d0/9d0)*kh2 )
+    
+    waveLenCalc%phi0 = 0d0        
+
+  end function waveLenCalc
+
+
+  subroutine fourier3waveLen(d, T, H, inL, outL, errLim, iterMax)
+  implicit none    
+
+    integer(kind=C_K1),intent(in)::iterMax
+    real(kind=C_K2),intent(in)::d, T, H, inL, errLim
+    real(kind=C_K2),intent(out)::outL
+
+    integer(kind=C_K1)::i
+    real(kind=C_K2)::old, new, kh, a, w
+    real(kind=C_K2)::tmp1, err, sig3, tmp2
+
+    ! solving for kh^2 using old and new
+
+    a = H/2d0
+    w = 2*pi/T
+
+    old = (2d0*pi/inL*d)**2
+
+    do i = 1,iterMax
+
+      sig3 = 9d0/16d0/old &
+        * ( 1d0 + 2d0*(BsqC + 1d0/9d0) * old ) &
+        / ( 1d0 + (2*BsqC + 1d0/3d0) * old )        
+
+      tmp1 = (1d0 + a*a/d/d*sig3)
+
+      tmp2 = grav/d &
+        * (1d0 + BsqC * old) &
+        / (1 + (BsqC + 1d0/3d0)*old )      
+
+      new = w*w/tmp1/tmp1 / tmp2
+      
+      err = abs((new-old)/old)      
+
+      !write(*,'(7E20.8)')w, sig3, tmp1, tmp2, old, new, err
+
+      if (err.le.errLim) then        
+        exit
+      else
+        old = new
+      end if
+    end do
+
+    new = dsqrt(new) !kh
+    outL = 2d0*pi*d/new
+
+    if(i.ge.iterMax) then
+      write(*,*)
+      write(*,*)"[ERR] Fourier Error inL, outL",inL, outL
+      write(*,*)
+      stop      
+    endif
+
+  end subroutine fourier3waveLen
+!!-----------------------End waveLenCalc-----------------------!!
+
+
+
+!!---------------------------getEta----------------------------!!
+  subroutine getEta(b,rTime,x,y,eta)
+  implicit none
+
+    class(fourier3Type),intent(in)::b
+
+    !integer(kind=C_K1)::
+
+    real(kind=C_K2),intent(in)::rTime,x,y
+    real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2)::dx, dy, phi
+
+    dx=(x-b%x0)
+    dy=(y-b%y0)
+    phi = b%w*rTime    
+    eta = ( b%H/2d0 * dcos(phi) ) &
+      + ( b%H**2 / 4d0 / b%d * b%coefG2 * dcos(2d0*phi) ) &
+      + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * dcos(3d0*phi) )
+
+  end subroutine getEta
+!!-------------------------End getEta--------------------------!!
+
+
+
+!!----------------------------getPQ----------------------------!!
+  subroutine getPQ(b,rTime,x,y,eta,p,q)
+  implicit none
+
+    class(fourier3Type),intent(in)::b
+
+    !integer(kind=C_K1)::
+
+    real(kind=C_K2),intent(in)::rTime,x,y,eta
+    real(kind=C_K2),intent(out)::p, q
+    real(kind=C_K2)::dx, dy, phi, pn
+
+    
+    dx=(x-b%x0)
+    dy=(y-b%y0)
+    phi = b%w*rTime          
+
+    pn = eta * b%c
+
+    p = pn * b%csth
+
+    q = pn * b%snth      
+
+  end subroutine getPQ
+!!--------------------------End getPQ--------------------------!!
+
+end module fourier3WaveModule
+!!----------------------End fourier3WaveModule---------------------!!
+
+
+
+
+
+
+
 !!--------------------------outAbsModule---------------------------!!
 module outAbsModule
 use bsnqGlobVars
@@ -417,6 +643,7 @@ implicit none
     procedure ::  initWaveFile
     procedure ::  initAiryFile
     procedure ::  initStokes2File
+    procedure ::  initFourier3File
     procedure ::  getEta
     procedure ::  getPQ
   end type wvFileType  
@@ -622,6 +849,71 @@ contains
 
   end subroutine initStokes2File
 !!---------------------End initStokes2File---------------------!!
+
+
+
+!!-----------------------initFourier3File----------------------!!
+  subroutine initFourier3File(b,dt,inTotT,inT,inD,inH,inAng,&
+    rampt0, rampt1)
+  use fourier3WaveModule
+  implicit none
+
+    class(wvFileType),intent(inout)::b
+    integer(kind=C_K1)::i
+    real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
+    real(kind=C_K2),intent(in)::rampt0, rampt1
+    real(kind=C_K2)::t, eta, p, q, totT, ramptw
+    type(fourier3Type)::wv    
+
+    ! airyType(T,d,H,X0,Y0,thDeg)
+    wv=fourier3Type(inT,inD,inH,0d0,0d0,inAng)
+
+    write(9,'(" [INF] ",3A15)')'T','L','d'
+    write(9,'(" [---] ",3F15.6)')wv%T,wv%L,wv%d
+    write(9,'(" [INF] ",A15)')'kh'
+    write(9,'(" [---] ",F15.6)')wv%k*wv%d
+    write(9,'(" [INF] At 2.25 WavePeriods")')
+    write(9,'(" [---] ",3A15)')'Eta','P','Q'
+    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
+    write(9,'(" [---] ",3F15.6)')eta,p,q
+
+    totT=1.2d0*inTotT
+    b%numP=floor(totT/dt)+2
+    b%rampt0 = rampt0
+    b%rampt1 = rampt1
+    b%rampdt = (rampt1 - rampt0)
+
+    allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
+    do i=0,b%numP-1
+      t=i*dt
+
+      !Time Ramp
+      ramptw = 1d0
+      if(t.le.b%rampt0)then
+        ramptw = 0d0
+      else if(t.ge.b%rampt1)then
+        ramptw = 1d0
+      else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
+        ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
+      endif
+
+      call wv%getEta(t,0d0,0d0,eta)
+      call wv%getPQ(t,0d0,0d0,eta,p,q)
+
+      b%data(i+1,1)=t
+      b%data(i+1,2)=eta * ramptw
+      b%data(i+1,3)=p * ramptw
+      b%data(i+1,4)=q * ramptw
+      !write(201,'(4F15.6)')b%data(i+1,1:4)
+    enddo    
+
+    b%datadtt(:,1) = b%data(:,1)
+    call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    b%posI=1  
+
+  end subroutine initFourier3File
+!!---------------------End initFourier3File--------------------!!
 
 
 
