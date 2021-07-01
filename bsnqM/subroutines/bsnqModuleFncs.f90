@@ -33,6 +33,21 @@
       !$OMP END PARALLEL
     endif
 
+
+    ! Source function wavemaker
+    if(b%wvS%enable)then
+      if(b%wvS%orient.eq.0)then ! parallel to y
+        call b%wvS%sourceDynamic( b%npl, b%cor(1:b%npl,2), &
+          rkTime )
+      elseif(b%wvS%orient.eq.1)then ! parallel to x
+        call b%wvS%sourceDynamic( b%npl, b%cor(1:b%npl,1), &
+          rkTime )
+      else
+        write(9,*)"Wrong orientation for source wavemaker"
+        stop
+      endif
+    endif
+
     !write(9,*)"[MSG] Done dynaMatrices"
     !write(9,*)
 
@@ -75,6 +90,18 @@
     call b%CSRMatrices
 
     call b%destructR1    
+
+    ! Source function wavemaker
+    if(b%wvS%enable)then
+      if(b%wvS%orient.eq.0)then ! parallel to y
+        call b%wvS%sourceAmp( b%npl, b%cor(1:b%npl,1) )
+      elseif(b%wvS%orient.eq.1)then ! parallel to x
+        call b%wvS%sourceAmp( b%npl, b%cor(1:b%npl,2) )
+      else
+        write(9,*)"Wrong orientation for source wavemaker"
+        stop
+      endif
+    endif
 
     call system_clock(b%sysC(6))
     write(9,*)"[MSG] Done statMatrices"
@@ -176,6 +203,10 @@
         k2=k+j
         i2=b%linkl(k2)
         tmpr2=tmpr2 + ( absC*b%mass2(k2)*er(i2) )
+
+        if(b%wvS%enable)then
+          tmpr2 = tmpr2 + b%mass2(k2) * b%wvS%val(i2)
+        endif
       enddo
 
       gRE(i)=dt*( tmpr1 + tmpr2 )
@@ -278,7 +309,10 @@
     class(bsnqCase),intent(inout)::b
 
     integer(kind=C_K1)::tmpi1,tmpi2,mf,i
-    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4,tmpr5,tmpr6
+    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
+    real(kind=C_K2)::wvT, wvH, wvD, wvDelta, wvAng
+    real(kind=C_K2)::wvTR0, wvTR1, wvScenX, wvScenY
+    real(kind=C_K2)::wvSorient, wvSl
     character(len=C_KSTR)::bqtxt
     logical(kind=C_LG)::ex  
 
@@ -371,34 +405,54 @@
 
     !WaveInput Code
     read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)i
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%wvF%fileName
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr1,tmpr2
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr3,tmpr4
+    read(mf,*,end=81,err=81)wvT, wvH, wvD    
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)tmpr5, tmpr6
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)wvScenX, wvScenY, wvSorient
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)wvDelta, wvAng, wvSl
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)wvTR0, wvTR1
     select case (i)
       case(0)
         ! (rampt0,rampt1)
-        call b%wvF%initWaveFile(tmpr5,tmpr6)
+        call b%wvF%initWaveFile(wvTR0, wvTR1)        
       
       case (1)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
-        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
-          tmpr2,tmpr4,tmpr5,tmpr6)
+        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,wvT,wvD,&
+          wvH,0d0,wvTR0,wvTR1)
 
       case (2)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
-        call b%wvF%initStokes2File(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
-          tmpr2,tmpr4,tmpr5,tmpr6)
+        call b%wvF%initStokes2File(b%dt/2d0,b%endTime,wvT,wvD,&
+          wvH,0d0,wvTR0,wvTR1)
 
       case (11)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
-        call b%wvF%initFourier3File(b%dt/2d0,b%endTime,tmpr1,tmpr3,&
-          tmpr2,tmpr4,tmpr5,tmpr6)
+        call b%wvF%initFourier3File(b%dt/2d0,b%endTime,wvT,wvD,&
+          wvH,0d0,wvTR0,wvTR1)
+
+      case (21)
+        ! (inT, inD, inH, inThDeg, inCenX, inCenY, 
+        !   inDelta, inOrient, inLen)
+        call b%wvS%init(wvT, wvD, wvH, wvAng, wvScenX, wvScenY,&
+          wvDelta, wvSorient, wvSl)
+
+        ! Reduntant inititialisation of airyFile
+        ! to let the existing function work
+        ! As long as there is no type11 bnd
+        ! this will not generate a wave
+        ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
+        call b%wvF%initAiryFile(b%dt/2d0,b%endTime,wvT,wvD,&
+          wvH,0d0,wvTR0,wvTR1)
 
       case DEFAULT
         write(*,*)"[ERR] Invalid wave input type", i

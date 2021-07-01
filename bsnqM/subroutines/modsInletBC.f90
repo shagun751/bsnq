@@ -1233,3 +1233,207 @@ contains
 
 end module waveFileModule
 !!-----------------------End waveFileModule------------------------!!
+
+
+
+
+
+
+
+!!------------------------waveSourceFunction-----------------------!!
+module waveSourceFunction
+use bsnqGlobVars
+implicit none
+
+  ! Based on Wei and Kirby (1999)
+  ! https://fengyanshi.github.io/build/html/wavemaker.html
+
+  type, public :: wvSourceType    
+    logical(kind=C_LG)::enable=.false.
+    integer(kind=C_K1)::orient !parallel to 0=y, 1=x
+    integer(kind=C_K1)::nsp=0 !size of pid
+    real(kind=C_K2)::T, d, H, thDeg, thRad, csth, snth, L
+    real(kind=C_K2)::w, k, kx, ky, kh
+    real(kind=C_K2)::sourceLen, cenX, cenY, wid, beta
+    real(kind=C_K2)::coefD
+    integer(kind=C_K1),allocatable::pid(:)
+    real(kind=C_K2),allocatable::stat(:), val(:)
+  contains
+    procedure :: init
+    procedure :: sourceAmp
+    procedure :: sourceDynamic
+  end type wvSourceType  
+  
+
+contains
+
+!!-----------------------------init----------------------------!!
+  subroutine init(b, inT, inD, inH, inThDeg, inCenX, inCenY, &
+    inDelta, inOrient, inSourceLen)
+  implicit none
+
+    !! WaveLen using dispersion relation from Airy wave-theory
+
+    class(wvSourceType),intent(inout)::b
+    real(kind=C_K2),intent(in)::inT,inD,inH,inThDeg
+    real(kind=C_K2),intent(in)::inCenX,inCenY,inDelta
+    real(kind=C_K2),intent(in)::inOrient,inSourceLen
+
+    integer(kind=C_K1)::iterMax,i
+    real(kind=C_K2)::l0,newl,oldl,x,errLim    
+    real(kind=C_K2)::alp=-0.390d0, alp1
+    real(kind=C_K2)::coefI, coef1, coef2
+
+    alp1 = alp + 1d0/3d0
+
+    b%T = inT
+    b%d = inD
+    b%H = inH    
+    b%thDeg = inThDeg
+    b%cenX = inCenX
+    b%cenY = inCenY
+    b%orient = inOrient
+    b%sourceLen = inSourceLen
+
+    b%w = 2d0*pi / b%T
+    b%thRad = b%thDeg * pi/180d0
+    b%csth = dcos( b%thRad )
+    b%snth = dsin( b%thRad )
+
+    iterMax=50000
+    errLim=1d-6
+    l0 = (grav/2d0/pi)*(b%T)**2
+    oldl = l0  
+    do i = 1,iterMax
+      newl = l0*dtanh(2d0*pi*(b%d)/oldl)
+      !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
+      x = abs(newl-oldl)
+      if (x.le.errLim) then
+        b%L = newl
+        exit
+      else
+        oldl = newl
+      end if
+    end do
+
+    if(i.ge.iterMax) then
+      write(*,*)
+      write(*,*)"[ERR] Source type waveCalc Error waveL",b%L
+      write(*,*)
+      ! b%L=-999
+      ! b%k=0d0
+      ! return
+      stop
+    endif
+
+    b%k = 2d0 * pi / b%L
+    b%kx = b%k * b%csth
+    b%ky = b%k * b%snth    
+    b%kh = b%k * b%d
+
+    b%wid = inDelta * b%L / 2d0
+    b%beta = 80d0 / (inDelta**2) / (b%L**2)
+
+    coefI = sqrt(pi/b%beta) &
+      * dexp(-b%kx * b%kx / 4d0 / b%beta)
+    coef2 = b%w * b%k * coefI &
+      * (1d0 - alp * b%kh * b%kh)
+    coef1 = b%H * b%kx &
+      * (b%w * b%w / b%k - alp1 * grav * (b%kh**3))
+    b%coefD = coef1 / coef2
+
+    write(9,*)
+    write(9,'(" [INF] Source Type Wavemaker")')
+    write(9,'(" [INF] ",3A15)')'T','L','d'
+    write(9,'(" [---] ",3F15.6)')b%T,b%L,b%d
+    write(9,'(" [INF] ",A15)')'kh'
+    write(9,'(" [---] ",F15.6)')b%kh
+    write(9,'(" [INF] ",2A15)')'source width', 'source Beta'
+    write(9,'(" [---] ",2F15.6)')b%wid, b%beta
+    write(9,*)
+
+    b%enable = .true.
+
+  end subroutine init
+!!---------------------------End init--------------------------!!
+
+
+
+!!--------------------------sourceAmp--------------------------!!
+  subroutine sourceAmp(b, np, corx)
+  implicit none
+
+    class(wvSourceType),intent(inout)::b
+    integer(kind=C_K1),intent(in)::np
+    real(kind=C_K2),intent(in)::corx(np)
+
+    integer(kind=C_K1)::i
+    real(kind=C_K2)::dx, centre
+    real(kind=C_K2),allocatable::lpid(:)
+
+    allocate(b%stat(np), b%val(np), lpid(np))
+
+    b%nsp = 0
+    b%stat = 0d0
+    b%val = 0d0
+
+    if( b%orient .eq. 0)then ! parallel to y
+      centre = b%cenX
+    elseif( b%orient .eq. 1)then ! parallel to x
+      centre = b%cenY
+    endif
+
+    do i = 1, np
+      dx = corx(i) - centre
+      if( abs(dx) .le. b%wid/2d0 )then
+        b%stat(i) = b%coefD * dexp(-b%beta * dx*dx)
+        b%nsp = b%nsp + 1
+        lpid( b%nsp ) = i
+      endif
+    enddo
+
+    if(b%nsp .le. 1)then
+      write(9,'(" [INF] Check wavemaker source function position")')
+      stop
+    endif
+
+
+    allocate( b%pid(b%nsp) )
+    b%pid = lpid( 1:b%nsp )
+
+    deallocate(lpid)
+
+  end subroutine sourceAmp
+!!------------------------End sourceAmp------------------------!!
+
+
+!!------------------------sourceDynamic------------------------!!
+  subroutine sourceDynamic(b, np, cory, rktime)
+  implicit none
+
+    class(wvSourceType),intent(inout)::b
+    integer(kind=C_K1),intent(in)::np
+    real(kind=C_K2),intent(in)::cory(np), rktime
+
+    integer(kind=C_K1)::i, i2
+    real(kind=C_K2)::dy, centre
+
+
+    if( b%orient .eq. 0)then ! parallel to y
+      centre = b%cenY
+    elseif( b%orient .eq. 1)then ! parallel to x
+      centre = b%cenX
+    endif
+    
+    do i2 = 1, b%nsp
+      i = b%pid(i2)
+      dy = cory(i) - centre
+      b%val(i) = b%stat(i) &
+        * dsin( b%ky * dy - b%w*rktime )
+    enddo
+
+  end subroutine sourceDynamic
+!!----------------------End sourceDynamic----------------------!!
+
+end module waveSourceFunction
+!!----------------------End waveSourceFunction---------------------!!

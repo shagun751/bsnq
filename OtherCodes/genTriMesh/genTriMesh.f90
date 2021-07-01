@@ -17,12 +17,12 @@ implicit none
   domy(1)=0d0
 
   !Top right X Y
-  domx(2)=36.576d0
-  domy(2)=6.096d0
+  domx(2)=150d0
+  domy(2)=4d0
 
   !Mesh dx and dy
-  dx=0.1016d0
-  dy=0.1016d0
+  dx=0.2d0
+  dy=0.2d0
 
   !!-------------- Do not change --------------!!
   open(11,file = "test.msh")
@@ -125,7 +125,7 @@ implicit none
   !!---------- Can change depth code-----------!!
 
   ! Constant depth
-  dep=10
+  dep=1
 
   ! ! Depth code  with slope
   ! tmpr5 = 1d0/20d0  !! Slope

@@ -6,6 +6,7 @@
 4. [Wave input - Wheeler stretching [2021-04-28]](#log_bsnqM_vAlgo_4)
 5. [Bottom Friction [2021-06-21]](#log_bsnqM_vAlgo_5)
 6. [Time ramping for wave-making [2021-06-22]](#log_bsnqM_vAlgo_6)
+7. [Source function based wavemaking [2021-06-29]](#log_bsnqM_vAlgo_7)
 
 
 ### Attempting
@@ -22,6 +23,86 @@
 - [x] Stokes2 wave input in 'modsInletBC.f90' [2021-04-06] [link](#log_bsnqM_vAlgo_3)
 - [x] Bottom Friction [link](#log_bsnqM_vAlgo_5)
 - [x] Wave-making time ramped [link](#log_bsnqM_vAlgo_6)
+- [x] Internal wave maker [link](#log_bsnqM_vAlgo_7)
+	- [ ] Internal wave-maker of a limited length
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_7' ></a>
+
+### Source function based wavemaking [2021-06-29]
+
+Tested wave
+
+| SN  | Regime | h/(gT^2) | H/(gT^2) | h <br> (m) | T <br> (s)| H <br> (m) | L <br> (m) | kh | ka |
+| --- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| 3 | Stokes2 | 1.5079 e-2 | 0.181 e-3 | 1.00 | 2.6000 | 0.0120 | 7.3320 | 0.8570 | 0.5142 e-2 | 
+
+- Wei and Kirby (1999) wave-making using internal wave maker is implemented in FUNWAVE.
+- I was facing some issues where a very small time-step was creating higher amplitude waves which took too long to decay.<br>
+<img width="100%" src="./logvAlgo/C07_blue_w10_dx20_dt050_ramp_f3_vs_blue_w10_dx20_dt010_ramp_f3.png"> <br> Tank width = 10m, dx = 20, Time ramping, Fourier3 wave-making <br>blue = dt050 vs red = dt010
+- So I thought it might be better to try using a internal wave-maker which uses a wider region to generate the waves instead of a single boundary.
+- The Wei and Kirby (1999) method adds and subtracts mass using a source function term added to the continuity function.
+
+#### Results with source function dx=0.20
+All cases are for the wave SN3 in Stokes2 regime.<br>
+Domain is 150m x 4m <br>
+The source is centered at x=30m<br>
+Sponge layer on right of 25m and on left of 15m.
+
+| Setup | dx  | dt  | Courant | Source fnc 'n', width = n\*L/2 | Color | Remark |
+| ----- | --- | --- | ------ | ------ | ------ | ------ |
+| 1  | 0.20 | 0.05000 | 0.78 | 1.0 | red | Overlapping setups 1,2,3,4 |
+| 2  | 0.20 | 0.04000 | 0.63 | 1.0 | pink | Overlapping setups 1,2,3,4 |
+| 3  | 0.20 | 0.02500 | 0.39 | 1.0 | purple |  Overlapping setups 1,2,3,4 |
+| 4  | 0.20 | 0.02000 | 0.31 | 1.0 | dark red | Overlapping setups 1,2,3,4 |
+| 5  | 0.20 | 0.01625 | 0.25 | 1.0 | black | |
+| 6a | 0.20 | 0.01000 | 0.16 | 1.0 | blue | Overlapping setups 6a, 6b |
+| 6b | 0.20 | 0.01000 | 0.16 | 2.0 | green | Overlapping setups 6a, 6b |
+
+
+| Comparison of surface elevation along the centreline of the domain |
+| -------------- |
+| Image Zoom Out |
+| <img width="100%" src="./logvAlgo/C07_dx20_cmp1.png"> |
+| Image Zoom In |
+| <img width="100%" src="./logvAlgo/C07_dx20_cmp1_zoomIn2.png"> |
+| GIF Zoom Out |
+| <img width="100%" src="./logvAlgo/C07_dx20_zoomOut.gif"> |
+| GIF Zoom In |
+| <img width="100%" src="./logvAlgo/C07_dx20_zoomIn2.gif"> |
+
+
+Observation
+
+- You can see that once we go below Courant=0.3 we start getting that exponential pattern in the wave amplitude.
+- It may be due to some wave reflection issue but I have no idea why this is happening.
+- Its not a courant number problem, coz I also tested with dx=10, dt=0.25, Courant = 0.78, and still we see the same issue.
+
+#### Results with source function dx=0.10
+All cases are for the wave SN3 in Stokes2 regime.<br>
+Domain is 150m x 4m <br>
+The source is centered at x=30m<br>
+Sponge layer on right of 25m and on left of 15m.
+
+| Setup | dx  | dt  | Courant | Source fnc 'n', width = n\*L/2 | Color | Remark |
+| ----- | --- | --- | ------ | ------ | ------ | ------ |
+| 1  | 0.20 | 0.05000 | 0.78 | 1.0 | blue | Overlapping setups 1,3 |
+| 3  | 0.20 | 0.02500 | 0.39 | 1.0 | red |  Overlapping setups 1,3 |
+| 7  | 0.10 | 0.02500 | 0.78 | 1.0 | green |  |
+
+| Comparison of surface elevation along the centreline of the domain |
+| -------------- |
+| GIF Zoom Out |
+| <img width="100%" src="./logvAlgo/C07_dx10_zoomOut.gif"> |
+| GIF Zoom In |
+| <img width="100%" src="./logvAlgo/C07_dx10_zoomIn2.gif"> |
+
+
+#### References
+1. https://fengyanshi.github.io/build/html/wavemaker.html
+1. Ge Wei, James T. Kirby, Amar Sinha, Generation of waves in Boussinesq models using a source function method, Coastal Engineering, Volume 36, Issue 4, 1999, Pages 271-299, ISSN 0378-3839, [link](https://doi.org/10.1016/S0378-3839(99)00009-5)
 
 -----------------------------------------------
 

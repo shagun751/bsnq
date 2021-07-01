@@ -17,6 +17,7 @@ include 'solver_v1.0.f90'
 module bsnqModule
 use bsnqGlobVars
 use waveFileModule
+use waveSourceFunction
 use outAbsModule
 use shipMod
 use meshFreeMod
@@ -115,6 +116,7 @@ implicit none
     integer(kind=C_KCLK)::sysC(nSysC)
     logical(kind=C_LG)::resume, presOn, absOn, botFricOn
     type(wvFileType)::wvF
+    type(wvSourceType)::wvS
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:)
