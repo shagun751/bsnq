@@ -190,8 +190,11 @@ Tested Whalin shoal without bottom (blue) and with bottom friction (red) with Ma
 - Sriram sir says "Yes, use stokes 5th order or Fenton 5th order with wheeler stretching. Shaswat has the code."
 - Murali sir says that stretching is only needed for Airy.
 - I think stretching is not needed for anything other than the Airy wave theory.
-	- Therefore in the wave generation, I will edit the velocity calculation limiting to [-h, &eta;] instead of [-h, 0] which was done earlier.
-
+	- Therefore in the Stokes2 wave generation, I will edit the velocity calculation limiting to [-h, &eta;] instead of [-h, 0] which was done earlier.
+- Shaswat says:
+	- No .... it is not recommended to use Wheeler stretching for higher order....because for the second harmonic we are already using the first order solution to estimate kinematics above z=0
+	- **One more small thing to keep in mind is the following (saying based on my Ph.D. experience): Pay attention to the velocity potential expressions for Stokes I (Airy), Stokes II, III and V Stokes II overestimates crest kinematics (because II harmonic directly adds to cresy) ; Stokes III underestimates (because there is a minus term in the first harmonic of the velocity potential). But Airy and Stokes V fall very close to each other. So I always used Stokes V for any wave with Ur<27.....it gives the closest approximation out of all theories in terms of kinematics.**
+		- The point regarding stokes2 overestimating kinematics at crest does seem to be valid.
 -----------------------------------------------
 
 

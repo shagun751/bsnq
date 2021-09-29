@@ -434,7 +434,7 @@ contains
 
 !!--------------------------calcDrag---------------------------!!
   subroutine calcDrag(sh,rTime,nele,np,conn,corx,cory,&
-    femPObf,eta,fx,fy,fm)
+    femPObf,eta,fx,fy,fm,wrkNeiRad)
   implicit none
 
     class(shipType),intent(inout)::sh
@@ -442,11 +442,11 @@ contains
     real(kind=C_K2),intent(in)::rTime,corx(np),cory(np)
     real(kind=C_K2),intent(in)::eta(np)
     type(mfPoiTyp),intent(in),target::femPObf(np)
-    real(kind=C_K2),intent(out)::fx,fy,fm
+    real(kind=C_K2),intent(out)::fx,fy,fm,wrkNeiRad(np)
 
     integer(kind=C_K1)::i,j,j2,k,k2,shI,shJ,nn,err
     integer(kind=C_K1)::femNode, femEle
-    real(kind=C_K2)::rad2,tmpr1
+    real(kind=C_K2)::tmpr1,rj
     real(kind=C_K2)::dx,dy,x,y,etaDx,etaDy, lfx, lfy
     type(mfPoiTyp),pointer::femPThis
 
@@ -478,12 +478,7 @@ contains
         sh%gPObj%cy = sh%gP(k,2)
         femEle = sh%gPFEMele(k)            
         
-        sh%gPObj%rad=0
-        do i = 1,3
-          femPThis => femPObf(conn(femEle, i))
-          sh%gPObj%rad = sh%gPObj%rad + femPThis%rad/3d0
-        enddo
-        rad2 = sh%gPObj%rad**2
+        sh%gPObj%rad=0        
 
         nn=0
         do i = 1,3
@@ -494,7 +489,8 @@ contains
             if( count(sh%gPObj%neid(1:nn).eq.j2).eq.0 )then
               tmpr1 = (corx(j2)-sh%gPObj%cx)**2 &
                 + (cory(j2)-sh%gPObj%cy)**2
-              if(tmpr1.gt.rad2)cycle
+              rj = femPObf(j2)%rad
+              if(tmpr1.gt.(rj*rj))cycle
 
               nn = nn + 1
               if(nn .gt. sh%gPObj%nnMax)then
@@ -507,6 +503,7 @@ contains
               endif                            
 
               sh%gPObj%neid(nn)=j2
+              wrkNeiRad(nn) = rj
             endif
           enddo
         enddo
@@ -524,8 +521,9 @@ contains
         endif
                 
         call mls2DDx(sh%gPObj%cx, sh%gPObj%cy, nn, &
-          sh%gPObj%rad, corx( sh%gPObj%neid(1:nn) ), &
+          corx( sh%gPObj%neid(1:nn) ), &
           cory( sh%gPObj%neid(1:nn) ), &
+          wrkNeiRad( 1:nn ), &
           sh%gPObj%phi(1:nn), sh%gPObj%phiDx(1:nn), &
           sh%gPObj%phiDy(1:nn), err)        
 

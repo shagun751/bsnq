@@ -36,9 +36,13 @@
     write(mf,'(F15.6)')-b%dep(1:b%npl)
     write(mf,'(T7,a)')'</DataArray>'
 
-    write(mf,'(T7,a)')'<DataArray type="Float64" Name="wvAngDeg" format="ascii">'
-    write(mf,'(F15.6)')b%wvAng(1:b%npl)*rad2deg
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="mlsRad" format="ascii">'
+    write(mf,'(F15.6)')b%pObf(1:b%npl)%rad
     write(mf,'(T7,a)')'</DataArray>'
+
+    ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="wvAngDeg" format="ascii">'
+    ! write(mf,'(F15.6)')b%wvAng(1:b%npl)*rad2deg
+    ! write(mf,'(T7,a)')'</DataArray>'
 
     ! write(mf,'(T7,a)')'<DataArray type="Float64" Name="porH" format="ascii">'
     ! write(mf,*)porH-depth(1:npoinl)

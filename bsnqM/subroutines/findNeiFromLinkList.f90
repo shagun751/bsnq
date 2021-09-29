@@ -51,6 +51,19 @@
     integer(kind=C_K1)::i2,i3,j,j2,j3,k1,k2,k3
     real(kind=C_K2)::px,py,rad2,rat2
 
+    ! Note that the radius in the object (rad) is
+    ! supposed to be influence radius of the node.
+    ! It is the region over which the particular node 
+    ! as a neighbour of other nodes has some weight.
+    ! It is not supposed to be the domain of dependence 
+    ! for the particular node.
+    ! Refer to log_mlpgrv01_vBugs#log_mlpgrv01_vBugs_3
+
+    ! However within this function alone I am using (rad)
+    ! as a domain of dependence for the particular node.
+    ! It should be alright as I am still going quite far out.
+    ! in the neighbour search.
+
     nn=0
 
     px=cor(ip,1)
@@ -82,7 +95,7 @@
     if(maxval(nedr(k2+1:k3)).lt.1d0) goto 301 !! looping till 2x radius
 
     do i2=1,k3
-      if(nedr(i2).gt.1d0)cycle
+      !if(nedr(i2).gt.1d0)cycle
       nn=nn+1
       neid(nn)=newrk(i2)
     enddo

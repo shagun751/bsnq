@@ -7,7 +7,8 @@ implicit none
     !! Random location with FEM mesh neghs
     integer(kind=C_K1)::nn,nnMax,bsnqId
     integer(kind=C_K1),allocatable::neid(:)
-    real(kind=C_K2)::cx,cy,rad
+    real(kind=C_K2)::cx,cy
+    real(kind=C_K2)::rad !Influence radius of the point
     real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
     ! bsnqId is set = 0 if the point is not a bsnq point
   contains
@@ -110,16 +111,16 @@ contains
 
 
 !!---------------------------mls2DDx---------------------------!!
-  subroutine mls2DDx(x,y,nn,R,corx,cory,phi,phiDx,phiDy,err)
+  subroutine mls2DDx(x,y,nn,corx,cory,neiR,phi,phiDx,phiDy,err)
   implicit none
 
     integer(kind=C_K1),intent(in)::nn        
-    real(kind=C_K2),intent(in)::x,y,corx(nn),cory(nn),R
+    real(kind=C_K2),intent(in)::x,y,corx(nn),cory(nn),neiR(nn)
     integer(kind=C_K1),intent(out)::err
     real(kind=C_K2),intent(out)::phi(nn),phiDx(nn),phiDy(nn)
 
     integer(kind=C_K1)::j
-    real(kind=C_K2)::rMax,dr,dx,dy,wj,wjx,wjy,drr,xj,yj
+    real(kind=C_K2)::rMax,dr,dx,dy,wj,wjx,wjy,drr,xj,yj,rj
     real(kind=C_K2)::A(3,3),AInv(3,3),ADet
     real(kind=C_K2)::Ax(3,3),Ay(3,3),M(3,3)
     real(kind=C_K2)::pT(3),pTx(3),pTy(3)
@@ -147,14 +148,14 @@ contains
     do j=1,nn
       xj=corx(j)
       yj=cory(j)
+      rj=neiR(j)
       dx=xj-x
       dy=yj-y
       dr=dsqrt(dx**2 + dy**2)
-      drr=dr/R
-
-      if(drr.le.1d0)then
-        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)        
-      endif
+      drr=dr/rj
+      
+      ! drr.gt.1 taken care of in weightFnc
+      call weightFnc(dx,dy,dr,drr,rj,wj,wjx,wjy,1)              
 
       A(1,1)=A(1,1) + wj
       A(1,2)=A(1,2) + wj*xj
@@ -219,14 +220,14 @@ contains
     do j=1,nn
       xj=corx(j)
       yj=cory(j)
+      rj=neiR(j)
       dx=xj-x
       dy=yj-y
       dr=dsqrt(dx**2 + dy**2)
-      drr=dr/R
+      drr=dr/rj
 
-      if(drr.le.1d0)then
-        call weightFnc(dx,dy,dr,drr,R,wj,wjx,wjy,1)
-      endif      
+      ! drr.gt.1 taken care of in weightFnc
+      call weightFnc(dx,dy,dr,drr,rj,wj,wjx,wjy,1)      
 
       Bj(1)=wj
       Bj(2)=wj*xj
@@ -264,8 +265,8 @@ contains
   implicit none
 
     integer(kind=C_K1)::nn,i,err
-    real(kind=C_K2)::xi,yi,rad,tmpr1,tmpr2,tmpr3
-    real(kind=C_K2),allocatable::corx(:),cory(:)
+    real(kind=C_K2)::xi,yi,tmpr1,tmpr2,tmpr3
+    real(kind=C_K2),allocatable::corx(:),cory(:),nerad(:)
     real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
     real(kind=C_K2)::A(3,3),AInv(3,3),ADet
 
@@ -275,18 +276,18 @@ contains
     write(*,*)' /|\ '
     xi=10d0
     yi=89.55d0
-    nn=9
-    rad=dsqrt(2d0)/0.8d0    
+    nn=9    
 
-    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+    allocate(corx(nn),cory(nn),nerad(nn))
+    allocate(phi(nn),phiDx(nn),phiDy(nn))
 
     corx = (/ 1d0, 1d0, 0d0, -1d0, -1d0, -1d0, 0d0, 1d0, 0d0 /)
     cory = (/ 0d0, 1d0, 1d0, 1d0, 0d0, -1d0, -1d0, -1d0, 0d0 /)    
     corx=corx+xi
     cory=cory+yi
+    nerad=dsqrt(2d0)/0.8d0    
 
-    call mls2DDx(xi, yi, nn, rad, &
-        corx, cory, &
+    call mls2DDx(xi, yi, nn, corx, cory, nerad, &
         phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
@@ -306,7 +307,7 @@ contains
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
 
 
-    deallocate(corx,cory,phi,phiDx,phiDy)
+    deallocate(corx,cory,nerad,phi,phiDx,phiDy)
     write(*,*)
     write(*,*)
 
@@ -315,18 +316,18 @@ contains
     write(*,*)'  |  '
     xi=10d0
     yi=89.550d0
-    nn=5
-    rad=1d0/0.8d0
+    nn=5  
 
-    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+    allocate(corx(nn),cory(nn),nerad(nn))
+    allocate(phi(nn),phiDx(nn),phiDy(nn))
 
     corx = (/ 1d0, 0d0, -1d0, 0d0, 0d0 /)
     cory = (/ 0d0, 1d0, 0d0, -1d0, 0d0 /)
     corx=corx+xi
     cory=cory+yi
+    nerad=1d0/0.8d0
 
-    call mls2DDx(xi, yi, nn, rad, &
-        corx, cory, &
+    call mls2DDx(xi, yi, nn, corx, cory, nerad, &
         phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
@@ -346,7 +347,7 @@ contains
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
 
 
-    deallocate(corx,cory,phi,phiDx,phiDy)
+    deallocate(corx,cory,nerad,phi,phiDx,phiDy)
     write(*,*)
     write(*,*)
     
@@ -355,18 +356,18 @@ contains
     write(*,*)'   ----'
     xi=10d0
     yi=89.55d0
-    nn=6
-    rad=1d0/0.48d0
+    nn=6    
 
-    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+    allocate(corx(nn),cory(nn),nerad(nn))
+    allocate(phi(nn),phiDx(nn),phiDy(nn))
 
     corx = (/ 1d0, 0d0, 2d0, 0d0, 1d0, 0d0 /)
     cory = (/ 0d0, 1d0, 0d0, 2d0, 1d0, 0d0 /)
     corx=corx+xi
     cory=cory+yi
+    nerad=1d0/0.48d0
 
-    call mls2DDx(xi, yi, nn, rad, &
-        corx, cory, &
+    call mls2DDx(xi, yi, nn, corx, cory, nerad, &
         phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
@@ -386,7 +387,7 @@ contains
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
 
 
-    deallocate(corx,cory,phi,phiDx,phiDy)
+    deallocate(corx,cory,nerad,phi,phiDx,phiDy)
     write(*,*)
     write(*,*)
     
@@ -395,18 +396,18 @@ contains
     write(*,*)'  |  '
     xi=10d0
     yi=89.55d0
-    nn=4
-    rad=1d0/0.8d0
+    nn=4    
 
-    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+    allocate(corx(nn),cory(nn),nerad(nn))
+    allocate(phi(nn),phiDx(nn),phiDy(nn))
 
     corx = (/ 1d0, 0d0, 0d0, 0d0 /)
     cory = (/ 0d0, 1d0, -1d0, 0d0 /)
     corx=corx+xi
     cory=cory+yi
+    nerad=1d0/0.8d0
 
-    call mls2DDx(xi, yi, nn, rad, &
-        corx, cory, &
+    call mls2DDx(xi, yi, nn, corx, cory, nerad, &
         phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
@@ -425,7 +426,7 @@ contains
     enddo
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
 
-    deallocate(corx,cory,phi,phiDx,phiDy)
+    deallocate(corx,cory,nerad,phi,phiDx,phiDy)
     write(*,*)
     write(*,*)
 
@@ -435,18 +436,18 @@ contains
     write(*,*)' / \ '
     xi=10d0
     yi=89.55d0
-    nn=5
-    rad=dsqrt(2d0)/0.8d0    
+    nn=5    
 
-    allocate(corx(nn),cory(nn),phi(nn),phiDx(nn),phiDy(nn))
+    allocate(corx(nn),cory(nn),nerad(nn))
+    allocate(phi(nn),phiDx(nn),phiDy(nn))
 
     corx = (/ 1d0, -0.8d0, -1d0, 1d0, 0d0 /)
     cory = (/ 1d0, 0.8d0, -1d0, -1d0, 0d0 /)    
     corx=corx+xi
     cory=cory+yi
+    nerad=dsqrt(2d0)/0.8d0    
 
-    call mls2DDx(xi, yi, nn, rad, &
-        corx, cory, &
+    call mls2DDx(xi, yi, nn, corx, cory, nerad, &
         phi, phiDx, phiDy, err)          
 
     write(*,'(I10)')nn
@@ -464,6 +465,10 @@ contains
       tmpr3 = tmpr3 + phiDy(i)*(10+cory(i))
     enddo
     write(*,'(3F15.6)')tmpr1,tmpr2,tmpr3
+
+    deallocate(corx,cory,nerad,phi,phiDx,phiDy)
+    write(*,*)
+    write(*,*)
     
 
     ! A(1,:) = (/ 1d0,0.2d0,3d0 /)
@@ -642,17 +647,29 @@ contains
     select case(typ)
       case(1)
         !! Exp (ending at r/R = 1)
-        wj=0.5d0/pi*dexp(-4.5d0*drr*drr)
-        wjx=9d0*dx/R/R*wj
-        wjy=9d0*dy/R/R*wj
+        if(drr.gt.1d0)then
+          wj=0d0
+          wjx=0d0
+          wjy=0d0          
+        else
+          wj=0.5d0/pi*dexp(-4.5d0*drr*drr)
+          wjx=9d0*dx/R/R*wj
+          wjy=9d0*dy/R/R*wj
+        endif
 
       case(2)
         !! Biquadratic
-        wj = 1d0 - 6d0*drr**2 + 8*drr**3 - 3*drr**4        
-        wjx= -12d0*dx/(R**2) + 24d0*dx*dr/(R**3) &
-          - 12d0*dx*dr*dr/(R**4)
-        wjy= 12d0*dy/(R**2) - 24d0*dy*dr/(R**3) &
-          + 12d0*dy*dr*dr/(R**4)    
+        if(drr.gt.1d0)then
+          wj=0d0
+          wjx=0d0
+          wjy=0d0          
+        else
+          wj = 1d0 - 6d0*drr**2 + 8*drr**3 - 3*drr**4        
+          wjx= -12d0*dx/(R**2) + 24d0*dx*dr/(R**3) &
+            - 12d0*dx*dr*dr/(R**4)
+          wjy= 12d0*dy/(R**2) - 24d0*dy*dr/(R**3) &
+            + 12d0*dy*dr*dr/(R**4)    
+        endif
     end select
 
   end subroutine weightFnc

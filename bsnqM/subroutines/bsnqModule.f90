@@ -89,7 +89,8 @@ implicit none
     real(kind=C_K2)::botFricCd=0d0
     real(kind=C_K2),allocatable::cor(:,:),dep(:)    
     real(kind=C_K2),allocatable::invJ(:,:),bndS(:,:),bndPN(:,:)    
-    real(kind=C_K2),allocatable::por(:),presr(:),vec6Tmp(:)
+    real(kind=C_K2),allocatable::por(:),presr(:)
+    real(kind=C_K2),allocatable::vec6Tmp(:), vec6Tmp2(:)
     real(kind=C_K2),allocatable::ur(:),vr(:),pbpr(:),qbpr(:)    
     real(kind=C_K2),allocatable::uhr(:),vhr(:)
     real(kind=C_K2),allocatable::mass1(:),mass2(:)    
@@ -296,7 +297,7 @@ contains
           call shThis%calcDrag(b%tOb(0)%rtm, b%nele, i, &
             b%conn, b%cor(1:i,1), b%cor(1:i,2), &
             b%pObf(1:i), b%vec6Tmp(1:i), &
-            tmpr1, tmpr2, tmpr3)
+            tmpr1, tmpr2, tmpr3, b%vec6Tmp2(1:i))
           write(9,303)'shF',ishp,b%tOb(0)%rtm,tmpr1,tmpr2,tmpr3
         endif
       enddo
@@ -672,7 +673,7 @@ contains
 
     !Allocations
     allocate(b%gXE(i),b%gXPQ(2*j),b%gXW(i))
-    allocate(b%por(j),b%vec6Tmp(j))
+    allocate(b%por(j), b%vec6Tmp(j), b%vec6Tmp2(j))
     allocate(b%ur(j),b%vr(j),b%pbpr(j),b%qbpr(j))
     allocate(b%uhr(j),b%vhr(j))
 

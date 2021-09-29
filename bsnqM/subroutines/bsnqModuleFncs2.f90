@@ -3,48 +3,98 @@
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::nn,err,i,i2,j,k1
+    integer(kind=C_K1)::nn,err,i,i2,j,k1,j2
     integer(kind=C_K1),allocatable::neid(:),newrk(:)
     real(kind=C_K2)::cx,cy,rad,tmpr3,tmpr5
-    real(kind=C_K2),allocatable::nedr(:),phi(:),phiDx(:),phiDy(:)
+    real(kind=C_K2),allocatable::nedr(:),nerad(:)
+    real(kind=C_K2),allocatable::phi(:),phiDx(:),phiDy(:)
+    real(kind=C_K2)::n3wei(3,3)
+
+    n3wei(1,:) = (/ 0.5d0, 0.5d0, 0.0d0 /)
+    n3wei(2,:) = (/ 0.0d0, 0.5d0, 0.5d0 /)
+    n3wei(3,:) = (/ 0.5d0, 0.0d0, 0.5d0 /)
 
     call system_clock(b%sysC(5))
     allocate(b%pObf(b%npt))
     allocate(neid(b%npt), newrk(b%npt), nedr(b%npt))
+    allocate(nerad(b%npt))
     allocate(phi(b%npt),phiDx(b%npt),phiDy(b%npt))
 
-    tmpr5=1.2d0 !Coeff of multipliciation to max rad in linkList
-    do i=1,b%npt
+    phi=0d0
+    phiDx=0d0
+    phiDy=0d0
 
+    tmpr5=1.2d0 !Coeff of multipliciation to max rad in linkList    
+
+    ! First find influence radius
+    do i=1,b%npl !vertex nodes first
       call findRadLinkList(i, b%npt, b%Sz(4), b%ivq, b%linkq, b%cor, &
-        tmpr5, rad, i2, j, k1, tmpr3, cx, cy)
+        tmpr5, rad, i2, j, k1, tmpr3, cx, cy)    
+      b%pObf(i)%cx = cx
+      b%pObf(i)%cy = cy
+      b%pObf(i)%rad = rad
+    enddo  
+    do k1 = 1, b%nele !For side-midpoint nodes
+      do i2 = 4,6
+        i = b%conn(k1,i2)
+        b%pObf(i)%cx = b%cor(i,1)
+        b%pObf(i)%cy = b%cor(i,2)
+        rad=0d0
+        do j2 = 1,3
+          rad = rad + n3wei(i2-3,j2) * b%pObf(b%conn(k1,j2))%rad
+        enddo
+        b%pObf(i)%rad = rad
+      enddo
+    enddo
+
+
+    ! Find neigh and set the mf object
+    do i=1,b%npt
+      cx = b%pObf(i)%cx
+      cy = b%pObf(i)%cy
+      rad = b%pObf(i)%rad
 
       call findNeiLinkList(i, rad, b%npt, b%Sz(4), b%ivq, &
         b%linkq, b%cor, b%npt, nn, neid, newrk, nedr)
+      
+      call b%pObf(i)%setPoi(nn, nn, i, cx, cy, rad, neid(1:nn), &
+        phi(1:nn), phiDx(1:nn), phiDy(1:nn))      
+    enddo  
 
-      call mls2DDx(cx, cy, nn, rad, b%cor(neid(1:nn),1), &
-        b%cor(neid(1:nn),2), phi(1:nn), phiDx(1:nn), phiDy(1:nn), err)
+
+    ! Find MLS shape fnc for interp and 1st derivative
+    do i=1,b%npt
+      nn = b%pObf(i)%nn
+      neid(1:nn) = b%pObf(i)%neid(1:nn)
+      nerad(1:nn) = b%pObf(neid(1:nn))%rad
+
+      call mls2DDx(b%pObf(i)%cx, b%pObf(i)%cy, nn, &
+        b%cor(neid(1:nn),1), b%cor(neid(1:nn),2), nerad(1:nn), &
+        b%pObf(i)%phi(1:nn), b%pObf(i)%phiDx(1:nn), &
+        b%pObf(i)%phiDy(1:nn), err)
 
       if(err.ne.0)then
         write(9,'(" [ERR] No MFree at node ", I10)')i
         write(9,'(" [---] Cx, Cy ",2F15.6)')cx,cy
       endif
+      
 
-      call b%pObf(i)%setPoi(nn, nn, i, cx, cy, rad, neid(1:nn), &
-        phi(1:nn), phiDx(1:nn), phiDy(1:nn))
-
-      ! if(i.ne.1040) cycle
-      ! write(*,'(I15,2F15.6)')i,b%pObf(i)%cx,b%pObf(i)%cy
+      !if(i.ne.2341) cycle !rect2d vertex
+      ! if(i.ne.15151) cycle !rect2d side-mid
+      ! write(*,'(I15,2F15.6)')b%pObf(i)%bsnqId,b%pObf(i)%cx,b%pObf(i)%cy
       ! write(*,'(2I15,F15.6)')b%pObf(i)%nn,b%pObf(i)%nnMax,b%pObf(i)%rad
       ! do j=1,nn
-      !   write(*,'(I15,3F15.6)')b%pObf(i)%neid(j), b%pObf(i)%phi(j), &
-      !     b%pObf(i)%phiDx(j), b%pObf(i)%phiDy(j)
+      !   j2 = b%pObf(i)%neid(j)        
+      !   tmpr3 = dsqrt( (b%cor(j2,1) - b%pObf(i)%cx)**2 + &
+      !    (b%cor(j2,2) - b%pObf(i)%cy)**2 )
+      !   write(*,'(I15,8F15.6)')j2, b%cor(j2,1:2), tmpr3/0.2032d0, &
+      !     nerad(j), tmpr3/nerad(j), & 
+      !     b%pObf(i)%phi(j), b%pObf(i)%phiDx(j), b%pObf(i)%phiDy(j)
       ! enddo
       ! write(*,'(F15.6)')sum(b%pObf(i)%phi(1:nn))
-
     enddo  
 
-    deallocate(neid,newrk,nedr,phi,phiDx,phiDy)
+    deallocate(neid,newrk,nedr,phi,phiDx,phiDy,nerad)
 
     !call b%bDf%init( b%npt )
     allocate(b%bDf( b%npt ))
@@ -55,7 +105,13 @@
       b%bDf(i)%Pg_tn=0d0    
     enddo
 
+    ! call testMls2DDx
+    ! stop    
+
     call system_clock(b%sysC(6))
+    write(9,'(" [MSG] Size of mFree : npt, sum(nn), MB ",2I15,F15.6)') &
+      b%npt, sum(b%pObf(:)%nn), &
+      sum(b%pObf(:)%nn)*(8d0*3+4d0*1)/(1024d0*1024d0)
     write(9,*)"[MSG] Done setMFree"
     write(9,'(" [TIM] ",F15.4)')1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
     write(9,*)    
