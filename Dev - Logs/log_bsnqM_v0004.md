@@ -1,4 +1,4 @@
-## Vertical velocity angular
+# Vertical velocity angular
 
 1. [Wave-angle [2020-07-03]](#log_bsnqM_v0004_1)
 1. [VertVelAng Attempt-1 (Wrong) [2020-07-05]](#log_bsnqM_v0004_2)
@@ -9,12 +9,12 @@
 1. [Observations : VertVel 3D Confirming against VertVel 2D [2021-06-08]](#log_bsnqM_v0004_7)
 1. [Observations : VertVel 3D Comparison for various angles [2021-06-08]](#log_bsnqM_v0004_8)
 
-### Attempting
+## Attempting
 - Calculate velocities along the depth for angular waves
 - Try and avoid calculation of 'w' velocity. We already avoided need for pressure
 
 
-### List of Work
+## List of Work
 - [x] Calculate local wave-angle. _locWvAng()_
 - [x] BUG_FIX: wavHReset had a mistake. <br>Only mod(12.01,3) would work. mod(11.99,3) wont work. Corrected.
 - [x] Angular wave expression for depth-resolved vel.
@@ -25,7 +25,7 @@
 
 <a name = 'log_bsnqM_v0004_8' ></a>
 
-### Observations : VertVel 3D Comparison for various angles [2021-06-08]
+## Observations : VertVel 3D Comparison for various angles [2021-06-08]
 
 The case7 from the [previous](#log_bsnqM_v0004_7) comparison between Bsnq-2D and Bsnq-3D was repeated at various domian angles.
 
@@ -74,7 +74,7 @@ Results in 'Test_stokes2/case7/bnd12_analysis_3D'
 
 <a name = 'log_bsnqM_v0004_7' ></a>
 
-### Observations : VertVel 3D Confirming against VertVel 2D [2021-06-08]
+## Observations : VertVel 3D Confirming against VertVel 2D [2021-06-08]
 A case was run with 3D formula in order to confirm the implementation against the 2D formula code.
 
 Domain has sidewalls type13 (slip).
@@ -100,7 +100,7 @@ It is seen than there is only a marginal difference between 3D and 2D expression
 
 <a name = 'log_bsnqM_v0004_6' ></a>
 
-### Observations : VertVel 3D Matlab Check [2021-06-08]
+## Observations : VertVel 3D Matlab Check [2021-06-08]
 - The MATLAB code was written for checking the u and v expressions.
 - Did not yet check the w expression
 - The code file is "OtherCodes/Matlab/VertVel_Angular/vertVel_21.m"
@@ -152,7 +152,7 @@ function [u0c, v0c, w0c, uErr, vErr, wErr] = calcAll(d, indX, indY, et0, u0, v0,
 end 
 ```
 
-#### Comparison with Airy
+### Comparison with Airy
 
 | Various wave angles, u and v comparison |
 | --------------------------------------- |
@@ -172,7 +172,7 @@ end
 
 <a name = 'log_bsnqM_v0004_5' ></a>
 
-### VertVel 3D Derivation of vels [2021-06-08]
+## VertVel 3D Derivation of vels [2021-06-08]
 The expression for the u, v velocity is easily extended using notation as mentioned in Dingemans (1994).<br>
 The expression for w was re-derived using the continuity equation.<br>
 I did not verify the constant of integration for w, and just extended it from the expected constant as per the 2D expression.
@@ -188,7 +188,7 @@ Written in Latex, it would look like the expression below in a paper.
 
 <a name = 'log_bsnqM_v0004_4' ></a>
 
-### VertVel 2D Checking Pressure [2021-06-08]
+## VertVel 2D Checking Pressure [2021-06-08]
 I had to verify if the pressure expression is retaining all the terms upto the limit of error of O(&epsilon;^2 &mu;, &epsilon; &mu;^2).
 
 <img width="100%" src="./log0004/C04_eqn2_1.jpg">
@@ -198,7 +198,7 @@ I had to verify if the pressure expression is retaining all the terms upto the l
 
 <a name = 'log_bsnqM_v0004_3' ></a>
 
-### VertVel 2D Derivation of w [2021-06-08]
+## VertVel 2D Derivation of w [2021-06-08]
 Refer to the images below for the derivation of w by substituting the expression for u in the continuity equation.<br>
 This is 2D only. <br>
 This was done to confirm that the obtained expression for w should be valid for a sloping bottom.<br>
@@ -212,7 +212,7 @@ The constant of integration w.r.t z is obtained by applying the bottom BC.
 
 <a name = 'log_bsnqM_v0004_2' ></a>
 
-### VertVelAng Attempt-1 (Wrong) [2020-07-05]
+## VertVelAng Attempt-1 (Wrong) [2020-07-05]
 - Not using wave-driection _(nx, ny)_ because that becomes too complex and unreliable. Wave direction is notoriously difficult to find.
 - Assuming that _u_ only depends on _(p, z, h)_ and _v_ only depends on _(q, z, h)_
     - _u_ and _v_ are calculated using the exact same expression as the uni-directional wave, except that for _v_ we replace _p_ with _q_ and x-derivatives with y-derivatives.
@@ -253,19 +253,19 @@ The expressions are given below, done in the Matlab code 'OtherCodes/Matlab/Vert
 
 <a name = 'log_bsnqM_v0004_1' ></a>
 
-### Wave-angle [2020-07-03]
+## Wave-angle [2020-07-03]
 
-#### Method-Vel [mostly wrong]
+### Method-Vel [mostly wrong]
 - The convectional expression for wave angle is using wave-elevation. <br> tan( &theta; ) = (d&eta;/dy) / (d&eta;/dx) as given in Sorenson (2004) while describing roller-breaker.
 - But instad of calculating the derivatives I am relying on depth-integ vel P Q and hoping the results tan( &theta; ) = Q / P will be alright
 - Calculated if the velMag .gt. 1d-10
 
-#### Method-Eta [mostly wrong]
+### Method-Eta [mostly wrong]
 - The convectional expression for wave angle is using wave-elevation. <br> tan( &theta; ) = (d&eta;/dy) / (d&eta;/dx) as given in Sorenson (2004) while describing roller-breaker.
 - Calculated using MLS shape function.
 - No visible effect on run-time.
 
-#### Results
+### Results
 
 | |
 | :-------------: |

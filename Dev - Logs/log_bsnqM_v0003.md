@@ -1,4 +1,4 @@
-## Vertical velocity calculation
+# Vertical velocity calculation
 
 1. [Observations : 3rd Derv consecutive derivative based [2020-03-06]](#log_bsnqM_v0003_1)
 1. [Observations : VertVel : Unidirectional wave [2020-03-13]](#log_bsnqM_v0003_2)
@@ -11,11 +11,11 @@
 1. [Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]](#log_bsnqM_v0003_8)
 1. [Feature : OpenMP parallel matrixSet2() [2020-06-29]](#log_bsnqM_v0003_9)
 
-### Attempting
+## Attempting
 - Calculate velocities along the depth 
 
 
-### List of Work
+## List of Work
 - [x] Consecutive derivative based - uDx uDxx uDxxx 
 - [x] Consecutive derivative based - pDx pDxx pDxxx 
 - [x] Calculation of u, w and pr assuming unidirectional waves
@@ -35,7 +35,7 @@
 
 <a name = 'log_bsnqM_v0003_9' ></a>
 
-### Feature : OpenMP parallel matrixSet2() [2020-06-29]
+## Feature : OpenMP parallel matrixSet2() [2020-06-29]
 - Made _matrixSet2()_ CPU parallel using OpenMP.
 - I had already before replaced the complex 6x6 and 6x3 writing process with the ele6x6 and ele6x3 arrays.
 - The speedup from OpenMP appears to be upto 1.1x. 
@@ -49,9 +49,9 @@
 
 <a name = 'log_bsnqM_v0003_8' ></a>
 
-### Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]
+## Feature : Subroutine caseOutputs and timeStepRK4 [2020-05-28]
 
-#### caseOutputs
+### caseOutputs
 - Added subroutines _caseOutputs_ to separate _postInstructs_ from the output generation of 
 	- waveProbe 
 	- outputXML - Paraview
@@ -62,7 +62,7 @@
 - It also allows placing initial conditions subroutine in _bsnqQuadMain.f90_, such as _solitIC_ and the first Paraview output will contain the initial condition without going into the _bsnqModule.f90_.
 	- This first output can be crucial in checking the initial condition.
 
-#### timeStepRK4
+### timeStepRK4
 - Added subroutine _timeStepRK4_.
 	- Mostly no changes were required to be made to this by anyone once it was developed.
 	- It avoid unnecessary chance of mistake during coupling and reducing a 60 line code to one line in the main file and thus is perfect for coupling and for sharing.
@@ -71,7 +71,7 @@
 
 <a name = 'log_bsnqM_v0003_7' ></a>
 
-### Feature : Removed bsnqQuadHeader [2020-05-22]
+## Feature : Removed bsnqQuadHeader [2020-05-22]
 - Removed bsnqQuadHeader.f90 by moving the include statements to bsnqModule.f90.
 - .mod files it seems are like header files, which have the variable and function declarations, but they seem to also need the associated .o files with the definition of the functions. Not 100% sure about this.
 - For coupling with _mlpgr3D_ I had to copy bsnqModule.o, bsnqQuadHead.o, bqnGlobVars.mod and bsmqModule.mod.
@@ -86,7 +86,7 @@
 
 <a name = 'log_bsnqM_v0003_6' ></a>
 
-### Feature : Resume file [2020-05-19]
+## Feature : Resume file [2020-05-19]
 - Generating resume file using _writeResume_ (done in binary) subroutine inside _outputXML.f90_.
 	- p, q, totDep, eta for 1 to linear nodes
 	- followed by p, q, totDep for linear+1 to total nodes
@@ -99,7 +99,7 @@
 
 <a name = 'log_bsnqM_v0003_6_1' ></a>
 
-#### IMPORTANT: Resume file issue solved [2020-05-20]
+### IMPORTANT: Resume file issue solved [2020-05-20]
 Unfortunately this isnt working. There is slight difference in the results after resuming which is unaaceptable. Looking for reason and then the solution.
 
 The tests were done for _ftc1_ case using airy wave theory wave of T=2s, H=0.1m, d=0.7m. The wave probes were compared for cold start (test41) and hot start (resumed at T=10s, test42) cases, through rms(difference). The rms is non-zero for p, q, &eta; a every wave probe! (zeros are the X Y of probes.)
@@ -145,7 +145,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 <a name = 'log_bsnqM_v0003_5' ></a>
 
-### Observations : VertVel : getVertVel [2020-04-24]
+## Observations : VertVel : getVertVel [2020-04-24]
 - Restructred vertVelDerv from bDf%u(npt) tp bDf(npt)%u. This is necessary to make it easier in coupling function _getVertVel_ to interpolate all values at the random MLPG point. **It has been tested and verified with T=2s, H=0.1m, d=0.7m, kh=0.95.**
 - Completed _getVertVel_ to obtain vertical velocities at any location inside the bsnq domain.
 	- Uses FEM shape function to interpolate values at the random location from values of 6 nodes within the element.
@@ -158,7 +158,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 		- err = 1 : Location is not inside any bsnq element.
 			- uOut, vOut, wOut, pOut will be returned = 0. Here pOut is pressure.
 
-#### Update [2020-04-27]
+### Update [2020-04-27]
 - Added _getEtaPQForXY_ into the bsnqModule. 
 - This allows extracting these variables at any location if required in future. It might be useful in coupling two bsnq instances.
 - The subroutine _getVertVel_ was not giving these variables.
@@ -171,7 +171,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 <a name = 'log_bsnqM_v0003_4' ></a>
 
-### Observations : findEleForLocXY [2020-04-20]
+## Observations : findEleForLocXY [2020-04-20]
 - Done based on cross product.
 - For triangle in anti-clockwise ABC, with point P, AB x AP, BC x BP, CA x CP should all have +ve sign.
 - Once the element in found, the natural coordinates &epsilon; and &eta; are found using the following formula using the transpose of inverse of Jacobian.
@@ -194,7 +194,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 <a name = 'log_bsnqM_v0003_3' ></a>
 
-### Observations : VertVel : Unidirectional wave [2020-04-08]
+## Observations : VertVel : Unidirectional wave [2020-04-08]
 - Modified the expression _Model 1 : uh = p / tD x h_ to _Model 2 : uh = p_, in order to see if there is a non-linearity effect to improve the accuracy for higher kh values.
 - However as seen from the tests for T=2.0s kh=0.5, which were excellent for _Model 1_ are now not as good for _Model 2_. 
 - I cannot do this test for Airy wave and check because the expressions in Airy wave are only valid till z=0 and not above it.
@@ -202,7 +202,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 - So for now leaving it at _Model 1_ for which the results are in "Observations : VertVel : Unidirectional wave [2020-03-13]"
 - The results for this test can be seen in 'Output_VertVel/vsrMonoC2_T2p0_dt0p005_uh_eq_p_Model2_Trial'
 
-##### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
+#### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
 | |
 | :-------------: |
@@ -233,7 +233,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 <a name = 'log_bsnqM_v0003_2' ></a>
 
-### Observations : VertVel : Unidirectional wave [2020-03-13]
+## Observations : VertVel : Unidirectional wave [2020-03-13]
 - With the derivatives confirmed I proceeded with calculation of the vertical velocity based on Dingemans (1994, pg. 390). 
 - Regular waves of T=2s and 1.5s, H=1m, h=0.7m were generated in fnpt and the solution was transferred to Bsnq at 5m.
 - Probes were placed at x=20m, z=-0.50m and z=-0.35m in both fnpt and Bsnq.
@@ -256,7 +256,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 | <img width="90%" src="./VertVel_UnidirectionalWave/AirywVel.png"> |
 | <img width="90%" src="./VertVel_UnidirectionalWave/Airypres.png"> |
 
-##### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
+#### Regular T=2.0s, H=0.1m, d=0.7m, kh=0.95 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
 | |
 | :-------------: |
@@ -283,7 +283,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 | **wVel** at x=20m, **z=-0.35m** |
 | <img width="90%" src="./VertVel_UnidirectionalWave/T2p0_Poi2_V.png"> |
 
-##### Regular T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
+#### Regular T=1.5s, H=0.1m, d=0.7m, kh=1.4 generated in FNPT2D using 2nd order wavemaker theory and transferred to Bsnq at x=5m.
 
 | |
 | :-------------: |
@@ -314,7 +314,7 @@ So Now the resume file works properly, is stored in binary, and the resume happe
 
 <a name = 'log_bsnqM_v0003_1' ></a>
 
-### Observations : 3rd Derv consecutive derivative based [2020-03-06]
+## Observations : 3rd Derv consecutive derivative based [2020-03-06]
 - Analytical function sin(x) was used to check till third derivative calculated using the MLS code.
 - The consecutive derivative based approach is:
 	- f'(x) = d ( f(x) )/ dx

@@ -1,4 +1,4 @@
-## Common algorithm developments in the code
+# Common algorithm developments in the code
 
 1. [Paralution solver FORTRAN plugin [2020-10-15]](#log_bsnqM_vAlgo_1)
 2. [Test pressure term with integration by parts [2021-02-28]](#log_bsnqM_vAlgo_2)
@@ -9,12 +9,12 @@
 7. [Source function based wavemaking [2021-06-29]](#log_bsnqM_vAlgo_7)
 
 
-### Attempting
+## Attempting
 - From 2020-Dec-01 onwards, the common algorithm developments will be noted in this document.
 - This log file should only be updated for a branch if the algorithm has been implemented in that branch.
 
 
-### List of Work
+## List of Work
 - [x] Test pressure term with integration by parts [Link](#log_bsnqM_vAlgo_2)
 - [x] Added _fem_dN6iSc6dx_N6j()_ femAnalyticalTri_v1.1.f90
 - [ ] waveFileModule search to binary instead of sequential
@@ -31,7 +31,7 @@
 
 <a name = 'log_bsnqM_vAlgo_7' ></a>
 
-### Source function based wavemaking [2021-06-29]
+## Source function based wavemaking [2021-06-29]
 
 Tested wave
 
@@ -45,7 +45,7 @@ Tested wave
 - So I thought it might be better to try using a internal wave-maker which uses a wider region to generate the waves instead of a single boundary.
 - The Wei and Kirby (1999) method adds and subtracts mass using a source function term added to the continuity function.
 
-#### Results with source function dx=0.20
+### Results with source function dx=0.20
 All cases are for the wave SN3 in Stokes2 regime.<br>
 Domain is 150m x 4m <br>
 The source is centered at x=30m<br>
@@ -80,7 +80,7 @@ Observation
 - It may be due to some wave reflection issue but I have no idea why this is happening.
 - Its not a courant number problem, coz I also tested with dx=10, dt=0.25, Courant = 0.78, and still we see the same issue.
 
-#### Results with source function dx=0.10
+### Results with source function dx=0.10
 All cases are for the wave SN3 in Stokes2 regime.<br>
 Domain is 150m x 4m <br>
 The source is centered at x=30m<br>
@@ -100,7 +100,7 @@ Sponge layer on right of 25m and on left of 15m.
 | <img width="100%" src="./logvAlgo/C07_dx10_zoomIn2.gif"> |
 
 
-#### References
+### References
 1. https://fengyanshi.github.io/build/html/wavemaker.html
 1. Ge Wei, James T. Kirby, Amar Sinha, Generation of waves in Boussinesq models using a source function method, Coastal Engineering, Volume 36, Issue 4, 1999, Pages 271-299, ISSN 0378-3839, [link](https://doi.org/10.1016/S0378-3839(99)00009-5)
 
@@ -109,7 +109,7 @@ Sponge layer on right of 25m and on left of 15m.
 
 <a name = 'log_bsnqM_vAlgo_6' ></a>
 
-### Time ramping for wave-making [2021-06-22]
+## Time ramping for wave-making [2021-06-22]
 - The wave making has to be time ramped to avoid spurious waves.
 - I have used a cosine function as shown below.<br><img width="100%" src="./logvAlgo/C06_eqn1.jpeg"> 
 - There was another option from a Turnbull (2003) paper which Sriram sir had mentioned. However this seems to take 6 x Time period which is just too long
@@ -119,7 +119,7 @@ The cosine plot is shown below.<br>
 **The period from rampt0 to rampt1 should be (2 x Time period)**<br>
 <img width="100%" src="./logvAlgo/C06_ramp.jpg"> 
 
-#### Output
+### Output
 
 | SN  | Regime | h/(gT^2) | H/(gT^2) | h <br> (m) | T <br> (s)| H <br> (m) | L <br> (m) | kh | ka |
 | --- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
@@ -143,7 +143,7 @@ The cosine plot is shown below.<br>
 | 2DH VelX x = 46 |
 | <img width="100%" src="./logvAlgo/C06_V2dHX_2.png"> |
 
-#### References
+### References
 
 1. Turnbull, M. S., Borthwick, A. G. L., & Taylor, R. E. (2003). Numerical wave tank based on a ?-transformed finite element inviscid flow solver. International Journal for Numerical Methods in Fluids, 42(6), 641–663. https://doi.org/10.1002/fld.539
 
@@ -152,7 +152,7 @@ The cosine plot is shown below.<br>
 
 <a name = 'log_bsnqM_vAlgo_5' ></a>
 
-### Bottom Friction [2021-06-21]
+## Bottom Friction [2021-06-21]
 - Bottom friction using Chezy model with a constant Manning roughness coefficient as per what shown in Dyakonova (2018)
 - Similar bottom friction implementation done by Fang (2017)
 - The Sorenson (2004) implementation was same quadratic low, however the drag coefficient was extremely confusing. 
@@ -164,7 +164,7 @@ Tested Whalin shoal without bottom (blue) and with bottom friction (red) with Ma
 <img width="100%" src="./logvAlgo/C05_botF_onRed_offBlue.png"> 
 
 
-#### References
+### References
 
 1. Fang, K., He, D., Liu, Z., & Sun, J. (2017). Numerical simulation of wave motion over fringing reefs using a shock-capturing Boussinesq model. Twenty-Seventh (2017) International Ocean and Polar Engineering Conference, 399–405.
 
@@ -175,14 +175,14 @@ Tested Whalin shoal without bottom (blue) and with bottom friction (red) with Ma
 
 <a name = 'log_bsnqM_vAlgo_4' ></a>
 
-### Wave input - Wheeler stretching [2021-04-28]
+## Wave input - Wheeler stretching [2021-04-28]
 
 - The wheeler stretching linearly stretches the z axis from [-h, &eta;] to [-h, 0].
 - It is for sure to be applied for Airy theory.<br><img width="80%" src="./logvAlgo/C04_eqn1.jpg">
 - Earlier I had only integrated the normal velocity expression from [-h, 0] and given in the wave input for Airy case thinking it doesnt matter much. Now I have applied wheeler stretching and hence multiplied the [-h, 0] integrated expression with (h+&eta;)/h as seen from the equation above.
 
 
-#### Stokes2 and higher
+### Stokes2 and higher
 - In stokes derivation, the FS BC about z=&eta; is expanded using Taylor series about z=0.
 - It is explained surprisingly well in thus Wikipedia article [link](https://en.wikipedia.org/wiki/Stokes_wave) <br><img width="100%" src="./logvAlgo/C04_eqn2.png">
 - The same is also seen in the Dean and Darlymple book.<br><img width="80%" src="./logvAlgo/C04_eqn3.png">
@@ -200,7 +200,7 @@ Tested Whalin shoal without bottom (blue) and with bottom friction (red) with Ma
 
 <a name = 'log_bsnqM_vAlgo_3' ></a>
 
-### Stokes2 wave input added [2021-04-06]
+## Stokes2 wave input added [2021-04-06]
 
 - Corrected the implementation of airy wave input by changing the phase (kx - wt) to cos and adding a (kx - wt + phi0) to start from eta=0 followed by a crest
 	- **Note that the phase moves backward w.r.t time t in (kx - wt + phi0), therefore for eta=0 followed by a creast in cosine, phi=90deg and not phi = 270deg**
@@ -237,7 +237,7 @@ All results in "Test_beji/Airy_vs_Stokes2"
 
 <a name = 'log_bsnqM_vAlgo_2' ></a>
 
-### Test pressure term with integration by parts [2021-02-28]
+## Test pressure term with integration by parts [2021-02-28]
 
 - I had originally coded the pressure term without using integration by parts
 	- i.e. <img width="50%" src="./logvAlgo/S2/eq1.png"> <br>`\iint_\Omega \frac{d}{\rho} \frac{\partial P}{\partial x} \,d \Omega => \left[ \iint_\Omega \frac{1}{\rho} \phi_i d \frac{\partial \phi_j}{\partial x}  \right] P_i`
@@ -266,7 +266,7 @@ The following examples are for a 36 x 6 ship in 5m water depth at 0.85 Froude nu
 
 <a name = 'log_bsnqM_vAlgo_1' ></a>
 
-### Paralution solver FORTRAN plugin [2020-10-15]
+## Paralution solver FORTRAN plugin [2020-10-15]
 - The existing system of using the paralution solver in FORTRAN was provided by them itself and was robust and simple.
 - Paralution was written in C++
 - Our code is in FROTRAN
@@ -291,7 +291,7 @@ The following examples are for a 36 x 6 ship in 5m water depth at 0.85 Froude nu
 - **So the challenge was to figure out how to create and save a C++ object from the FORTRAN code**
 - This is where the magic of **void** pointer in C++ comes into picture. **This is the greatest feature of a programming language I have ever seen**. Refer to this [link](https://community.intel.com/t5/Intel-Fortran-Compiler/Calling-C-cpp-objects-from-a-Fortran-subroutine/td-p/1110556)
 
-#### Modifications to the solver code
+### Modifications to the solver code
 - I have moved the plugin code from the general location (where paralution is installed) to the subroutines folder instead.
 - The file name is still the same _paralution_fortran.cpp_. This way one can switch to the old generic plugin just by changing the makefile
 - The modification are quite intensive and difficult to follow.
@@ -334,7 +334,7 @@ In the Boussinesq code modification are made to
 
 Although I think this is the best piece of code I have ever written, it gave very limited gains in speed.
 
-#### Speed gains
+### Speed gains
 - Overall on normal i7-9th Gen system I got upto 1.08x
 - However on Aqua server it hardly made any significant difference.
 

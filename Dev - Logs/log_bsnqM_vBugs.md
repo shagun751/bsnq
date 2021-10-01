@@ -1,14 +1,14 @@
-## Common bugs in the code
+# Common bugs in the code
 
 1. [_updateSoln()_ failing in Aqua cluster [2020-09-09]](#log_bsnqM_vBugs_1)
 2. [Changing from RIAV = R(NOD) to RIAV = (R(NOD) + R(NEI))/2 [2021-09-29]](#log_bsnqM_vBugs_2)
 
-### Attempting
+## Attempting
 - From 2020-Sep-09 onwards, the bugs in the main code common across all branches will be noted here.
 - This log file should only be updated for a branch if the bug-fix has been done in that branch.
 
 
-### List of Work
+## List of Work
 
 
 -----------------------------------------------
@@ -16,7 +16,7 @@
 
 <a name = 'log_bsnqM_vBugs_2' ></a>
 
-### Changing from RIAV = R(NOD) to RIAV = (R(NOD) + R(NEI))/2 [2021-09-29]
+## Changing from RIAV = R(NOD) to RIAV = (R(NOD) + R(NEI))/2 [2021-09-29]
 
 See MLPGR log (#log_mlpgrv01_vBugs_3) for the detailed explanation.
 
@@ -32,7 +32,7 @@ See MLPGR log (#log_mlpgrv01_vBugs_3) for the detailed explanation.
 - Therefore in all places where we do interpolation, I have changed it to RIAV = R(NEI).
 - Some additional things were done in the MLPGR code, for which please refer to (#log_mlpgrv01_vBugs_3).
 
-#### List of places where edit was made
+### List of places where edit was made
 
 | SN  | File | Function | Description |
 | --- | ---- | -------- | ----------- |
@@ -49,7 +49,7 @@ Verified the implementation using gradEta compared for a ship wake case with irr
 
 <a name = 'log_bsnqM_vBugs_1' ></a>
 
-### _updateSoln()_ failing in Aqua cluster [2020-09-09] [2020-09-09]
+## _updateSoln()_ failing in Aqua cluster [2020-09-09] [2020-09-09]
 - While running the Boussinesq code in IITM's new Aqua cluster, I sometimes got segmentation fault in the first step for RK$ for the first time-step itself.
 - It was quite a random error. In one example the case ran fine for 0.1s time-step and then gave a segmentation fault the exact same case when I ran with 0.05s time-step.
 - On checking I found that the segmentation fault came from _updateSoln()_ subroutine.

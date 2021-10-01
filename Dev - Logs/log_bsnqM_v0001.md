@@ -1,18 +1,18 @@
-## Initial Development log
+# Initial Development log
 
 1. [Observations : Time-stepping : Predictor-Corrector](#log_bsnqM_v0001_1)
 1. [Observations : Time-stepping : RK2](#log_bsnqM_v0001_2)
 1. [Observations : Time-stepping : AdBaE3 [2020-10-05, 2020-10-07]](#log_bsnqM_v0001_3)
 1. [Observations : Time-stepping : RK4 [2020-01-08]](#log_bsnqM_v0001_4)
 
-### Attempting
+## Attempting
 - Making the code modular so that it can be used by many
 - bsnqModule with all the required variables
 - It is also required to make it easier to couple with other codes, especially such as MLPG\_R code.
 - FEM analytical integrals as general functions so that they can be used later in other code. Check file *femAnalyticalTri_vx.x.f90*
 
 
-### List of Work
+## List of Work
 - [x] Mesh input (Type0)
 - [x] FEM Initialisations
 - [x] Wave probes - nearest node based
@@ -38,7 +38,7 @@
 -----------------------------------------------
 
 
-### Matrices with correct signs
+## Matrices with correct signs
 - [x] Mass M1 and M2
 - [x] Bs1, Bs2, Bs3, Bs4
 - [x] CxF, CyF
@@ -48,7 +48,7 @@
 - [x] Hydrostatic pressure matrix
 
 
-### Modular structure
+## Modular structure
 - bsnqModule
     - type :: bsnqCase
       - procedure ::  initMat
@@ -67,7 +67,7 @@
 
 <a name = 'log_bsnqM_v0001_4' />
 
-### Observations : Time-stepping : RK4 [2020-01-08]
+## Observations : Time-stepping : RK4 [2020-01-08]
 - The code was modified for RK4 time-stepping with realtive ease.
 - Modifications were done to *preInstructs*, *updateSoln* and *postInstructs* functions to accomodate for RK4 time-stepping. 
 - No Other changes were required and the code was verified usiing Berkhoff Shoal test case.
@@ -80,29 +80,29 @@
 
 <a name = 'log_bsnqM_v0001_3' />
 
-### Observations : Time-stepping : AdBaE3
+## Observations : Time-stepping : AdBaE3
 This is the same time-stepping as he old code. However I have implemented it a little differently this time given the change in the code strucutre. Also I avoid applying dirichlet boundary conditions on P&#775;, P&#775;, &eta;&#775;. I have used the *bsnqVars* class to save the solution &Delta;P, &Delta;Q and &Delta;&eta; based on the time-values that were used to calculate thise and therefore I can do any time-stepping with this structure.
 
 The code now is stable like before. However the solution has higher amplitude than the earlier solution and I do not know yet why. It could be due to the changed mentioned here [here](#predCorNote1), mainly the 6x6 treatement of the advection term. I will try and use the old advection calculation and see if that brings the solution back to normal. 
 
 It was also noted in this version that there is a need to force the DirichletBC. The Dirichlet type BC are applied to &Delta;P, &Delta;Q and &Delta;&eta; while solving for the system of linear equations. This however does not ensure that after time-stepping the solution would match the required Dirichlet solution. So now I am forcing the dirichlet BC. However despite me correcting this I am getting slightly higher amplitude than expected. Hopefully this is not the reason behind it, but it is possible.
 
-#### Update
+### Update
 I tested with the old advection term calculation and there almost no differnce in the results between the results calculated using the new *fem_N6i_du6N6jdx()* and the old *nAdvMat()*.  
 Hence the new method for calculating *NAdv* is not the reason for this amplitude increase.
 
-#### Update-2
+### Update-2
 I tested with the old *Bs5* *Bs6* terms. This too is not the cause for the increased amplitude. I however testes without doing the boundary integral in that equation but I dont think thats too important.  
 Hence the new method for calculating *NAdv*, *Bs5* and *Bs6* is not the reason for this amplitude increase.  
 I think now that its only the inlet BC.  
 Another possibility is me not applying the Neumann BC explicitly for &eta;.
 
-#### Update-3 [2019-10-05]
+### Update-3 [2019-10-05]
 **The issue of higher amplitude has now been solved!**  
 The reason was me not calculating the boundary integral term in the auxiliary variable *w* equation. It is zero for the *type-12* and *type-13* boundaries due to d&eta;/dn = 0 at those boundaries. However at *type-11* (inlet) and *type-14* (sponge layer with &eta;=0) we need to calculate this boundary integra;. I have introduced a static matric *gFW* which simply adds to *gDMat* hence there is only one time computation and no increase in the dynamic calculations.  
 The results have been compared with the old code and its matches well with even better performance at the sponge layer than before.  
 
-#### Update-4 [2019-10-07]
+### Update-4 [2019-10-07]
 <p align="centre"> <img width='45%' src="./log0001/bsnqM_inRed_fberkFWSecP1.svg">  <img width="45%" src="./log0001/bsnqM_inRed_fberkFWSecP2.svg">  
 
 **Fig :** Wave-heights at alone different line sections. Results from *bsnqM_v1.01* in red &mdash; Results from *bsnq_par_v7.3.3* in black &mdash;. Results from FUNWAVE in black ---. Results from experiment in black &bull;.  
@@ -124,7 +124,7 @@ The differences from the old code are
 <a name = 'log_bsnqM_v0001_2' />
 
 
-### Observations : Time-stepping : RK2
+## Observations : Time-stepping : RK2
 This too does not work! Similar problems as Predictor-corrector
 
 In both RK2 and Predictor-corrector I was using two values for estimating the answer. In AdamBash-3-Explicit, I use 3 values. This is porbably the reason for the noise build up.
@@ -133,7 +133,7 @@ In both RK2 and Predictor-corrector I was using two values for estimating the an
 
 <a name = 'log_bsnqM_v0001_1' />
 
-### Observations : Time-stepping : Predictor-Corrector
+## Observations : Time-stepping : Predictor-Corrector
 The predictor-corrector time-stepping had working in the GWCE (Generalised Wave Continuity) equation model pretty well as shown in Dresback(2004). We ourselves had found good results with this time-stepping in our 9-noded FEM-GWCE model, where the oscillations at lower depth and near boundaries were removed. With those results in mind, I tried to implement the algorithm in Bsnq equation. 
 
 <p> <img align="centre" src="./log0001/bsnq1d_eqn.svg"> </p>

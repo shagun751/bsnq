@@ -1,4 +1,4 @@
-## Moving pressure field and Gradient MLS development
+# Moving pressure field and Gradient MLS development
 
 1. [Observations : shipPress : Pressure at lin vs quad nods](#log_bsnqM_v0002_1)
 1. [Observations : shipPress : Noise compared to old code](#log_bsnqM_v0002_2)
@@ -14,12 +14,12 @@
 1. [Feature : New drag calculation approach for ship [2021-03-26]](#log_bsnqM_v0002_12)
 1. [Feature : Cubic Spline path for ship [2021-04-07]](#log_bsnqM_v0002_13)
 
-### Attempting
+## Attempting
 - Add moving pressure to simulate ship-generated waves
 - Calculating the gradient of quantities using mesh-free techniques
 - Optimised neighbour search algorithm using FEM link table for any radius
 
-### List of Work
+## List of Work
 - [x] Probes - nearest point
 - [ ] Moving Press - Press2 - Press val at linear nodes
 - [x] Moving Press - Press2 - Press val at quad nodes
@@ -41,21 +41,21 @@
 
 <a name = 'log_bsnqM_v0002_13' />
 
-### Feature : Cubic Spline path for ship [2021-04-07]
+## Feature : Cubic Spline path for ship [2021-04-07]
 - The path of the ship is speicifed in '.pos' file by the user.
 - The user specifies time, X, Y, &theta; for the ship at any interval in ascending order of time.
 - The position at any time instant was estimated using linear interpolation between interval k and k+1.
 - This is alright when the ship is moving in straight lines at various angles and was probably how i tested it.
 - However it works really poorly for curves.
 
-#### Issues with linear interpolation
+### Issues with linear interpolation
 - The path faces jerks at every user point because linear interpolation doesnt ensure that the gradients are continuous across the specified points.
 	- dX/dt, dY/dt and d&theta;/dt are not continuous across the user specified points. The grid in the below plot are locations at which user specified the ship position and orientation.<br><img width="100%" src="./log0002/C13_CS_vs_L_pos.jpg">
 - Due to this it appears like you are dropping the ship again at new angle, whenever the time goes from range (k,k+1) to (k+1,k+2)
 - Please observe these two instances below showing the effect of ship being dropped again seen through ripples in the free surface. Left - cubic spline. Right - linear.<br><img width="90%" src="./log0002/C13_CS_vs_LT250.png"><br><img width="90%" src="./log0002/C13_CS_vs_LT275.png">
 - Another influence of this linear interpolation related shock is seen very evidently in the force plots as shown below. The force plots get huge shocks indicating the apparent sharp change in orientation of the ship.<br><img width="90%" src="./log0002/C13_CS_vs_L_Force.jpg">
 
-#### Cubic spline
+### Cubic spline
 - Murali sir had taught us in the 'Numerical methods' course about how to interpolate any dataset using Lagrangian polynomial and cubic spline.
 - Lagrangian polynomial gives wild oscillations near the end points.
 - Cubic spline provides piecewise third order polynomial between beach interval (k,k+1) while ensure that upto second derivative is continuous at every point.
@@ -75,7 +75,7 @@ The case name here is 'Test_ulb/ulb02_CS' and 'Test_ulb/ulb02_t2'
 
 <a name = 'log_bsnqM_v0002_12' />
 
-### Feature : New drag calculation approach for ship [2021-03-26]
+## Feature : New drag calculation approach for ship [2021-03-26]
 <img width="60%" src="./log0002/C12_pointCld.png">
 
 - The existing method for drag calculation is using a point cloud system.
@@ -114,7 +114,7 @@ As a demonstration refer to the following table for simulation time of Mesh1 cas
 
 Its seen than the heavy impact of the old brute force algo is seen in large domains. This is why we didn't realise it during development.
 
-#### Alternate Algo 1 [not used]
+### Alternate Algo 1 [not used]
 - In this method we find the element in which each of the point-cloud nodes lie and then within that we find the closest linear node of the triangle element using the shape function values.
 - The neighbours and radius of this FEM nodes are taken the the point-cloud node's neighbours and radius
 - This method is faster.
@@ -128,7 +128,7 @@ Its seen than the heavy impact of the old brute force algo is seen in large doma
 | **Fig:** Algo 1 Fy inl2B Case |
 | <img width="80%" src="./log0002/C12_algo1_sh1Fy_overlap.png"> |
 
-#### Alternate Algo 2 [used]
+### Alternate Algo 2 [used]
 - In this algo we first the element in which the point-cloud node is lying.
 - After that the point-cloud node radius is average of the radius of the three lin nodes of the element. **Hence user doesnt have to prescribe the radius.**
 - The neighbours from the 3 lin nodes of the element are all used as neighbours of the point-cloud nodes.
@@ -147,7 +147,7 @@ Its seen than the heavy impact of the old brute force algo is seen in large doma
 
 <a name = 'log_bsnqM_v0002_11' />
 
-### Observation : Mesh requirement for ship cases [2021-03-12]
+## Observation : Mesh requirement for ship cases [2021-03-12]
 
 I have finally found all basic guidelines that are needed to be followed for ship wake simulations.
 
@@ -156,7 +156,7 @@ The mesh size depends on two things
 - Dominant wave-length in the wake
 - Ship size
 
-#### Dominant wavelength
+### Dominant wavelength
 - In order to find the dominant we use the observation that the vesel wake moves with the vessel. 
 - Due to this the group celerity of the wake will be the vessel's speed.
 - This translates to C_g = V_s given by the following expression <br> <img width="60%" src="./log0002/C11_groupCelerity.png">
@@ -205,7 +205,7 @@ fprintf('UMax x T = %f\n',amp*g*T/L*T);
 | <img width="60%" src="./log0002/C11_exp3_WP2.png"> <img width="35%" src="./log0002/C11_exp3_WP2_spec.png"> |
 
 
-#### Ship size
+### Ship size
 
 <img width="80%" src="./log0002/C11_mesh_type_annote.png">
 
@@ -255,7 +255,7 @@ Only M150B has a non zero mean of F_y, rest all have F_y mean as zero. This is b
 
 <a name = 'log_bsnqM_v0002_10' />
 
-### Edit : Absorbing layer beyond limit length [2020-09-13]
+## Edit : Absorbing layer beyond limit length [2020-09-13]
 - The absorbance code was such that if dx is greater than the length of the sponge layer (l) then the absorbace coeff will just grow exponentially.
 - The absorbance coeff is 30/T* \(exp(dr^2) - 1 \)/ \(exp(1) - 1 \) where dr = dx/l.
 - This is supposed to have max value of 30/T for dx>l blows up exponentially
@@ -309,7 +309,7 @@ Remember this order of preference about the sponge layer.
 
 <a name = 'log_bsnqM_v0002_9' />
 
-### Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]
+## Feature : Ship Y force and Drag calc for multiple ships [2020-09-11]
 - Included calculation of the y force for ships
 - The x-force as per Ertekin (1986) is `dFx = - p etaDx dx dy`, where `p = rho * g * localDraft`.
 	- In my code I do not include `rho * g`
@@ -338,7 +338,7 @@ Test case inl2B was tested for calculation of X and Y wave-making forces. As it 
 
 <a name = 'log_bsnqM_v0002_8' />
 
-### Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27]
+## Observations : gradMLS : Neigh search - any rad FEM linktable [2020-02-27]
 - The radius is calculated using the maximum distance of a node in the immdiate FEM linktable for the node (r<sub>max</sub>). The coef is an option to modify the radius as required. _findRadLinkList_
 	rad = r<sub>max</sub> x coef
 - This approach allows automatic adaption to irregular mesh.
@@ -350,7 +350,7 @@ Test case inl2B was tested for calculation of X and Y wave-making forces. As it 
 - I have removed the _mfFEMTyp_ and he associated _calcAll_ subroutine. This was a badly written code where the neigs were only the immediate FEM neighs and it wasn't very generalisable. It was also very confusing. 
 - Added the variable bsnqId to the typ _mfPoiTyp_. This will be set = 0 if the mf point is not a bsnq FEM point, otherwise it will be set as the node Id of that point from the mesh. This will allow easier reference in case only a few bsnq nodes are used as mfPoi instead of all.
 
-#### Update [2020-03-06]
+### Update [2020-03-06]
 - The gradient calculation is now done for all points (lin + quad)
 - This was necessary to calculate ux, uxx, uxxx at any point, because even to calculate uxx at any point you need ux at all points.
 - Thankfully the speed is not effected too much. Per derivative there was addition of about 3 sec in total runtime of rect2D.
@@ -364,7 +364,7 @@ Test case inl2B was tested for calculation of X and Y wave-making forces. As it 
 
 <a name = 'log_bsnqM_v0002_7' />
 
-### IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]
+## IMPORTANT BUG : fem_N6i_Sc6_dN6jdx [2020-03-02]
 - In the subroutine _fem_N6i_Sc6_dN6jdx_, I was defining a matrix mat(6,6), but in the declaration I gave mat(6,3)
 - This subroutine is only used for pressure Gx, Gy calculations.
 - ifort did not show this as error and hopefull calculted the full (6,6) matrix
@@ -385,7 +385,7 @@ Test case inl2B was tested for calculation of X and Y wave-making forces. As it 
 
 <a name = 'log_bsnqM_v0002_6' />
 
-### IMPORTANT BUG : dirichletBC [2020-02-03]
+## IMPORTANT BUG : dirichletBC [2020-02-03]
 - In the functions _diriBCPQ_ and _diriBCPQDiff_, I had made the stupid mistake of using i1 and j2 instead of i2 and j2. 
 - Due to this the normal velocity was not being made = 0 on the 'slip wall' BC
 - Corrected and verified.
@@ -394,7 +394,7 @@ Test case inl2B was tested for calculation of X and Y wave-making forces. As it 
 
 <a name = 'log_bsnqM_v0002_5' />
 
-### Observations : gradMLS : MLS with FEM Neigh only [2020-01-30]
+## Observations : gradMLS : MLS with FEM Neigh only [2020-01-30]
 File : modsMFree.f90
 - The derivation in my MTech thesis is based on the thought that the MLS derivation is basically the summation form of the RKPM formulation (which is integral).
 - However on rechecking in the book Liu (2005), it seems that's not correct
@@ -405,7 +405,7 @@ File : modsMFree.f90
 - Currently the neightbours were based on immediate FEM neighbous. Though seems to be ok but its not perfect, especially near the corners.
 
 
-#### Update [2020-02-03]
+### Update [2020-02-03]
 - I had made the stupid mistake of assuming that product of two symmetric matrices is symmetric. This is incorrect and was the reason behind the wrong derivative calculations
 - The MLS derivative calculations now are excellent. They have been verified for cases rect2D, fberk and ert. 
 - The following folder contains the first derivative of eta plotted and compared against the gradient calculation within paraview for the cases rect2D, fberk and ert
@@ -417,7 +417,7 @@ Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 
 <a name = 'log_bsnqM_v0002_4' />
 
-### Observations : shipPress : Soliton generation
+## Observations : shipPress : Soliton generation
 - Check the paper Ertekin (1986) for required conditions for generation of soliton for Fr<sub>h</sub>>1 for the specific case.
 - We seem to be getting similar trends, however I have not compared point to point
 - The rate of soliton generation seems to depend on draft, beam, speed, channel width, bathymetry and probably more.
@@ -428,14 +428,14 @@ Paraview : Output_bsnqM_v1.01_RK4/plotAll.pvsm
 
 <a name = 'log_bsnqM_v0002_3' />
 
-### Observations : shipPress : Press2 val Linear nodes
+## Observations : shipPress : Press2 val Linear nodes
 This version in arounf 6.5 times faster than the previous code. This code took 23 minutes to run a 25 sec simulation case for domain 100m x 43m, water depth 2.5 constant. Ship moving at Froude = 0.7 along the midline. The earlier code took 160 minutes for the same test case.
 
 -----------------------------------------------
 
 <a name = 'log_bsnqM_v0002_2' />
 
-### Observations : shipPress : Noise compared to old code
+## Observations : shipPress : Noise compared to old code
 <p align="centre"> <img width='45%' src="./log0002/CmpWith_inl2_v7p3p3.png">  
 
 **Fig :** Comparison of the current code results with the bsnq_v7.3.3
@@ -456,7 +456,7 @@ Location : Tallin/Trial_inl/inl2_v7.3.3CC_C12_Rs15_v0p7
 
 <a name = 'log_bsnqM_v0002_1' />
 
-### Observations : shipPress : Pressure at lin vs quad nods
+## Observations : shipPress : Pressure at lin vs quad nods
 It appears that the quad nodes gives slightly better results with the deepest pressure value better represented
 
 -----------------------------------------------
