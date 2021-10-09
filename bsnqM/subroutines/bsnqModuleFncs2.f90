@@ -97,12 +97,19 @@
     deallocate(neid,newrk,nedr,phi,phiDx,phiDy,nerad)
 
     !call b%bDf%init( b%npt )
-    allocate(b%bDf( b%npt ))
+
+    ! iDf will be used for time-interpolated values.
+    ! will only do velocities.
+    ! wont do pressure in iDf
+    allocate( b%bDf(b%npt), b%iDf(b%npt))
     do i=1,b%npt
       b%bDf(i)%ug=0d0
       b%bDf(i)%Pg=0d0    
       b%bDf(i)%ug_tn=0d0
-      b%bDf(i)%Pg_tn=0d0    
+      b%bDf(i)%Pg_tn=0d0
+
+      b%iDf(i)%ug=0d0
+      b%iDf(i)%Pg=0d0        
     enddo
 
     ! call testMls2DDx
@@ -121,162 +128,274 @@
 
 
 
-!!-------------------------calcVertVelDerv-------------------------!!
-  subroutine calcVertVelDerv(b)
+!!-----------------------calcDepResDerivAll------------------------!!
+  subroutine calcDepResDerivAll(b, npt, p, q, tD, rDf)
   implicit none
 
-    class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::i,i2,j,k2
-    real(kind=C_K2)::tmpr1, tmpx, tmpy
+    class(bsnqCase),intent(in)::b
+    integer(kind=C_K1),intent(in)::npt
+    real(kind=C_K2),intent(in)::p(npt), q(npt), tD(npt)
+    type(vertVelDerv3D),intent(out)::rDf(npt)
 
-    b%ur = b%tOb(0)%p / b%tOb(0)%tD
-    b%vr = b%tOb(0)%q / b%tOb(0)%tD
-    b%uhr = b%ur * b%dep
-    b%vhr = b%vr * b%dep
+    integer(kind=C_K1)::i,i2,j,k2
+    real(kind=C_K2)::tmpx, tmpy    
+
 
     !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i)
-    !$OMP DO SCHEDULE(dynamic,100)    
-    do i=1,b%npt
-      b%bDf(i)%u = b%ur(i)
-      b%bDf(i)%v = b%vr(i)
-      b%bDf(i)%P = b%uhr(i) ! P = uh , note its not u(h+eta)
-      b%bDf(i)%Q = b%vhr(i)
+    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
+    !$OMP DO SCHEDULE(dynamic,1000)    
+    do i=1,npt
+      rDf(i)%u = p(i) / tD(i)
+      rDf(i)%v = q(i) / tD(i)
+      rDf(i)%P = rDf(i)%u * b%dep(i) ! P = uh , note its not u(h+eta)
+      rDf(i)%Q = rDf(i)%v * b%dep(i)
 
       ! Storing ! d(U)/dx and d(Uh)/dx at t(n-1), t(n-2)    
-      b%bDf(i)%ug_tn(2) = b%bDf(i)%ug_tn(1)  
-      b%bDf(i)%ug_tn(1) = b%bDf(i)%ug
-      b%bDf(i)%Pg_tn(2) = b%bDf(i)%Pg_tn(1)    
-      b%bDf(i)%Pg_tn(1) = b%bDf(i)%Pg
+      rDf(i)%ug_tn(2) = rDf(i)%ug_tn(1)  
+      rDf(i)%ug_tn(1) = rDf(i)%ug
+      rDf(i)%Pg_tn(2) = rDf(i)%Pg_tn(1)    
+      rDf(i)%Pg_tn(1) = rDf(i)%Pg
     enddo
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
+    !$OMP END DO NOWAIT    
         
     !b%ur = dsin(b%cor(:,1))
 
-    !! First derivative
-    !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
-    !$OMP DO SCHEDULE(dynamic,100)    
-    do i=1,b%npt
+    !! First derivative    
+    !$OMP DO SCHEDULE(dynamic,1000)    
+    do i=1, npt
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
       ! dudx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%ur( b%pObf(i)%neid ), tmpx, j )
+        rDf( b%pObf(i)%neid )%u, tmpx, j )
 
       ! dvdy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%vr( b%pObf(i)%neid ), tmpy, j )
+        rDf( b%pObf(i)%neid )%v, tmpy, j )
 
       ! du
-      b%bDf(i2)%ug = tmpx + tmpy
+      rDf(i2)%ug = tmpx + tmpy
 
       ! dPdx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%uhr( b%pObf(i)%neid ), tmpx, j )
+        rDf( b%pObf(i)%neid )%P, tmpx, j )
 
       ! dQdy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%vhr( b%pObf(i)%neid ), tmpy, j )
+        rDf( b%pObf(i)%neid )%Q, tmpy, j )
 
       ! dP
-      b%bDf(i2)%Pg = tmpx + tmpy
+      rDf(i2)%Pg = tmpx + tmpy
 
       ! dhdx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%dep( b%pObf(i)%neid ), b%bDf(i2)%hx, j )
+        b%dep( b%pObf(i)%neid ), rDf(i2)%hx, j )
 
       ! dhdy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%dep( b%pObf(i)%neid ), b%bDf(i2)%hy, j )      
+        b%dep( b%pObf(i)%neid ), rDf(i2)%hy, j )      
 
     enddo
     !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
 
 
-    !! Second derivative
-    !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k2)
-    !$OMP DO SCHEDULE(dynamic,100)    
-    do i=1,b%npt
+    !! Second derivative    
+    !$OMP DO SCHEDULE(dynamic,1000)    
+    do i=1, npt
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
       ! d( del.(u) ) / dx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%ug, b%bDf(i2)%ugx, j )
+        rDf(b%pObf(i)%neid)%ug, rDf(i2)%ugx, j )
 
       ! d( del.(u) ) / dy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%bDf(b%pObf(i)%neid)%ug, b%bDf(i2)%ugy, j )
+        rDf(b%pObf(i)%neid)%ug, rDf(i2)%ugy, j )
 
       ! d( del.(P) ) / dx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%Pg, b%bDf(i2)%Pgx, j )
+        rDf(b%pObf(i)%neid)%Pg, rDf(i2)%Pgx, j )
 
       ! d( del.(P) ) / dy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%bDf(b%pObf(i)%neid)%Pg, b%bDf(i2)%Pgy, j )
+        rDf(b%pObf(i)%neid)%Pg, rDf(i2)%Pgy, j )
 
     enddo
     !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
 
 
-    !! Third derivative
-    !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
-    !$OMP DO SCHEDULE(dynamic,100)    
-    do i=1,b%npt
+    !! Third derivative and time-derivative
+    !$OMP DO SCHEDULE(dynamic,1000)    
+    do i=1, npt
       i2 = b%pObf(i)%bsnqId
       k2 = b%pObf(i)%nn
 
       ! ugxx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%ugx, tmpx, j )
+        rDf(b%pObf(i)%neid)%ugx, tmpx, j )
 
       !ugyy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%bDf(b%pObf(i)%neid)%ugy, tmpy, j )
+        rDf(b%pObf(i)%neid)%ugy, tmpy, j )
 
       ! del.( del( del.(u) ) )
-      b%bDf(i2)%uggg = tmpx + tmpy      
+      rDf(i2)%uggg = tmpx + tmpy      
 
       ! Pgxx
       call calcGrad( k2, b%pObf(i)%phiDx, &
-        b%bDf(b%pObf(i)%neid)%Pgx, tmpx, j )
+        rDf(b%pObf(i)%neid)%Pgx, tmpx, j )
 
       !Pgyy
       call calcGrad( k2, b%pObf(i)%phiDy, &
-        b%bDf(b%pObf(i)%neid)%Pgy, tmpy, j )
+        rDf(b%pObf(i)%neid)%Pgy, tmpy, j )
 
       ! del.( del( del.(P) ) )
-      b%bDf(i2)%Pggg = tmpx + tmpy            
+      rDf(i2)%Pggg = tmpx + tmpy            
+
+
+      ! Time-derivative for pressure
+      rDf(i)%ugt = ( 3d0*rDf(i)%ug - 4d0*rDf(i)%ug_tn(1) &
+        + rDf(i)%ug_tn(2) )/ (2d0*b%dt)
+      rDf(i)%Pgt = ( 3d0*rDf(i)%Pg - 4d0*rDf(i)%Pg_tn(1) &
+        + rDf(i)%Pg_tn(2) )/ (2d0*b%dt)
+
+    enddo
+    !$OMP END DO NOWAIT          
+    !$OMP END PARALLEL
+
+
+  end subroutine calcDepResDerivAll
+!!---------------------End calcDepResDerivAll----------------------!!
+
+
+
+!!-------------------------calcDepResDeriv-------------------------!!
+  subroutine calcDepResDeriv(b, npt, p, q, tD, rDf)
+  implicit none
+
+    class(bsnqCase),intent(in)::b    
+    integer(kind=C_K1),intent(in)::npt
+    real(kind=C_K2),intent(in)::p(npt), q(npt), tD(npt)
+    type(vertVelDerv3D),intent(out)::rDf(npt)
+
+    integer(kind=C_K1)::i,i2,j,k2
+    real(kind=C_K2)::tmpx, tmpy    
+
+
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(i,i2,j,k2,tmpx,tmpy)
+    do i = 1, npt
+      rDf(i)%u = p(i) / tD(i)
+      rDf(i)%v = q(i) / tD(i)
+      rDf(i)%P = rDf(i)%u * b%dep(i) ! P = uh , note its not u(h+eta)
+      rDf(i)%Q = rDf(i)%v * b%dep(i)
+    enddo
+      
+    !! First derivative    
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, npt
+      i2 = b%pObf(i)%bsnqId
+      k2 = b%pObf(i)%nn
+
+      ! dudx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf( b%pObf(i)%neid )%u, tmpx, j )
+
+      ! dvdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf( b%pObf(i)%neid )%v, tmpy, j )
+
+      ! du
+      rDf(i2)%ug = tmpx + tmpy
+
+      ! dPdx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf( b%pObf(i)%neid )%P, tmpx, j )
+
+      ! dQdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf( b%pObf(i)%neid )%Q, tmpy, j )
+
+      ! dP
+      rDf(i2)%Pg = tmpx + tmpy
+
+      ! dhdx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        b%dep( b%pObf(i)%neid ), rDf(i2)%hx, j )
+
+      ! dhdy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        b%dep( b%pObf(i)%neid ), rDf(i2)%hy, j )      
+
+    enddo
+    !$OMP END DO NOWAIT    
+
+
+    !! Second derivative    
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i=1,npt
+      i2 = b%pObf(i)%bsnqId
+      k2 = b%pObf(i)%nn
+
+      ! d( del.(u) ) / dx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf(b%pObf(i)%neid)%ug, rDf(i2)%ugx, j )
+
+      ! d( del.(u) ) / dy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf(b%pObf(i)%neid)%ug, rDf(i2)%ugy, j )
+
+      ! d( del.(P) ) / dx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf(b%pObf(i)%neid)%Pg, rDf(i2)%Pgx, j )
+
+      ! d( del.(P) ) / dy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf(b%pObf(i)%neid)%Pg, rDf(i2)%Pgy, j )
+
+    enddo
+    !$OMP END DO NOWAIT    
+
+
+    !! Third derivative    
+    !$OMP DO SCHEDULE(dynamic,1000)    
+    do i=1,npt
+      i2 = b%pObf(i)%bsnqId
+      k2 = b%pObf(i)%nn
+
+      ! ugxx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf(b%pObf(i)%neid)%ugx, tmpx, j )
+
+      !ugyy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf(b%pObf(i)%neid)%ugy, tmpy, j )
+
+      ! del.( del( del.(u) ) )
+      rDf(i2)%uggg = tmpx + tmpy      
+
+      ! Pgxx
+      call calcGrad( k2, b%pObf(i)%phiDx, &
+        rDf(b%pObf(i)%neid)%Pgx, tmpx, j )
+
+      !Pgyy
+      call calcGrad( k2, b%pObf(i)%phiDy, &
+        rDf(b%pObf(i)%neid)%Pgy, tmpy, j )
+
+      ! del.( del( del.(P) ) )
+      rDf(i2)%Pggg = tmpx + tmpy            
 
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL    
+    
+    ! Pressure related terms not calculated.  
 
 
-    tmpr1=2d0*b%dt
-    !$OMP PARALLEL DEFAULT(shared) &
-    !$OMP   PRIVATE(i)
-    !$OMP DO SCHEDULE(dynamic,100)    
-    do i=1,b%npt
-      b%bDf(i)%ugt = ( 3d0*b%bDf(i)%ug - 4d0*b%bDf(i)%ug_tn(1) &
-        + b%bDf(i)%ug_tn(2) )/tmpr1
-      b%bDf(i)%Pgt = ( 3d0*b%bDf(i)%Pg - 4d0*b%bDf(i)%Pg_tn(1) &
-        + b%bDf(i)%Pg_tn(2) )/tmpr1
-    enddo
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL
-
-
-  end subroutine calcVertVelDerv
-!!-----------------------End calcVertVelDerv-----------------------!!
+  end subroutine calcDepResDeriv
+!!-----------------------End calcDepResDeriv-----------------------!!
 
 
 
@@ -575,3 +694,85 @@
 
   end subroutine locWvAng
 !!--------------------------End locWvAng---------------------------!!
+
+
+
+!!-------------------------setDepResAtTime-------------------------!!
+  subroutine setDepResAtTime(b, tin, err)
+    implicit none
+
+    class(bsnqCase),intent(inout)::b
+
+    real(kind=C_K2),intent(in)::tin
+    integer(kind=C_K1),intent(out)::err
+
+    integer(kind=C_K1)::i
+    real(kind=C_K2)::tr, dtin
+
+    ! b%tOb(1) = t(n-1)
+    ! b%tOb(0) = t(n)
+
+    ! err = 0 no error
+    ! err = 1 some error
+
+    err = 0
+
+    dtin = (tin-b%tOb(1)%rtm)
+    tr =  dtin / b%dt
+
+    if((tr.lt.0d0) .or. (tr.gt.1d0))then
+      write(9,'(" [ERR] setDepResAtTime")')
+      write(9,'(" [---] Tin not within t(n-1) and t(n)")')
+      write(9,'(" [---] ",3a15)')'Tin', 't(n-1)', 't(n)'
+      write(9,'(" [---] ",3f15.6)')tin, b%tOb(1)%rtm, b%tOb(0)%rtm
+      err = 1
+      return
+    endif
+
+    call b%rk4intp%setrk4InterpMatrix( b%dt, dtin)
+
+    ! Cant use for now
+    ! Made probably a humungous blunder in RK4 time-stepping
+    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i)
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npl
+      call b%rk4intp%get_ktilde( b%sOb(1:4)%e(i), &
+        b%siOb(1:4)%e(i) )
+    enddo
+    !$OMP END DO NOWAIT
+
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npt
+      call b%rk4intp%get_ktilde( b%sOb(1:4)%p(i), &
+        b%siOb(1:4)%p(i) )
+
+      call b%rk4intp%get_ktilde( b%sOb(1:4)%q(i), &
+        b%siOb(1:4)%q(i) )
+    enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL          
+
+
+    b%tiOb%rtm = tin
+    b%tiOb%e = b%tOb(1)%e + 1d0/6d0*(b%siOb(1)%e &
+      + 2d0*b%siOb(2)%e + 2d0*b%siOb(3)%e + b%siOb(4)%e)
+    b%tiOb%p = b%tOb(1)%p + 1d0/6d0*(b%siOb(1)%p &
+      + 2d0*b%siOb(2)%p + 2d0*b%siOb(3)%p + b%siOb(4)%p)
+    b%tiOb%q = b%tOb(1)%q + 1d0/6d0*(b%siOb(1)%q &
+      + 2d0*b%siOb(2)%q + 2d0*b%siOb(3)%q + b%siOb(4)%q)
+
+    !! Forcing Dirichlet BC
+    call b%diriBCEta(b%tiOb%e,b%tiOb%rtm)
+    call b%diriBCPQ(b%tiOb%p,b%tiOb%q,b%tiOb%rtm)
+    
+    b%tiOb%tD(1:b%npl) = b%dep(1:b%npl) + b%tiOb%e
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tiOb%tD)
+
+    call b%calcDepResDeriv(b%npt, b%tiOb%p, b%tiOb%q, &
+      b%tiOb%tD, b%iDf)
+
+  end subroutine setDepResAtTime
+!!-----------------------End setDepResAtTime-----------------------!!
+
+
+

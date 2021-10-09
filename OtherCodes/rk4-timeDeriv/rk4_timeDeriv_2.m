@@ -22,8 +22,10 @@ rC = rk4_coeffs(dt);
 
 for i = 1:nt
     rF = rk4_coeffs(t(i+1) - t(1));
-    Tr = rF.C * rF.P * rC.Pinv * rC.Cinv
+    Tr = rF.C * rF.P * rC.Pinv * rC.Cinv;
     ktil = Tr * kC;    
+    fprintf('%15.6f, %15.6f, %15.6f, %15.6f \n',kC)
+    fprintf('%15.6f, %15.6f, %15.6f, %15.6f \n\n',ktil)
     yn(i+1) = yn(1) + getdy(t(i+1) - t(1), ktil);
 end
 

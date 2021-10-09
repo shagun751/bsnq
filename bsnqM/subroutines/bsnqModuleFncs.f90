@@ -143,7 +143,7 @@
     integer(kind=C_KCLK),intent(inout)::sysC(nSysC)
       
     integer(kind=C_K1)::i,j,k,i2,k2
-    real(kind=C_K2)::dt,absC,tmpr1,tmpr2,tmpr3,tmpr4
+    real(kind=C_K2)::absC,tmpr1,tmpr2,tmpr3,tmpr4
 
     !!  [Note] : 
     !!  Remeber everything is passed by reference
@@ -154,8 +154,7 @@
     !!  So modify the bq%et1 only after the entire computation
     !!  with its old values is done. Till then store it in bq%er
 
-    call system_clock(sysC(5))
-    dt=b%dt
+    call system_clock(sysC(5))    
 
     !!------------------solveW-----------------!!
     !gRE=0d0
@@ -209,10 +208,10 @@
         endif
       enddo
 
-      gRE(i)=dt*( tmpr1 + tmpr2 )
+      gRE(i)=( tmpr1 + tmpr2 )
     enddo
 
-    call b%diriBCEtaDiff(gRE, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCEtaDt(gRE, rkTime)
     
     gRE=gRE/b%rowMaxE
 
@@ -226,7 +225,7 @@
     call solveSys2(b%paralsE, b%npl, b%nnzl, gRE, gXE,&
       i, tmpr1, j)
     write(9,301)'Eta',j,i,tmpr1    
-    call b%diriBCEtaDiff(gXE, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCEtaDt(gXE, rkTime)
     !!---------------End solveEta--------------!!
 
 
@@ -273,13 +272,13 @@
           + b%mass1(k2) * b%botFricN6(i2)*qbpr(i2))
       enddo
 
-      gRPQ(i)=dt*( tmpr1 + tmpr3 )
-      gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )
+      gRPQ(i)=( tmpr1 + tmpr3 )
+      gRPQ(b%npt+i)=( tmpr2 + tmpr4 )
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL
     
-    call b%diriBCPQDiff(gRPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCPQDt(gRPQ, rkTime)
 
     gRPQ=gRPQ/b%rowMaxPQ
     
@@ -290,7 +289,7 @@
     call solveSys2(b%paralsPQ, 2*b%npt, b%nnzf, gRPQ,&
       gXPQ, i, tmpr1, j)
     write(9,301)'PQ',j,i,tmpr1
-    call b%diriBCPQDiff(gXPQ, b%tOb(0)%rtm, b%tOb(1)%rtm)
+    call b%diriBCPQDt(gXPQ, rkTime)
     call system_clock(sysC(8))
     !!---------------End solvePQ---------------!!
     call system_clock(sysC(6))
@@ -432,8 +431,10 @@
 
       case (2)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
-        call b%wvF%initStokes2File(b%dt/2d0,b%endTime,wvT,wvD,&
-          wvH,0d0,wvTR0,wvTR1)
+        ! call b%wvF%initStokes2File(b%dt/2d0,b%endTime,wvT,wvD,&
+        !   wvH,0d0,wvTR0,wvTR1)
+        write(*,*)'[ERR] Stokes2 is not implemented.'
+        stop
 
       case (11)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)

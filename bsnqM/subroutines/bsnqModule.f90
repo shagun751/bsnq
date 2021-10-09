@@ -12,6 +12,7 @@ include 'matrixSet1.f90'
 include 'matrixSet2.f90'
 include 'mergeSort.f90'
 include 'nodeConnAll.f90'
+include 'rk4Interpolation.f90'
 include 'solver_v1.0.f90'
 
 module bsnqModule
@@ -20,6 +21,7 @@ use waveFileModule
 use waveSourceFunction
 use outAbsModule
 use shipMod
+use rk4InterpMod
 use meshFreeMod
 use vertVelMod
 implicit none
@@ -120,12 +122,14 @@ implicit none
     type(wvSourceType)::wvS
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
-    type(bsnqVars),allocatable::tOb(:),sOb(:)
+    type(bsnqVars),allocatable::tOb(:),sOb(:),siOb(:)
+    type(bsnqVars)::tiOb !tiOb and siOb For time-interpolation
     type(vertVelProbes)::vvPrb
+    type(rk4InterpTyp)::rk4intp
 
     !! Optional initialisation
     type(mfPoiTyp),allocatable::pObf(:)
-    type(vertVelDerv3D),allocatable::bDf(:)
+    type(vertVelDerv3D),allocatable::bDf(:), iDf(:)
     
 
   contains    
@@ -142,8 +146,8 @@ implicit none
     procedure ::  preInstructs
     procedure ::  postInstructs
     procedure ::  solveAll
-    procedure ::  diriBCEtaDiff
-    procedure ::  diriBCPQDiff
+    procedure ::  diriBCEtaDt
+    procedure ::  diriBCPQDt
     procedure ::  diriBCEta
     procedure ::  diriBCPQ
     procedure ::  updateSoln
@@ -157,12 +161,14 @@ implicit none
     !procedure ::  destructor
     
     procedure ::  setMFree
-    procedure ::  calcVertVelDerv
+    procedure ::  calcDepResDerivAll
+    procedure ::  calcDepResDeriv
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
     procedure ::  getVertVel          !using vertVelExp to calculate
     procedure ::  testGetVertVel          
     procedure ::  locWvAng
+    procedure ::  setDepResAtTime     !Set depth resolved quants at time    
 
   end type bsnqCase
 
@@ -216,11 +222,11 @@ contains
     real(kind=C_K2)::tmpr1,tmpr2,tmpr3, wei(3)
 
     
-    b%tOb(0)%e = b%tOb(1)%e + 1d0/6d0*(b%sOb(1)%e &
+    b%tOb(0)%e = b%tOb(1)%e + b%dt/6d0*(b%sOb(1)%e &
       + 2d0*b%sOb(2)%e + 2d0*b%sOb(3)%e + b%sOb(4)%e)
-    b%tOb(0)%p = b%tOb(1)%p + 1d0/6d0*(b%sOb(1)%p &
+    b%tOb(0)%p = b%tOb(1)%p + b%dt/6d0*(b%sOb(1)%p &
       + 2d0*b%sOb(2)%p + 2d0*b%sOb(3)%p + b%sOb(4)%p)
-    b%tOb(0)%q = b%tOb(1)%q + 1d0/6d0*(b%sOb(1)%q &
+    b%tOb(0)%q = b%tOb(1)%q + b%dt/6d0*(b%sOb(1)%q &
       + 2d0*b%sOb(2)%q + 2d0*b%sOb(3)%q + b%sOb(4)%q)
 
     !! Forcing Dirichlet BC
@@ -261,7 +267,8 @@ contains
     ! call b%locWvAng( b%npt, b%vec6Tmp ) !-pi to pi
 
     if(allocated(b%bDf))then 
-      call b%calcVertVelDerv    
+      call b%calcDepResDerivAll( b%npt, b%tOb(0)%p, b%tOb(0)%q, &
+        b%tOb(0)%tD, b%bDf )
       !call b%testGetVertVel
     endif
         
@@ -437,7 +444,7 @@ contains
         do i = 1, b%npl          
           b%sOb(1)%e(i) = b%gXE(i)          
           
-          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)/2d0          
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%dt * b%gXE(i)/2d0          
           b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
         enddo
         !$OMP END DO NOWAIT
@@ -448,8 +455,8 @@ contains
           b%sOb(1)%p(i) = b%gXPQ(i)
           b%sOb(1)%q(i) = b%gXPQ(j)        
                     
-          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)/2d0
-          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)/2d0          
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%dt * b%gXPQ(i)/2d0
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%dt * b%gXPQ(j)/2d0          
         enddo        
         !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
@@ -459,7 +466,7 @@ contains
         do i = 1, b%npl          
           b%sOb(2)%e(i) = b%gXE(i)          
           
-          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)/2d0          
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%dt * b%gXE(i)/2d0          
           b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
         enddo
         !$OMP END DO NOWAIT
@@ -470,8 +477,8 @@ contains
           b%sOb(2)%p(i) = b%gXPQ(i)
           b%sOb(2)%q(i) = b%gXPQ(j)        
                     
-          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)/2d0
-          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)/2d0          
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%dt * b%gXPQ(i)/2d0
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%dt * b%gXPQ(j)/2d0          
         enddo        
         !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
@@ -481,7 +488,7 @@ contains
         do i = 1, b%npl          
           b%sOb(3)%e(i) = b%gXE(i)          
           
-          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%gXE(i)
+          b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%dt * b%gXE(i)
           b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
         enddo
         !$OMP END DO NOWAIT
@@ -492,8 +499,8 @@ contains
           b%sOb(3)%p(i) = b%gXPQ(i)
           b%sOb(3)%q(i) = b%gXPQ(j)        
                     
-          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%gXPQ(i)
-          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%gXPQ(j)
+          b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%dt * b%gXPQ(i)
+          b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%dt * b%gXPQ(j)
         enddo        
         !$OMP END DO NOWAIT
         call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
@@ -529,16 +536,16 @@ contains
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::mat(b%npl)    
     integer(kind=C_K1)::i,i2,j2
-    real(kind=C_K2)::tmpr1
+    real(kind=C_K2)::leta, letadt
 
     !! Note : Consistent with SemiDirect only
-    call b%wvF%getEta(rTt0,tmpr1)    
+    call b%wvF%getEta(rTt0, leta, letadt)    
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
       if(j2.eq.11)then        
-        mat(i2)=tmpr1
+        mat(i2)=leta
 
       elseif(j2.eq.14)then
         mat(i2)=0d0
@@ -558,16 +565,16 @@ contains
     real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::p(b%npt),q(b%npt)
     integer(kind=C_K1)::i,i2,j2
-    real(kind=C_K2)::tmpr1,tmpr2
+    real(kind=C_K2)::lp,lq,lpdt,lqdt
 
     !! Note : Consistent with SemiDirect only
-    call b%wvF%getPQ(rTt0,tmpr1,tmpr2)    
+    call b%wvF%getPQ(rTt0, lp, lq, lpdt, lqdt)    
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(j2.eq.11)then        
-        p(i2)=tmpr1
-        q(i2)=tmpr2
+        p(i2)=lp
+        q(i2)=lq
 
       elseif((j2.eq.12).or.(j2.eq.14))then
         p(i2)=0d0
@@ -588,57 +595,55 @@ contains
 
 
 
-!!--------------------------diriBCEtaDiff--------------------------!!
-  subroutine diriBCEtaDiff(b,mat,rTt0,rTt1)
+!!---------------------------diriBCEtaDt---------------------------!!
+  subroutine diriBCEtaDt(b,mat,rTt0)
   implicit none
 
     class(bsnqCase),intent(in)::b
-    real(kind=C_K2),intent(in)::rTt0,rTt1
+    real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::mat(b%npl)    
     integer(kind=C_K1)::i,i2,j2
-    real(kind=C_K2)::tmpr1,tmpr2
+    real(kind=C_K2)::leta, letadt
 
     !! Note : Consistent with SemiDirect only
-    call b%wvF%getEta(rTt0,tmpr1)
-    call b%wvF%getEta(rTt1,tmpr2)
+    call b%wvF%getEta(rTt0, leta, letadt)    
     !write(201,'(3F15.6)',advance='no')rTt0,tmpr1,tmpr2
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(i2.gt.b%npl)cycle !Linear only
       if(j2.eq.11)then        
-        mat(i2)=tmpr1-tmpr2
+        mat(i2)=letadt
 
       elseif(j2.eq.14)then
         mat(i2)=0d0
 
       endif
     enddo
-  end subroutine diriBCEtaDiff
-!!------------------------End diriBCEtaDiff------------------------!!
+  end subroutine diriBCEtaDt
+!!-------------------------End diriBCEtaDt-------------------------!!
 
 
 
-!!--------------------------diriBCPQDiff---------------------------!!
-  subroutine diriBCPQDiff(b,mat,rTt0,rTt1)
+!!---------------------------diriBCPQDt----------------------------!!
+  subroutine diriBCPQDt(b,mat,rTt0)
   implicit none
 
     class(bsnqCase),intent(in)::b
-    real(kind=C_K2),intent(in)::rTt0,rTt1
+    real(kind=C_K2),intent(in)::rTt0
     real(kind=C_K2),intent(inout)::mat(2*b%npt)
     integer(kind=C_K1)::i,i2,j2
-    real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
+    real(kind=C_K2)::lp, lq, lpdt, lqdt
 
     !! Note : Consistent with SemiDirect only
-    call b%wvF%getPQ(rTt0,tmpr1,tmpr2)         
-    call b%wvF%getPQ(rTt1,tmpr3,tmpr4)
+    call b%wvF%getPQ(rTt0, lp, lq, lpdt, lqdt)             
     !write(201,'(2F15.6)',advance='no')tmpr1,tmpr3
     do i=1,b%nbndp
       i2=b%bndP(i)
       j2=b%bndPT(i)
       if(j2.eq.11)then        
-        mat(i2)=tmpr1-tmpr3
-        mat(b%npt+i2)=tmpr2-tmpr4
+        mat(i2)=lpdt
+        mat(b%npt+i2)=lqdt
 
       elseif((j2.eq.12).or.(j2.eq.14))then
         mat(i2)=0d0
@@ -654,8 +659,8 @@ contains
 
       endif
     enddo
-  end subroutine diriBCPQDiff
-!!------------------------End diriBCPQDiff-------------------------!!
+  end subroutine diriBCPQDt
+!!-------------------------End diriBCPQDt--------------------------!!
 
 
 
@@ -712,11 +717,13 @@ contains
     do i=0,b%nTOb-1
       call b%tOb(i)%initBsnqVars(b%npl,b%npt)
     enddo
+    call b%tiOb%initBsnqVars(b%npl,b%npt) ! For time-interpolation
 
     b%nSOb=4
-    allocate(b%sOb(b%nSOb))
+    allocate( b%sOb(b%nSOb), b%siOb(b%nSOb))
     do i=1,b%nSOb
       call b%sOb(i)%initBsnqVars(b%npl,b%npt)
+      call b%siOb(i)%initBsnqVars(b%npl,b%npt) ! For time-interpolation
     enddo    
 
     b%tStep=0
@@ -918,6 +925,7 @@ subroutine setParalutionLS(b)
     b%paralsE  = createLSObj();
     b%paralsPQ = createLSObj();
 
+    ! errLim is setting the absolute tolerence
     call initLSSys(b%paralsW, b%npl, b%nnzl, b%ivsl, b%jvsl, &
       b%gMW, b%errLim, 1e-15_C_DOUBLE, 1e+8_C_DOUBLE, b%maxIter)
 

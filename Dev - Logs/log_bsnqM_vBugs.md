@@ -2,6 +2,7 @@
 
 1. [_updateSoln()_ failing in Aqua cluster [2020-09-09]](#log_bsnqM_vBugs_1)
 2. [Changing from RIAV = R(NOD) to RIAV = (R(NOD) + R(NEI))/2 [2021-09-29]](#log_bsnqM_vBugs_2)
+3. [Major error in RK4 time-stepping [2021-10-07] **VERY IMP**](#log_bsnqM_vBugs_3)
 
 ## Attempting
 - From 2020-Sep-09 onwards, the bugs in the main code common across all branches will be noted here.
@@ -9,7 +10,106 @@
 
 
 ## List of Work
+- [x] Major error in RK4 time-stepping **VERY IMP**
 
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vBugs_3' ></a>
+
+## Major error in RK4 time-stepping [2021-10-07] **VERY IMP**
+
+I made a huge mistake in RK4 time-stepping.<br>
+It was noticed while I was writing the code for interpolation of the results between time-steps using the quantities from RK4 themselves.<br>
+**Its a mistake which was made 2 years ago!** Its showed up in the various forms actually. But I failed to recognise it.
+
+**After the RK4 correction, a tolerance test was done for the Berkhoff shoal test using a irregular mesh to identify the abs-tol requirement for the code. Refer to [Abs-tolerance-test](./log_bsnqM_vAlgo.md#log_bsnqM_vAlgo_8) for this**
+
+### Previously implemented approach
+- I had followed [MIT-WEB](https://web.mit.edu/10.001/Web/Course_Notes/Differential_Equations_Notes/node5.html) for the RK4 time-marching.They use the following form. <br>
+<img width="100%" src="./logvBugs/C03/eqn1.jpg">
+
+- Note that here the ki = &Delta;y and not dy/dt. Hence they do not correspond to slope of y. Instead they are the difference of y.
+
+- I liked this approach back then because I was able to apply DirichletBC by just using the values of y and did not need the values of dy/dt.<br> This made it easier to couple with anything such as FNPT or any theory, as I was apply Dirichlet BC as y(n+1)-y(n) instead of the dy/dt value.
+
+- **However this had a major un-indented consequence.**
+
+### The problem
+- The above approach of ki = &Delta;y lead to an issue with the solver.
+
+- I identified the issue while I was working on the interpolation of results in between two time-steps using the RK4 formulation itself. Liu (2009)
+
+- I have been running the solver with a constant absolute tolerance limit. Here the error is calculated for `r` where `r = AX-B`
+
+- The **AX=B** system was modified in the above RK4 time-marching approach to **AX=&Delta;tB**.
+	- It is evident in the code <br>`gRE(i)=dt*( tmpr1 + tmpr2 )`<br>`gRPQ(i)=dt*( tmpr1 + tmpr3 )`<br>`gRPQ(b%npt+i)=dt*( tmpr2 + tmpr4 )`
+
+- Hence, when the abs-tol is constant, and if you change the &Delta;t, you are effectively changing the accuracy of X
+
+- The following rough example explains this
+	- Assume B is of order 1e-2, &Delta;t = 0.10, abs-tol = 1e-5, then with X (which is &Delta;y) will be of order 1e-3 with the tolerance 1e-5 exhausted at error of 1%.
+	- Assume B is of order 1e-2, &Delta;t = 0.01, abs-tol = 1e-5, then with X (which is &Delta;y) will be of order 1e-4 with the tolerance 1e-5 exhausted at error of 10%. (!!! This is bad)
+
+- The influence of this was seen in my tests of regular waves. If I take the same wave, same mesh, but reduce the time-step, I get a unnatural increase in wave-amplitude. It has been detailed in [Source function based wavemaking [2021-06-29]](./log_bsnqM_vAlgo.md#log_bsnqM_vAlgo_7)
+
+- It was wondering if the issue is due to boundary condition in wave-making or absorbance. 
+	- I tried source function based and Fourier3 based wave-making but all gave same issue. With source function based the issue of boundary condition was supposed to be elimination. Therefore the presence of error in source-type wave-mkaing pointed towards possible other errors.
+	- **But alas the issue was in time-marching.**
+
+| Comparison of surface elevation along the centreline of the domain |
+| -------------- |
+| Image Zoom Out |
+| <img width="100%" src="./logvAlgo/C07_dx20_cmp1.png"> |
+| Image Zoom In |
+| <img width="100%" src="./logvAlgo/C07_dx20_cmp1_zoomIn2.png"> |
+| GIF Zoom Out |
+| <img width="100%" src="./logvAlgo/C07_dx20_zoomOut.gif"> |
+| GIF Zoom In |
+| <img width="100%" src="./logvAlgo/C07_dx20_zoomIn2.gif"> |
+
+
+### Revised RK4 time-marching
+- I corrected this error by following the [Wikipedia page](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods)
+
+- Here the form is changed to the following<br><img width="100%" src="./logvBugs/C03/eqn2.jpg">
+
+- In this form ki = dy/dt, i.e., each of k1, k2, k3, k4 are slopes of y. This is shown well in the schematic from Wikipedia<br><img width="50%" src="./logvBugs/C03/rk4-sch.png">
+
+- The final `(k1 + 2k2 + 2k3 + k4)/6` is the effective slope between time-step n and n+1.
+
+- Here the nature of **AX=B** is not altered when I change &Delta;t, because time-step is nowhere in the solver formulation. 
+
+- Also the abs-tol will correspond to accuracy of X = dy/dt. Hence irrespective of the &Delta;t, the accuracy of dy/dt will remain the same if abs-tol is same.
+
+- This can be seen in the same regular wave test. Earlier I was seeing a artificial increase in amplitude for smaller time-steps. But  now no such issue is seen.
+
+### New results
+
+Folder: Test_fixRK4/new01_w04_dx20_dt010_sW1p0 etc
+
+| SN  | Regime | h/(gT^2) | H/(gT^2) | h <br> (m) | T <br> (s)| H <br> (m) | L <br> (m) | kh | ka |
+| --- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- |
+| 3 | Stokes2 | 1.5079 e-2 | 0.181 e-3 | 1.00 | 2.6000 | 0.0120 | 7.3320 | 0.8570 | 0.5142 e-2 | 
+
+| Setup | dx  | dt  | Courant | L/dx | T/dt | Source fnc 'n' | Color | Remark |
+| ----- | --- | --- | ------ | ------ | ------ | ------ | ------ | ------ |
+|   |   |   |   |   |   | width = n\*L/2 |   |   |
+| 0  | 0.20 | 0.05000 | 0.78 | 36.66 |  52 | 1.0 | black | Previous wrong time-marching |
+| 1  | 0.20 | 0.05000 | 0.78 | 36.66 |  52 | 1.0 | red | Overlapping setups 1,2,3,4 |
+| 2  | 0.20 | 0.02000 | 0.31 | 36.66 |  130 | 1.0 | light blue |  Overlapping setups 1,2,3,4 |
+| 3  | 0.20 | 0.01625 | 0.25 | 36.66 | 160 | 1.0 | pink | Overlapping setups 1,2,3,4 |
+| 4  | 0.20 | 0.01000 | 0.16 | 36.66 | 260 | 1.0 | dark blue | Overlapping setups 1,2,3,4 |
+
+| Comparison of surface elevation along the centreline of the domain |
+| -------------- |
+| Image Zoom Out |
+| <img width="100%" src="./logvBugs/C03/cmp_new.png"> |
+
+
+### References
+
+1. L. Liu, X. Li, and F. Q. Hu, “Non-Uniform Time-Step Runge-Kutta Discontinuous Galerkin Method for Computational Aeroacoustics,” in 15th AIAA/CEAS Aeroacoustics Conference (30th AIAA Aeroacoustics Conference), May 2009, no. May, pp. 11–13, doi: 10.2514/6.2009-3114.
 
 -----------------------------------------------
 

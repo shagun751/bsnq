@@ -6,7 +6,8 @@
 4. [Wave input - Wheeler stretching [2021-04-28]](#log_bsnqM_vAlgo_4)
 5. [Bottom Friction [2021-06-21]](#log_bsnqM_vAlgo_5)
 6. [Time ramping for wave-making [2021-06-22]](#log_bsnqM_vAlgo_6)
-7. [Source function based wavemaking [2021-06-29]](#log_bsnqM_vAlgo_7)
+7. [Source function based wavemaking [2021-06-29][2021-10-08]](#log_bsnqM_vAlgo_7)
+8. [Absolute tolerance test for Berkhoff shoal [2021-10-08]](#log_bsnqM_vAlgo_8)
 
 
 ## Attempting
@@ -25,6 +26,64 @@
 - [x] Wave-making time ramped [link](#log_bsnqM_vAlgo_6)
 - [x] Internal wave maker [link](#log_bsnqM_vAlgo_7)
 	- [ ] Internal wave-maker of a limited length
+- [ ] RK4 time-interpolation
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_8' ></a>
+
+## Absolute tolerance test for Berkhoff shoal [2021-10-08]
+
+After the correction of RK4 time-marching procedure I re-investigated the tolerance requirement for the code.
+
+Refer to this description of the mistake in RK4 time-marching [here](./log_bsnqM_vBugs.md#log_bsnqM_vBugs_3)
+
+The test was done using Berkhoff shoal test case using a irregular mesh as shown below.<br>
+<img width="100%" src="./logvAlgo/C08/fberk1B_mesh.png">
+
+The absolute error limit is solver is for `r = AX-B`, and not for `X` itself. Hence you cannot draw conclusions on the error in `X` based on the error tolerance set for `r`. <br>
+For example, we take simple case if `A` is diagonal, then `X = (r + B)/A`. So if error in `r` is `err(r)`, then error in `X` is likely `err(r)/A`.
+
+### Setup
+Folder: Test_berk/tolTest_bicgstab_rk4Corrected
+
+- 32 cores
+- Aqua
+- Time-step = 0.025
+- RK4 error y = **9.7e-9** (order 5)
+- RMSE formula for dy/dt = L2norm tolerance / sqrt(num of node)
+- RMSE formula for y = &Delta;t * L2norm tolerance / sqrt(num of node)
+- Took the eta equation as the limiting case as the eta var should have higher RMSE based on the above formula.
+
+**From these I can conclude that 1e-4 is good tolerance, with 1e-3 being good enough for quicker runs.**
+
+| Absolute Tolerance | RMSE dy/dt | RMSE y | Remark |
+| --------- | ---- | ------ | ----- |
+| 10^-1 	| 4.5e-4 | 1.12e-5 |  |
+| 10^-2 	| 4.5e-5 | 1.12e-6 |  |
+| 10^-3 	| 4.5e-6 | 1.12e-7 |  |
+| 10^-4 	| 4.5e-7 | 1.12e-8 |  |
+| 10^-5 	| 4.5e-8 | 1.12e-9 | Finally of same order as RK4 error |
+| 10^-6 	| 4.5e-9 | 1.12e-10 |  |
+
+
+| Absolute Tolerance | Colour | Run-time (s) | Speedup w.r.t the next tolerance | Result Visual review |
+| -------- | -------- | -------- | -------- | -------- |
+| 10^-1 | NA | 1763 | 1.16x (tol2) | Unstable |
+| 10^-2 | Dark Green | 2046 | 1.11x (tol3) | Stable. Not converged for sure |
+| 10^-3 | Red | 2277 | 1.30x (tol4) | Stable. Close to convergence. Can consider. |
+| 10^-4 | Light Green | 2972 | 1.25x (tol5) | Stable. Converged |
+| 10^-5 | Blue | 3700 | 1.24x (tol6) | Stable. Converged |
+| 10^-6 | Black | 4590 | - 	  		  | Stable. Converged |
+
+|      |
+| ---- |
+| **Wave elevation along domain midline** |
+| <img width="100%" src="./logvAlgo/C08/midlineAll.png"> |
+|   |
+| **RMSE wrt tol6 for eta, p, q at 423 probes near and around the shoal at all 2001 time-steps** |
+| <img width="100%" src="./logvAlgo/C08/cmpAllErr.png"> |
 
 -----------------------------------------------
 
@@ -45,21 +104,26 @@ Tested wave
 - So I thought it might be better to try using a internal wave-maker which uses a wider region to generate the waves instead of a single boundary.
 - The Wei and Kirby (1999) method adds and subtracts mass using a source function term added to the continuity function.
 
-### Results with source function dx=0.20
+### Update [2021-10-08]
+The issue of artificial increase in wave-amplitude for smaller time-steps was due to the mistake in RK4 time-marching. This has been resolved as shown in [Major error in RK4 time-stepping [2021-10-07] **VERY IMP**](./log_bsnqM_vBugs.md#log_bsnqM_vBugs_3)
+
+### Results with source function dx=0.20 [2021-06-29]
 All cases are for the wave SN3 in Stokes2 regime.<br>
+Folder location: _bsnq/Test_stokes2/case3/sourceFnc/_ <br>
 Domain is 150m x 4m <br>
 The source is centered at x=30m<br>
 Sponge layer on right of 25m and on left of 15m.
 
-| Setup | dx  | dt  | Courant | Source fnc 'n', width = n\*L/2 | Color | Remark |
-| ----- | --- | --- | ------ | ------ | ------ | ------ |
-| 1  | 0.20 | 0.05000 | 0.78 | 1.0 | red | Overlapping setups 1,2,3,4 |
-| 2  | 0.20 | 0.04000 | 0.63 | 1.0 | pink | Overlapping setups 1,2,3,4 |
-| 3  | 0.20 | 0.02500 | 0.39 | 1.0 | purple |  Overlapping setups 1,2,3,4 |
-| 4  | 0.20 | 0.02000 | 0.31 | 1.0 | dark red | Overlapping setups 1,2,3,4 |
-| 5  | 0.20 | 0.01625 | 0.25 | 1.0 | black | |
-| 6a | 0.20 | 0.01000 | 0.16 | 1.0 | blue | Overlapping setups 6a, 6b |
-| 6b | 0.20 | 0.01000 | 0.16 | 2.0 | green | Overlapping setups 6a, 6b |
+| Setup | dx  | dt  | Courant | L/dx | T/dt | Source fnc 'n' | Color | Remark |
+| ----- | --- | --- | ------ | ------ | ------ | ------ | ------ | ------ |
+|   |   |   |   |   |   | width = n\*L/2 |   |   |
+| 1  | 0.20 | 0.05000 | 0.78 | 36.66 |  52 | 1.0 | red | Overlapping setups 1,2,3,4 |
+| 2  | 0.20 | 0.04000 | 0.63 | 36.66 |  65 | 1.0 | pink | Overlapping setups 1,2,3,4 |
+| 3  | 0.20 | 0.02500 | 0.39 | 36.66 |  104 | 1.0 | purple |  Overlapping setups 1,2,3,4 |
+| 4  | 0.20 | 0.02000 | 0.31 | 36.66 | 130 | 1.0 | dark red | Overlapping setups 1,2,3,4 |
+| 5  | 0.20 | 0.01625 | 0.25 | 36.66 | 160 | 1.0 | black | |
+| 6a | 0.20 | 0.01000 | 0.16 | 36.66 | 260 | 1.0 | blue | Overlapping setups 6a, 6b |
+| 6b | 0.20 | 0.01000 | 0.16 | 36.66 | 260 | 2.0 | green | Overlapping setups 6a, 6b |
 
 
 | Comparison of surface elevation along the centreline of the domain |
@@ -80,17 +144,19 @@ Observation
 - It may be due to some wave reflection issue but I have no idea why this is happening.
 - Its not a courant number problem, coz I also tested with dx=10, dt=0.25, Courant = 0.78, and still we see the same issue.
 
-### Results with source function dx=0.10
+### Results with source function dx=0.10 [2021-06-29]
 All cases are for the wave SN3 in Stokes2 regime.<br>
+Folder location: _bsnq/Test_stokes2/case3/sourceFnc/_ <br>
 Domain is 150m x 4m <br>
 The source is centered at x=30m<br>
 Sponge layer on right of 25m and on left of 15m.
 
-| Setup | dx  | dt  | Courant | Source fnc 'n', width = n\*L/2 | Color | Remark |
-| ----- | --- | --- | ------ | ------ | ------ | ------ |
-| 1  | 0.20 | 0.05000 | 0.78 | 1.0 | blue | Overlapping setups 1,3 |
-| 3  | 0.20 | 0.02500 | 0.39 | 1.0 | red |  Overlapping setups 1,3 |
-| 7  | 0.10 | 0.02500 | 0.78 | 1.0 | green |  |
+| Setup | dx  | dt  | Courant | L/dx | T/dt | Source fnc 'n' | Color | Remark |
+| ----- | --- | --- | ------ | ------ | ------ | ------ | ------ | ------ |
+|   |   |   |   |   |   | width = n\*L/2 |   |   |
+| 1  | 0.20 | 0.05000 | 0.78 | 36.66 |  52 | 1.0 | blue | Overlapping setups 1,3 |
+| 3  | 0.20 | 0.02500 | 0.39 | 36.66 | 104 | 1.0 | red |  Overlapping setups 1,3 |
+| 7  | 0.10 | 0.02500 | 0.78 | 73.32 | 104 | 1.0 | green |  |
 
 | Comparison of surface elevation along the centreline of the domain |
 | -------------- |

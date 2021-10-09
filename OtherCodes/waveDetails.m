@@ -5,9 +5,9 @@ close all
 
 g=9.81;
 
-T=1/0.28;
-h=5;%0.4572; %0.1524
-amp=0.05;
+T=1/0.5;
+h=1;%0.4572; %0.1524
+amp=0.02;
 syms L
 L=solve(L-(g/2/pi*T*T*tanh(2*pi/L*h)));
 L=abs(double(L));

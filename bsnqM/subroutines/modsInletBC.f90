@@ -86,7 +86,7 @@ contains
 
 
 !!---------------------------getEta----------------------------!!
-  subroutine getEta(b,rTime,x,y,eta)
+  subroutine getEta(b,rTime,x,y,eta,etadt)
   implicit none
 
     class(airyType),intent(in)::b
@@ -94,12 +94,14 @@ contains
     !integer(kind=C_K1)::
 
     real(kind=C_K2),intent(in)::rTime,x,y
-    real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2),intent(out)::eta,etadt
     real(kind=C_K2)::dx,dy
 
     dx=(x-b%x0)
     dy=(y-b%y0)
     eta=b%H/2d0 * dcos(b%kx*dx + b%ky*dy - b%w*rTime + b%phi0)
+    etadt= b%H/2d0 * b%w &
+      * dsin(b%kx*dx + b%ky*dy - b%w*rTime + b%phi0)
 
   end subroutine getEta
 !!-------------------------End getEta--------------------------!!
@@ -107,7 +109,7 @@ contains
 
 
 !!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,x,y,eta,p,q)
+  subroutine getPQ(b,rTime,x,y,eta,p,q,pdt,qdt)
   implicit none
 
     class(airyType),intent(in)::b
@@ -115,8 +117,8 @@ contains
     !integer(kind=C_K1)::
 
     real(kind=C_K2),intent(in)::rTime,x,y,eta
-    real(kind=C_K2),intent(out)::p,q
-    real(kind=C_K2)::dx, dy, phi, pn 
+    real(kind=C_K2),intent(out)::p,q,pdt,qdt
+    real(kind=C_K2)::dx, dy, phi, pn, pndt
     
     dx=(x-b%x0)
     dy=(y-b%y0)
@@ -124,12 +126,16 @@ contains
 
     ! Integrating from -h to 0
     pn = b%H/2d0 * b%w / b%k * dcos(phi) 
+    pndt = b%H/2d0 * b%w * b%w / b%k * dsin(phi) 
 
     ! Using Wheeler stretching
     pn = pn * (b%d + eta)/b%d
+    pndt = pndt * (b%d + eta)/b%d
 
     p = pn * b%csth 
     q = pn * b%snth 
+    pdt = pndt * b%csth 
+    qdt = pndt * b%snth 
 
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
@@ -145,166 +151,166 @@ end module airyWaveModule
 
 
 !!------------------------stokes2WaveModule------------------------!!
-module stokes2WaveModule
-use bsnqGlobVars
-implicit none
+! module stokes2WaveModule
+! use bsnqGlobVars
+! implicit none
 
-  type, public :: stokes2Type    
-    real(kind=C_K2)::T,d,H,L,w
-    real(kind=C_K2)::x0,y0
-    real(kind=C_K2)::k,kx,ky
-    real(kind=C_K2)::thDeg,thRad,csth,snth      
-    !To make cos signal start from eta=0 with crest
-    real(kind=C_K2)::phi0 
-  contains
-    procedure ::  getEta
-    procedure ::  getPQ
-  end type stokes2Type
+!   type, public :: stokes2Type    
+!     real(kind=C_K2)::T,d,H,L,w
+!     real(kind=C_K2)::x0,y0
+!     real(kind=C_K2)::k,kx,ky
+!     real(kind=C_K2)::thDeg,thRad,csth,snth      
+!     !To make cos signal start from eta=0 with crest
+!     real(kind=C_K2)::phi0 
+!   contains
+!     procedure ::  getEta
+!     procedure ::  getPQ
+!   end type stokes2Type
 
-  interface stokes2Type
-     procedure :: waveLenCalc
-  end interface stokes2Type
+!   interface stokes2Type
+!      procedure :: waveLenCalc
+!   end interface stokes2Type
 
-contains
+! contains
 
-!!-------------------------waveLenCalc-------------------------!!
-  type(stokes2Type) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
-  implicit none
+! !!-------------------------waveLenCalc-------------------------!!
+!   type(stokes2Type) function waveLenCalc(inT,inD,inH,inX0,inY0,inThDeg)
+!   implicit none
 
-    !! WaveLen using dispersion relation from Airy wave-theory
+!     !! WaveLen using dispersion relation from Airy wave-theory
 
-    integer(kind=C_K1)::iterMax,i
-    real(kind=C_K2)::l0,newl,oldl,x,errLim
-    real(kind=C_K2)::qa, qb, phi0, kh
-    real(kind=C_K2),intent(in)::inT,inD,inH,inX0,inY0,inThDeg
-
-
-    waveLenCalc%T=inT
-    waveLenCalc%d=inD
-    waveLenCalc%H=inH
-    waveLenCalc%x0=inX0
-    waveLenCalc%y0=inY0
-    waveLenCalc%thDeg=inThDeg
-    waveLenCalc%w=2d0*pi/waveLenCalc%T
-    waveLenCalc%thRad=waveLenCalc%thDeg*pi/180d0
-    waveLenCalc%csth=dcos(waveLenCalc%thRad)
-    waveLenCalc%snth=dsin(waveLenCalc%thRad)
-
-    iterMax=50000
-    errLim=1d-6
-    l0 = (grav/2d0/pi)*(waveLenCalc%T)**2
-    oldl = l0  
-    do i = 1,iterMax
-      newl = l0*dtanh(2d0*pi*(waveLenCalc%d)/oldl)
-      !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
-      x = abs(newl-oldl)
-      if (x.le.errLim) then
-        waveLenCalc%L = newl
-        exit
-      else
-        oldl = newl
-      end if
-    end do
-
-    if(i.ge.iterMax) then
-      write(*,*)
-      write(*,*)"[ERR] waveCalculator Error waveL",waveLenCalc%L
-      write(*,*)
-      waveLenCalc%L=-999
-      waveLenCalc%k=0d0
-      return
-    endif
-
-    waveLenCalc%k=2d0*pi/waveLenCalc%L
-    waveLenCalc%kx=waveLenCalc%k*waveLenCalc%csth
-    waveLenCalc%ky=waveLenCalc%k*waveLenCalc%snth
-
-    ! Calculation phi0 to make the wave start from
-    ! eta=0 followed by a crest
-    kh = waveLenCalc%k * waveLenCalc%d
-    qa = ( waveLenCalc%H/2d0  )
-    qb = ( waveLenCalc%H**2 * waveLenCalc%k/16d0 &
-      * dcosh(kh)/(dsinh(kh)**3) * (2d0 + dcosh(2*kh)) )
-
-    phi0 = (-qa + dsqrt(qa*qa + 8d0*qb*qb))/(4d0*qb)
-    waveLenCalc%phi0 = acos(phi0)
-    write(9,'(" [INF] Stokes2. Vel Integrated [-h eta]")')
-    write(9,'(" [INF] Stokes2 phase-0 radians", 2F15.6)') &
-      waveLenCalc%phi0
-    write(9,*)
-
-  end function waveLenCalc
-!!-----------------------End waveLenCalc-----------------------!!
+!     integer(kind=C_K1)::iterMax,i
+!     real(kind=C_K2)::l0,newl,oldl,x,errLim
+!     real(kind=C_K2)::qa, qb, phi0, kh
+!     real(kind=C_K2),intent(in)::inT,inD,inH,inX0,inY0,inThDeg
 
 
+!     waveLenCalc%T=inT
+!     waveLenCalc%d=inD
+!     waveLenCalc%H=inH
+!     waveLenCalc%x0=inX0
+!     waveLenCalc%y0=inY0
+!     waveLenCalc%thDeg=inThDeg
+!     waveLenCalc%w=2d0*pi/waveLenCalc%T
+!     waveLenCalc%thRad=waveLenCalc%thDeg*pi/180d0
+!     waveLenCalc%csth=dcos(waveLenCalc%thRad)
+!     waveLenCalc%snth=dsin(waveLenCalc%thRad)
 
-!!---------------------------getEta----------------------------!!
-  subroutine getEta(b,rTime,x,y,eta)
-  implicit none
+!     iterMax=50000
+!     errLim=1d-6
+!     l0 = (grav/2d0/pi)*(waveLenCalc%T)**2
+!     oldl = l0  
+!     do i = 1,iterMax
+!       newl = l0*dtanh(2d0*pi*(waveLenCalc%d)/oldl)
+!       !if(mod(i,100).eq.0) write(*,*)i,oldl,newl    
+!       x = abs(newl-oldl)
+!       if (x.le.errLim) then
+!         waveLenCalc%L = newl
+!         exit
+!       else
+!         oldl = newl
+!       end if
+!     end do
 
-    class(stokes2Type),intent(in)::b
+!     if(i.ge.iterMax) then
+!       write(*,*)
+!       write(*,*)"[ERR] waveCalculator Error waveL",waveLenCalc%L
+!       write(*,*)
+!       waveLenCalc%L=-999
+!       waveLenCalc%k=0d0
+!       return
+!     endif
 
-    !integer(kind=C_K1)::
+!     waveLenCalc%k=2d0*pi/waveLenCalc%L
+!     waveLenCalc%kx=waveLenCalc%k*waveLenCalc%csth
+!     waveLenCalc%ky=waveLenCalc%k*waveLenCalc%snth
 
-    real(kind=C_K2),intent(in)::rTime,x,y
-    real(kind=C_K2),intent(out)::eta
-    real(kind=C_K2)::dx, dy, phi, kh
+!     ! Calculation phi0 to make the wave start from
+!     ! eta=0 followed by a crest
+!     kh = waveLenCalc%k * waveLenCalc%d
+!     qa = ( waveLenCalc%H/2d0  )
+!     qb = ( waveLenCalc%H**2 * waveLenCalc%k/16d0 &
+!       * dcosh(kh)/(dsinh(kh)**3) * (2d0 + dcosh(2*kh)) )
 
-    dx=(x-b%x0)
-    dy=(y-b%y0)
-    phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
-    kh = b%k * b%d
-    eta = ( b%H/2d0 * dcos(phi) ) + &
-      ( b%H**2 * b%k/16d0 * dcosh(kh)/(dsinh(kh)**3) &
-        * (2d0 + dcosh(2*kh)) * dcos(2d0*phi) )
+!     phi0 = (-qa + dsqrt(qa*qa + 8d0*qb*qb))/(4d0*qb)
+!     waveLenCalc%phi0 = acos(phi0)
+!     write(9,'(" [INF] Stokes2. Vel Integrated [-h eta]")')
+!     write(9,'(" [INF] Stokes2 phase-0 radians", 2F15.6)') &
+!       waveLenCalc%phi0
+!     write(9,*)
 
-  end subroutine getEta
-!!-------------------------End getEta--------------------------!!
+!   end function waveLenCalc
+! !!-----------------------End waveLenCalc-----------------------!!
 
 
 
-!!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,x,y,eta,p,q)
-  implicit none
+! !!---------------------------getEta----------------------------!!
+!   subroutine getEta(b,rTime,x,y,eta)
+!   implicit none
 
-    class(stokes2Type),intent(in)::b
+!     class(stokes2Type),intent(in)::b
 
-    !integer(kind=C_K1)::
+!     !integer(kind=C_K1)::
 
-    real(kind=C_K2),intent(in)::rTime,x,y,eta
-    real(kind=C_K2),intent(out)::p, q
-    real(kind=C_K2)::dx, dy, phi, kh, pn
+!     real(kind=C_K2),intent(in)::rTime,x,y
+!     real(kind=C_K2),intent(out)::eta
+!     real(kind=C_K2)::dx, dy, phi, kh
+
+!     dx=(x-b%x0)
+!     dy=(y-b%y0)
+!     phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
+!     kh = b%k * b%d
+!     eta = ( b%H/2d0 * dcos(phi) ) + &
+!       ( b%H**2 * b%k/16d0 * dcosh(kh)/(dsinh(kh)**3) &
+!         * (2d0 + dcosh(2*kh)) * dcos(2d0*phi) )
+
+!   end subroutine getEta
+! !!-------------------------End getEta--------------------------!!
+
+
+
+! !!----------------------------getPQ----------------------------!!
+!   subroutine getPQ(b,rTime,x,y,eta,p,q)
+!   implicit none
+
+!     class(stokes2Type),intent(in)::b
+
+!     !integer(kind=C_K1)::
+
+!     real(kind=C_K2),intent(in)::rTime,x,y,eta
+!     real(kind=C_K2),intent(out)::p, q
+!     real(kind=C_K2)::dx, dy, phi, kh, pn
 
     
-    dx=(x-b%x0)
-    dy=(y-b%y0)
-    phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
-    kh = b%k * b%d
+!     dx=(x-b%x0)
+!     dy=(y-b%y0)
+!     phi = b%kx*dx + b%ky*dy - b%w*rTime + b%phi0
+!     kh = b%k * b%d
 
-    ! No wheeler stretching, Integrating -h to eta
-    ! First order
-    pn = grav * b%H/2d0 / b%w / dcosh(kh) &
-      * dsinh(kh + b%k*eta) * dcos(phi)
-    ! Second order
-    pn = pn + ( 3d0/32d0 * b%H**2 * b%w / (dsinh(kh)**4) &
-      * dsinh(2d0*b%k*(b%d+eta)) ) * dcos(2d0*phi)    
+!     ! No wheeler stretching, Integrating -h to eta
+!     ! First order
+!     pn = grav * b%H/2d0 / b%w / dcosh(kh) &
+!       * dsinh(kh + b%k*eta) * dcos(phi)
+!     ! Second order
+!     pn = pn + ( 3d0/32d0 * b%H**2 * b%w / (dsinh(kh)**4) &
+!       * dsinh(2d0*b%k*(b%d+eta)) ) * dcos(2d0*phi)    
 
-    ! Wheeler stretching and Integrating -h to 0
-    ! ! First order
-    ! pn = b%H/2d0 * b%w / b%k * dcos(phi)
-    ! ! Second order
-    ! pn = pn + ( 3d0/16d0 * b%H**2 * b%w / dtanh(kh)  &
-    !   / (dsinh(kh)**2) ) * dcos(2d0*phi)    
-    ! pn = pn * (b%d + eta)/b%d
+!     ! Wheeler stretching and Integrating -h to 0
+!     ! ! First order
+!     ! pn = b%H/2d0 * b%w / b%k * dcos(phi)
+!     ! ! Second order
+!     ! pn = pn + ( 3d0/16d0 * b%H**2 * b%w / dtanh(kh)  &
+!     !   / (dsinh(kh)**2) ) * dcos(2d0*phi)    
+!     ! pn = pn * (b%d + eta)/b%d
 
-    p = pn * b%csth
+!     p = pn * b%csth
 
-    q = pn * b%snth      
+!     q = pn * b%snth      
 
-  end subroutine getPQ
-!!--------------------------End getPQ--------------------------!!
+!   end subroutine getPQ
+! !!--------------------------End getPQ--------------------------!!
 
-end module stokes2WaveModule
+! end module stokes2WaveModule
 !!----------------------End stokes2WaveModule----------------------!!
 
 
@@ -481,7 +487,7 @@ contains
 
 
 !!---------------------------getEta----------------------------!!
-  subroutine getEta(b,rTime,x,y,eta)
+  subroutine getEta(b,rTime,x,y,eta,etadt)
   implicit none
 
     class(fourier3Type),intent(in)::b
@@ -489,7 +495,7 @@ contains
     !integer(kind=C_K1)::
 
     real(kind=C_K2),intent(in)::rTime,x,y
-    real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2),intent(out)::eta, etadt
     real(kind=C_K2)::dx, dy, phi
 
     dx=(x-b%x0)
@@ -498,6 +504,9 @@ contains
     eta = ( b%H/2d0 * dcos(phi) ) &
       + ( b%H**2 / 4d0 / b%d * b%coefG2 * dcos(2d0*phi) ) &
       + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * dcos(3d0*phi) )
+    etadt = ( b%H/2d0 * -dsin(phi) * b%w ) &
+      + ( b%H**2 / 4d0 / b%d * b%coefG2 * -dsin(2d0*phi) * 2d0*b%w ) &
+      + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * -dsin(3d0*phi) * 3d0*b%w )
 
   end subroutine getEta
 !!-------------------------End getEta--------------------------!!
@@ -505,16 +514,16 @@ contains
 
 
 !!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,x,y,eta,p,q)
+  subroutine getPQ(b,rTime,x,y,eta,etadt,p,q,pdt,qdt)
   implicit none
 
     class(fourier3Type),intent(in)::b
 
     !integer(kind=C_K1)::
 
-    real(kind=C_K2),intent(in)::rTime,x,y,eta
-    real(kind=C_K2),intent(out)::p, q
-    real(kind=C_K2)::dx, dy, phi, pn
+    real(kind=C_K2),intent(in)::rTime,x,y,eta,etadt
+    real(kind=C_K2),intent(out)::p, q, pdt, qdt
+    real(kind=C_K2)::dx, dy, phi, pn, pndt
 
     
     dx=(x-b%x0)
@@ -522,10 +531,12 @@ contains
     phi = b%w*rTime          
 
     pn = eta * b%c
+    pndt = etadt * b%c
 
     p = pn * b%csth
-
-    q = pn * b%snth      
+    q = pn * b%snth
+    pdt = pndt * b%csth
+    qdt = pndt * b%snth
 
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
@@ -636,13 +647,14 @@ implicit none
   type, public :: wvFileType        
     character(len=256)::fileName
     integer(kind=C_K1)::numP,posI
-    real(kind=C_K2),allocatable::data(:,:), datadtt(:,:)
+    real(kind=C_K2),allocatable::data(:,:), datadtt(:,:) !eta, p, q
+    real(kind=C_K2),allocatable::da2(:,:), da2dtt(:,:) !etadt, pdt, qdt
     real(kind=C_K2)::rampt0, rampt1, rampdt
   contains
     procedure ::  chkWaveFileInput
     procedure ::  initWaveFile
     procedure ::  initAiryFile
-    procedure ::  initStokes2File
+    !procedure ::  initStokes2File
     procedure ::  initFourier3File
     procedure ::  getEta
     procedure ::  getPQ
@@ -685,11 +697,14 @@ contains
     b%rampdt = (rampt1 - rampt0)
 
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
+    allocate(b%da2(b%numP,4), b%da2dtt(b%numP,4))
+
     open(newunit=mf,file=trim(b%fileName))    
     do i=1,b%numP
-      read(mf,*,end=21,err=21)b%data(i,1:4) 
+      read(mf,*,end=21,err=21)b%data(i,1:4) !t,eta,p,q
 
       t = b%data(i,1)
+      b%da2(i,:) = b%data(i,:) !t,etadt,pdt,qdt
 
       !Time Ramp
       ramptw = 1d0
@@ -702,11 +717,14 @@ contains
       endif
 
       b%data(i,2:4) = b%data(i,2:4) * ramptw
+      b%da2(i,2:4) = b%da2(i,2:4) * ramptw
     enddo
     b%datadtt(:,1) = b%data(:,1)
+    b%da2dtt(:,1) = b%da2(:,1)
     write(9,*)"[INF] Done wave file read"
 
     call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    call setCubicSpline(b%numP, 4, b%da2, b%da2dtt)
     b%posI=1
 
     return
@@ -728,6 +746,7 @@ contains
     real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
     real(kind=C_K2),intent(in)::rampt0, rampt1
     real(kind=C_K2)::t, eta, p, q, totT, ramptw
+    real(kind=C_K2)::etadt, pdt, qdt
     type(airyType)::wv    
 
     ! airyType(T,d,H,X0,Y0,thDeg)
@@ -739,9 +758,11 @@ contains
     write(9,'(" [---] ",F15.6)')wv%k*wv%d
     write(9,'(" [INF] At 2.25 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
-    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
+    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta,etadt)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q,pdt,qdt)
     write(9,'(" [---] ",3F15.6)')eta,p,q
+    write(9,'(" [---] ",3A15)')'EtaDt','PDt','QDt'
+    write(9,'(" [---] ",3F15.6)')etadt,pdt,qdt
 
     totT=1.2d0*inTotT
     b%numP=floor(totT/dt)+2
@@ -750,6 +771,7 @@ contains
     b%rampdt = (rampt1 - rampt0)
 
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
+    allocate(b%da2(b%numP,4), b%da2dtt(b%numP,4))
     do i=0,b%numP-1
       t=i*dt
 
@@ -763,18 +785,24 @@ contains
         ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
       endif
 
-      call wv%getEta(t,0d0,0d0,eta)
-      call wv%getPQ(t,0d0,0d0,eta,p,q)
+      call wv%getEta(t,0d0,0d0,eta,etadt)
+      call wv%getPQ(t,0d0,0d0,eta,p,q,pdt,qdt)
 
       b%data(i+1,1)=t
       b%data(i+1,2)=eta * ramptw
       b%data(i+1,3)=p * ramptw
       b%data(i+1,4)=q * ramptw
-      !write(201,'(4F15.6)')b%data(i+1,1:4)
+
+      b%da2(i+1,1)=t
+      b%da2(i+1,2)=etadt * ramptw
+      b%da2(i+1,3)=pdt * ramptw
+      b%da2(i+1,4)=qdt * ramptw      
     enddo    
 
     b%datadtt(:,1) = b%data(:,1)
+    b%da2dtt(:,1) = b%da2(:,1)
     call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    call setCubicSpline(b%numP, 4, b%da2, b%da2dtt)
     b%posI=1  
 
   end subroutine initAiryFile
@@ -783,71 +811,71 @@ contains
 
 
 !!-----------------------initStokes2File-----------------------!!
-  subroutine initStokes2File(b,dt,inTotT,inT,inD,inH,inAng, &
-    rampt0, rampt1)
-  use stokes2WaveModule
-  implicit none
+  ! subroutine initStokes2File(b,dt,inTotT,inT,inD,inH,inAng, &
+  !   rampt0, rampt1)
+  ! use stokes2WaveModule
+  ! implicit none
 
-    class(wvFileType),intent(inout)::b
-    integer(kind=C_K1)::i
-    real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
-    real(kind=C_K2),intent(in)::rampt0, rampt1
-    real(kind=C_K2)::t, eta, p, q, totT, ramptw
-    type(stokes2Type)::wv    
+  !   class(wvFileType),intent(inout)::b
+  !   integer(kind=C_K1)::i
+  !   real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
+  !   real(kind=C_K2),intent(in)::rampt0, rampt1
+  !   real(kind=C_K2)::t, eta, p, q, totT, ramptw
+  !   type(stokes2Type)::wv    
 
-    ! stokes2Type(T,d,H,X0,Y0,thDeg)
-    wv=stokes2Type(inT,inD,inH,0d0,0d0,inAng)
+  !   ! stokes2Type(T,d,H,X0,Y0,thDeg)
+  !   wv=stokes2Type(inT,inD,inH,0d0,0d0,inAng)
 
-    write(9,'(" [INF] ",3A15)')'T','L','d'
-    write(9,'(" [---] ",3F15.6)')wv%T,wv%L,wv%d
-    write(9,'(" [INF] ",A15)')'kh'
-    write(9,'(" [---] ",F15.6)')wv%k*wv%d
-    write(9,'(" [INF] At 0.00 WavePeriods")')
-    write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call wv%getEta(0d0,wv%x0,wv%y0,eta)
-    call wv%getPQ(0d0,wv%x0,wv%y0,eta,p,q)
-    write(9,'(" [---] ",3F15.6)')eta,p,q
-    write(9,'(" [INF] At 2.25 WavePeriods")')
-    write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
-    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
-    write(9,'(" [---] ",3F15.6)')eta,p,q
+  !   write(9,'(" [INF] ",3A15)')'T','L','d'
+  !   write(9,'(" [---] ",3F15.6)')wv%T,wv%L,wv%d
+  !   write(9,'(" [INF] ",A15)')'kh'
+  !   write(9,'(" [---] ",F15.6)')wv%k*wv%d
+  !   write(9,'(" [INF] At 0.00 WavePeriods")')
+  !   write(9,'(" [---] ",3A15)')'Eta','P','Q'
+  !   call wv%getEta(0d0,wv%x0,wv%y0,eta)
+  !   call wv%getPQ(0d0,wv%x0,wv%y0,eta,p,q)
+  !   write(9,'(" [---] ",3F15.6)')eta,p,q
+  !   write(9,'(" [INF] At 2.25 WavePeriods")')
+  !   write(9,'(" [---] ",3A15)')'Eta','P','Q'
+  !   call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
+  !   call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
+  !   write(9,'(" [---] ",3F15.6)')eta,p,q
 
-    totT=1.2d0*inTotT
-    b%numP=floor(totT/dt)+2
-    b%rampt0 = rampt0
-    b%rampt1 = rampt1
-    b%rampdt = (rampt1 - rampt0)
+  !   totT=1.2d0*inTotT
+  !   b%numP=floor(totT/dt)+2
+  !   b%rampt0 = rampt0
+  !   b%rampt1 = rampt1
+  !   b%rampdt = (rampt1 - rampt0)
 
-    allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
-    do i=0,b%numP-1
-      t=i*dt
+  !   allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
+  !   do i=0,b%numP-1
+  !     t=i*dt
 
-      !Time Ramp
-      ramptw = 1d0
-      if(t.le.b%rampt0)then
-        ramptw = 0d0
-      else if(t.ge.b%rampt1)then
-        ramptw = 1d0
-      else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
-        ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
-      endif
+  !     !Time Ramp
+  !     ramptw = 1d0
+  !     if(t.le.b%rampt0)then
+  !       ramptw = 0d0
+  !     else if(t.ge.b%rampt1)then
+  !       ramptw = 1d0
+  !     else if((t.gt.b%rampt0) .and. (t.lt.b%rampt1))then
+  !       ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
+  !     endif
 
-      call wv%getEta(t,0d0,0d0,eta)
-      call wv%getPQ(t,0d0,0d0,eta,p,q)
+  !     call wv%getEta(t,0d0,0d0,eta)
+  !     call wv%getPQ(t,0d0,0d0,eta,p,q)
 
-      b%data(i+1,1)=t
-      b%data(i+1,2)=eta * ramptw
-      b%data(i+1,3)=p * ramptw
-      b%data(i+1,4)=q * ramptw
-      !write(201,'(4F15.6)')b%data(i+1,1:4)
-    enddo    
+  !     b%data(i+1,1)=t
+  !     b%data(i+1,2)=eta * ramptw
+  !     b%data(i+1,3)=p * ramptw
+  !     b%data(i+1,4)=q * ramptw
+  !     !write(201,'(4F15.6)')b%data(i+1,1:4)
+  !   enddo    
 
-    b%datadtt(:,1) = b%data(:,1)
-    call setCubicSpline(b%numP, 4, b%data, b%datadtt)
-    b%posI=1  
+  !   b%datadtt(:,1) = b%data(:,1)
+  !   call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+  !   b%posI=1  
 
-  end subroutine initStokes2File
+  ! end subroutine initStokes2File
 !!---------------------End initStokes2File---------------------!!
 
 
@@ -863,6 +891,7 @@ contains
     real(kind=C_K2),intent(in)::inTotT,inT,inD,inH,dt,inAng
     real(kind=C_K2),intent(in)::rampt0, rampt1
     real(kind=C_K2)::t, eta, p, q, totT, ramptw
+    real(kind=C_K2)::etadt, pdt, qdt
     type(fourier3Type)::wv    
 
     ! airyType(T,d,H,X0,Y0,thDeg)
@@ -874,9 +903,11 @@ contains
     write(9,'(" [---] ",F15.6)')wv%k*wv%d
     write(9,'(" [INF] At 2.25 WavePeriods")')
     write(9,'(" [---] ",3A15)')'Eta','P','Q'
-    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta)
-    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,p,q)
+    call wv%getEta(2.25d0*wv%T,wv%x0,wv%y0,eta,etadt)
+    call wv%getPQ(2.25d0*wv%T,wv%x0,wv%y0,eta,etadt,p,q,pdt,qdt)
     write(9,'(" [---] ",3F15.6)')eta,p,q
+    write(9,'(" [---] ",3A15)')'EtaDt','PDt','QDt'
+    write(9,'(" [---] ",3F15.6)')etadt,pdt,qdt
 
     totT=1.2d0*inTotT
     b%numP=floor(totT/dt)+2
@@ -885,6 +916,7 @@ contains
     b%rampdt = (rampt1 - rampt0)
 
     allocate(b%data(b%numP,4), b%datadtt(b%numP,4))
+    allocate(b%da2(b%numP,4), b%da2dtt(b%numP,4))
     do i=0,b%numP-1
       t=i*dt
 
@@ -898,18 +930,24 @@ contains
         ramptw = 0.5d0*(1d0 - dcos(pi*(t - b%rampt0)/b%rampdt) )
       endif
 
-      call wv%getEta(t,0d0,0d0,eta)
-      call wv%getPQ(t,0d0,0d0,eta,p,q)
+      call wv%getEta(t,0d0,0d0,eta,etadt)
+      call wv%getPQ(t,0d0,0d0,eta,etadt,p,q,pdt,qdt)
 
       b%data(i+1,1)=t
       b%data(i+1,2)=eta * ramptw
       b%data(i+1,3)=p * ramptw
       b%data(i+1,4)=q * ramptw
-      !write(201,'(4F15.6)')b%data(i+1,1:4)
+
+      b%da2(i+1,1)=t
+      b%da2(i+1,2)=etadt * ramptw
+      b%da2(i+1,3)=pdt * ramptw
+      b%da2(i+1,4)=qdt * ramptw      
     enddo    
 
     b%datadtt(:,1) = b%data(:,1)
+    b%da2dtt(:,1) = b%da2(:,1)
     call setCubicSpline(b%numP, 4, b%data, b%datadtt)
+    call setCubicSpline(b%numP, 4, b%da2, b%da2dtt)
     b%posI=1  
 
   end subroutine initFourier3File
@@ -919,48 +957,7 @@ contains
 
 
 !!---------------------------getEta----------------------------!!
-  ! subroutine getEta(b,rTime,eta)
-  ! implicit none
-
-  !   class(wvFileType),intent(in)::b
-
-  !   integer(kind=C_K1)::k,posI
-
-  !   real(kind=C_K2),intent(in)::rTime
-  !   real(kind=C_K2),intent(out)::eta
-
-  !   posI=2
-    
-  !   if((rTime.gt.b%data(b%numP,1)).or.&
-  !     (rTime.lt.b%data(1,1)))then
-  !     write(9,*)"[ERR] Wave query exceeds supplied time range"
-  !     write(9,'( "[---] ",F15.6)')rTime
-  !     write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
-  !     stop
-  !   endif
-
-  !   do while(b%data(posI+1,1).le.rTime)
-  !     posI=posI+1
-  !   enddo
-
-  !   ! do while(b%data(posI-1,1).gt.rTime)
-  !   !   if(posI.eq.2)exit
-  !   !   posI=posI-1
-  !   ! enddo
-
-  !   k=2
-  !   eta=b%data(posI,k) &
-  !     + (b%data(posI+1,k)-b%data(posI-1,k)) &
-  !     / (b%data(posI+1,1)-b%data(posI-1,1)) &
-  !     * (rTime-b%data(posI,1))
-
-  !   !write(222,'(3F20.6)')rTime,b%data(posI,1),rTime-b%data(posI,1)
-
-  ! end subroutine getEta
-
-
-
-  subroutine getEta(b,rTime,eta)
+  subroutine getEta(b,rTime,eta,etadt)
   implicit none
 
     class(wvFileType),intent(in)::b
@@ -968,7 +965,7 @@ contains
     integer(kind=C_K1)::k, posI, i
 
     real(kind=C_K2),intent(in)::rTime
-    real(kind=C_K2),intent(out)::eta
+    real(kind=C_K2),intent(out)::eta,etadt
     real(kind=C_K2)::dx, cA, cB, cC, cD
 
     ! if((rTime.ge.b%data(b%posI,1)) .and. &
@@ -1017,6 +1014,7 @@ contains
       stop
     endif  
 
+    ! Assuming data and da2 have the same time-step
     dx = (b%data(posI+1,1) - b%data(posI,1))
     cA = (b%data(posI+1,1) - rTime) / dx
     cB = 1d0 - cA
@@ -1027,6 +1025,11 @@ contains
     eta = (cA * b%data(posI,k)) + (cB * b%data(posI+1,k)) &
       + (cC * b%datadtt(posI,k)) + (cD * b%datadtt(posI+1,k))    
 
+    k=2
+    etadt = (cA * b%da2(posI,k)) + (cB * b%da2(posI+1,k)) &
+      + (cC * b%da2dtt(posI,k)) + (cD * b%da2dtt(posI+1,k))    
+
+
     !write(222,'(3F20.6)')rTime,b%data(posI,1),rTime-b%data(posI,1)
 
   end subroutine getEta
@@ -1035,7 +1038,7 @@ contains
 
 
 !!----------------------------getPQ----------------------------!!
-  subroutine getPQ(b,rTime,p,q)
+  subroutine getPQ(b,rTime,p,q,pdt,qdt)
   implicit none
 
     class(wvFileType),intent(in)::b
@@ -1043,7 +1046,7 @@ contains
     integer(kind=C_K1)::k, posI, i
 
     real(kind=C_K2),intent(in)::rTime
-    real(kind=C_K2),intent(out)::p,q
+    real(kind=C_K2),intent(out)::p,q,pdt,qdt
     real(kind=C_K2)::dx, cA, cB, cC, cD
 
     do i = 1, b%numP
@@ -1057,6 +1060,7 @@ contains
       stop
     endif 
 
+    ! Assuming data and da2 have the same time-step
     dx = (b%data(posI+1,1) - b%data(posI,1))
     cA = (b%data(posI+1,1) - rTime) / dx
     cB = 1d0 - cA
@@ -1070,6 +1074,15 @@ contains
     k=4
     q = (cA * b%data(posI,k)) + (cB * b%data(posI+1,k)) &
       + (cC * b%datadtt(posI,k)) + (cD * b%datadtt(posI+1,k)) 
+
+
+    k=3
+    pdt = (cA * b%da2(posI,k)) + (cB * b%da2(posI+1,k)) &
+      + (cC * b%da2dtt(posI,k)) + (cD * b%da2dtt(posI+1,k)) 
+
+    k=4
+    qdt = (cA * b%da2(posI,k)) + (cB * b%da2(posI+1,k)) &
+      + (cC * b%da2dtt(posI,k)) + (cD * b%da2dtt(posI+1,k)) 
     
   end subroutine getPQ
 !!--------------------------End getPQ--------------------------!!
@@ -1086,15 +1099,16 @@ contains
 
     real(kind=C_K2),intent(in)::rT0,rT1,dt
     real(kind=C_K2)::eta,p,q,t
+    real(kind=C_K2)::etadt,pdt,qdt
 
     open(newunit=mf,file='chkWaveFileInput.dat')
 
     nT=floor((rT1-rT0)/dt)+1
     do i=0,nT
       t=rT0+i*dt
-      call b%getEta(t,eta)
-      call b%getPQ(t,p,q)
-      write(mf,'(4F20.8)')t,eta,p,q
+      call b%getEta(t,eta,etadt)
+      call b%getPQ(t,p,q,pdt,qdt)
+      write(mf,'(7F20.8)')t,eta,p,q,etadt,pdt,qdt
     enddo
     close(mf)
 

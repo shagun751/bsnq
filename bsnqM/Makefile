@@ -54,6 +54,7 @@ subroutines/matrixSet1.f90 \
 subroutines/matrixSet2.f90 \
 subroutines/mergeSort.f90 \
 subroutines/nodeConnAll.f90 \
+subroutines/rk4Interpolation.f90 \
 subroutines/solver_v1.0.f90 
 	
 default: $(OBJ)
