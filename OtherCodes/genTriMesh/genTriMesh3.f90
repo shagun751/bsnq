@@ -58,7 +58,7 @@ implicit none
   do i=1,nx
     do j=1,ny
 
-      if(mod(i+j,2).eq.0)then
+      if((j*1d0 - ny/2d0).le.0)then
         !   /|
         !  / |
         ! /__|
@@ -109,19 +109,21 @@ implicit none
   ! enddo
 
   !! Boundaries
+  !Left
   k=0
   do i=1,ny
     k=k+1
     mabnd(k,1)=i+1
     mabnd(k,2)=i
-    if(mod(i,2).eq.0)then
-      mabnd(k,3)=i*2-1
-    else
+    if((i*1d0 - ny/2d0).le.0)then
       mabnd(k,3)=i*2
+    else
+      mabnd(k,3)=i*2-1
     endif
   enddo
   bndt1=k
 
+  !Bottom
   do i=1,nx
     k=k+1
     j = (i-1)*(ny+1)+1
@@ -129,6 +131,7 @@ implicit none
     mabnd(k,2)=j+ny+1
     mabnd(k,3)=(i-1)*ny*2+1    
   enddo
+  !Top
   do i=nx,1,-1
     k=k+1
     j = i*(ny+1)
@@ -138,15 +141,16 @@ implicit none
   enddo
   bndt2 = k
 
+  !Right
   do i=1,ny
     k=k+1
     j = nx*(ny+1) + i
     mabnd(k,1)=j
     mabnd(k,2)=j+1
-    if(mod(nx+i,2).eq.0)then
+    if((i*1d0 - ny/2d0).le.0)then
       mabnd(k,3)= (nx-1)*ny*2 + i*2 - 1
     else
-      mabnd(k,3)= (nx-1)*ny*2 + i*2
+      mabnd(k,3)= (nx-1)*ny*2 + i*2 
     endif
   enddo  
   write(*,*)k,nbnd

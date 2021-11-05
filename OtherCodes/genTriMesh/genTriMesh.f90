@@ -17,12 +17,12 @@ implicit none
   domy(1)=0d0
 
   !Top right X Y
-  domx(2)=150d0
-  domy(2)=4d0
+  domx(2)=150.4d0
+  domy(2)=4.8d0
 
   !Mesh dx and dy
-  dx=0.2d0
-  dy=0.2d0
+  dx=0.16d0
+  dy=0.16d0
 
   !!-------------- Do not change --------------!!
   open(11,file = "test.msh")

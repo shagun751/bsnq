@@ -1,26 +1,28 @@
 !!-------------------------findRadLinkList-------------------------!!
-  subroutine findRadLinkList(ip,npt,szJv,ivq,jvq,cor,coef,&
+  subroutine findRadLinkList(ip,np,szJv,iv,jv,cor,coef,&
     rad,i2,j,k1,dr,cx,cy)
   use bsnqGlobVars
   implicit none
 
-    integer(kind=C_K1),intent(in)::ip,npt,szJv
-    integer(kind=C_K1),intent(in)::ivq(0:npt),jvq(szJv)
-    real(kind=C_K2),intent(in)::cor(npt,2),coef
+    integer(kind=C_K1),intent(in)::ip,np,szJv
+    integer(kind=C_K1),intent(in)::iv(0:np),jv(szJv)
+    real(kind=C_K2),intent(in)::cor(np,2),coef
 
     integer(kind=C_K1),intent(out)::j,k1,i2
     real(kind=C_K2),intent(out)::rad,dr,cx,cy
 
     ! Radius
-    rad=0d0
+    !rad=0d0
+    rad = 1d10
     cx=cor(ip,1)
     cy=cor(ip,2)
-    k1=(ip-1)*ivq(0)
-    do j=k1+1,k1+ivq(ip)
-      i2=jvq(j)      
+    k1=(ip-1)*iv(0)
+    do j = k1+1, k1+iv(ip)-1 !Do not count self
+      i2=jv(j)      
       dr=(cor(i2,1)-cx)**2 + (cor(i2,2)-cy)**2
-      if(rad.lt.dr) rad=dr      
-    enddo
+      !if(rad.lt.dr) rad=dr            
+      if(rad.gt.dr) rad=dr            
+    enddo    
     if(rad.lt.1e-10)then
       write(9,'(" [ERR] Check radius calculation at node",I10)')ip
       stop
@@ -91,8 +93,8 @@
         endif
       enddo
     enddo
-
-    if(maxval(nedr(k2+1:k3)).lt.1d0) goto 301 !! looping till 2x radius
+    
+    if(maxval(nedr(k2+1:k3)).lt.3d0) goto 301 !! looping till 3x radius^2
 
     do i2=1,k3
       !if(nedr(i2).gt.1d0)cycle

@@ -54,6 +54,12 @@
     enddo
     write(mf,'(T7,a)')'</DataArray>'
 
+    write(mf,'(T7,a)')'<DataArray type="Float64" Name="velDepRes" NumberOfComponents="3" format="ascii">'  
+    do i=1,b%npl
+      write(mf,'(3F20.6)')b%vvMsh%u(i), b%vvMsh%v(i), b%vvMsh%w(i)
+    enddo
+    write(mf,'(T7,a)')'</DataArray>'
+
     ! gradEta
     ! if(allocated(b%pObf))then
     !   write(mf,'(T7,a)')'<DataArray type="Float64" Name="gradEta" NumberOfComponents="3" format="ascii">'  

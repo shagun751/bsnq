@@ -8,6 +8,7 @@
 1. [Observations : VertVel 3D Matlab Check [2021-06-08]](#log_bsnqM_v0004_6)
 1. [Observations : VertVel 3D Confirming against VertVel 2D [2021-06-08]](#log_bsnqM_v0004_7)
 1. [Observations : VertVel 3D Comparison for various angles [2021-06-08]](#log_bsnqM_v0004_8)
+1. [Observations : Dependence of Bsnq result on Mesh [2021-11-03]](#log_bsnqM_v0004_9)
 
 ## Attempting
 - Calculate velocities along the depth for angular waves
@@ -19,6 +20,74 @@
 - [x] BUG_FIX: wavHReset had a mistake. <br>Only mod(12.01,3) would work. mod(11.99,3) wont work. Corrected.
 - [x] Angular wave expression for depth-resolved vel.
 - [x] z=0 set to mean-sea-level instead of bottom of the domain.
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_v0004_9' ></a>
+
+## Observations : Dependence of Bsnq result on Mesh [2021-11-03]
+
+<img width="100%" src="./log0004/C09/case3b_case3l_case3v_meshes.png">
+
+Refer folder : bsnq/Test_stokes2b_bsnq/case3_reChk_corrected2
+
+1. While coupling with MLPG, I noticed that the mesh made a significant difference in the position of the particle which are purely driven by the Bsnq solution.
+
+2. There were some mistakes in my MLS radius and neighbours search, which I have corrected and can be seen in [link](./log_bsnqM_vBugs.md#log_bsnqM_vBugs_4).
+
+3. After this I did a test with the three mentioned meshes. <br> With the updates in the MLS nei and rad and searching radius (mentioned in the previous point), we see that for all three meshes we get same neighbouring MLS nei as seen in figures below for boundary and middle nodes. <br>
+Blue-Mesh1 Orange-Mesh2 Yellow-Mesh3 <br>
+<img width="100%" src="./log0004/C09/case3b_case3l_case3v_nei_diamondvt14410.png"><br>
+<img width="100%" src="./log0004/C09/case3b_case3l_case3v_nei_bndvt14421.png">
+
+4. Hence there shouldnt me any difference in the results from the MLS part.
+
+5. However the issue mentioned in point-1 arises from the difference in the results of the Bsnq solution itself.
+
+In the following table, I present the BQML results. Here a [-0.5m 30.5m] MLPG domain is coupled with Bsnq on both left and right sides with 3m overlapping layers on each sides.<br>
+Note the difference in the position of purely Bsnq driven MLPG particles
+
+| Difference in MLPG particle position which are purely driven by Bsnq |
+| -------- |
+|   |
+| **Eta** |
+| <img width="100%" src="./log0004/C09/bqml_L03R03_case3b_case3l_case3v_midLineEta_cor2.jpg"> |
+| Legend : Pink-BQML-Mesh1, Blue-BQML-Mesh2, Green-BQML-Mesh3, Black-Bsnq  |
+|   |
+| **MLPG Eta contour plot** |
+| <img width="100%" src="./log0004/C09/bqml_L03R03_case3b_case3l_case3v_cor2_etacontour.png"> |
+| BQML-Mesh1-Eta, BQML-Mesh2-Eta, BQML-Mesh3-Eta, BQML-MeshAll-BsnqWei |
+
+<br>
+
+| Difference in the Bsnq soln from the three meshes |
+| -------- |
+|   |
+| **DepIntVel-Y** |
+| <img width="100%" src="./log0004/C09/case3b_case3l_case3v_depIntVelY_cor2.png"> |
+|   |
+|   |
+| **DepRedVel-Y at d=-h/3** |
+| <img width="100%" src="./log0004/C09/case3b_case3l_case3v_depResVelY_cor2.png"> |
+|   |
+|   |
+| **DepRedVel-X at d=-h/3** |
+| <img width="100%" src="./log0004/C09/case3b_case3l_case3v_depResVelX_cor2.png"> |
+|   |
+
+I had also run the simulation in BQML setting Bsnq vel_y = 0 in coupling to see if the issue is due to the depResVel_y. It can be seen that the issue is arising from depResVel_x itself.
+
+| Difference in MLPG particle position which are purely driven by Bsnq <br> Bsnq depResVel_y=0 in the coupling procedure |
+| -------- |
+|   |
+| **Eta** |
+| <img width="100%" src="./log0004/C09/bqml_L03R03_case3b_case3l_case3v_midLineEta_cor2_cor2vy0.jpg"> |
+| Legend : Pink-BQML-Mesh1, Blue-BQML-Mesh2, Green-BQML-Mesh3, Black-Bsnq  |
+|   |
+| **MLPG Eta contour plot** |
+| <img width="100%" src="./log0004/C09/bqml_L03R03_case3b_case3l_case3v_cor2vy0_etacontour.png"> |
+| BQML-Mesh1-Eta, BQML-Mesh2-Eta, BQML-Mesh3-Eta, BQML-MeshAll-BsnqWei |
 
 -----------------------------------------------
 

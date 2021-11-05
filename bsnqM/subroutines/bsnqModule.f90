@@ -124,7 +124,7 @@ implicit none
     type(absTyp),allocatable::absOb(:)
     type(bsnqVars),allocatable::tOb(:),sOb(:),siOb(:)
     type(bsnqVars)::tiOb !tiOb and siOb For time-interpolation
-    type(vertVelProbes)::vvPrb
+    type(vertVelProbes)::vvPrb, vvMsh
     type(rk4InterpTyp)::rk4intp
 
     !! Optional initialisation
@@ -338,6 +338,9 @@ contains
     call system_clock(b%sysC(7))
 
     if(mod(b%tStep,b%fileOut).eq.0) then
+      call b%getVertVel( b%vvMsh%np, b%vvMsh%x, b%vvMsh%y, &
+        b%vvMsh%z, b%vvMsh%u, b%vvMsh%v, b%vvMsh%w, &
+        b%vvMsh%p, b%vvMsh%wrki, b%vvMsh%wrkr, b%vvMsh%err )
       call b%outputXML
     endif
 

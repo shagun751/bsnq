@@ -24,12 +24,13 @@
     phiDx=0d0
     phiDy=0d0
 
-    tmpr5=1.2d0 !Coeff of multipliciation to max rad in linkList    
+    !tmpr5=1.2d0 !Coeff of multipliciation to max rad in linkList    
+    tmpr5=1.8d0 !Coeff of multipliciation to min rad in linkList    
 
     ! First find influence radius
     do i=1,b%npl !vertex nodes first
-      call findRadLinkList(i, b%npt, b%Sz(4), b%ivq, b%linkq, b%cor, &
-        tmpr5, rad, i2, j, k1, tmpr3, cx, cy)    
+      call findRadLinkList(i, b%npl, b%Sz(1), b%ivl, b%linkl, &
+        b%cor(1:b%npl,:), tmpr5, rad, i2, j, k1, tmpr3, cx, cy)    
       b%pObf(i)%cx = cx
       b%pObf(i)%cy = cy
       b%pObf(i)%rad = rad
@@ -49,50 +50,45 @@
 
 
     ! Find neigh and set the mf object
+    ! Find MLS shape fnc for interp and 1st derivative
     do i=1,b%npt
       cx = b%pObf(i)%cx
       cy = b%pObf(i)%cy
       rad = b%pObf(i)%rad
 
       call findNeiLinkList(i, rad, b%npt, b%Sz(4), b%ivq, &
-        b%linkq, b%cor, b%npt, nn, neid, newrk, nedr)
-      
-      call b%pObf(i)%setPoi(nn, nn, i, cx, cy, rad, neid(1:nn), &
-        phi(1:nn), phiDx(1:nn), phiDy(1:nn))      
-    enddo  
-
-
-    ! Find MLS shape fnc for interp and 1st derivative
-    do i=1,b%npt
-      nn = b%pObf(i)%nn
-      neid(1:nn) = b%pObf(i)%neid(1:nn)
+        b%linkq, b%cor, b%npt, nn, neid, newrk, nedr)          
+          
       nerad(1:nn) = b%pObf(neid(1:nn))%rad
 
-      call mls2DDx(b%pObf(i)%cx, b%pObf(i)%cy, nn, &
+      call mls2DDx(cx, cy, nn, &
         b%cor(neid(1:nn),1), b%cor(neid(1:nn),2), nerad(1:nn), &
-        b%pObf(i)%phi(1:nn), b%pObf(i)%phiDx(1:nn), &
-        b%pObf(i)%phiDy(1:nn), err)
+        phi(1:nn), phiDx(1:nn), phiDy(1:nn), err)
 
       if(err.ne.0)then
         write(9,'(" [ERR] No MFree at node ", I10)')i
         write(9,'(" [---] Cx, Cy ",2F15.6)')cx,cy
-      endif
+      endif      
+
+      call b%pObf(i)%setPoiNZOnly(nn, nn, i, cx, cy, rad, &
+        neid(1:nn), phi(1:nn), phiDx(1:nn), phiDy(1:nn), j)      
       
 
-      !if(i.ne.2341) cycle !rect2d vertex
+      ! !if(i.ne.2341) cycle !rect2d vertex
       ! if(i.ne.15151) cycle !rect2d side-mid
       ! write(*,'(I15,2F15.6)')b%pObf(i)%bsnqId,b%pObf(i)%cx,b%pObf(i)%cy
       ! write(*,'(2I15,F15.6)')b%pObf(i)%nn,b%pObf(i)%nnMax,b%pObf(i)%rad
+      ! nn = b%pObf(i)%nn
       ! do j=1,nn
       !   j2 = b%pObf(i)%neid(j)        
       !   tmpr3 = dsqrt( (b%cor(j2,1) - b%pObf(i)%cx)**2 + &
       !    (b%cor(j2,2) - b%pObf(i)%cy)**2 )
       !   write(*,'(I15,8F15.6)')j2, b%cor(j2,1:2), tmpr3/0.2032d0, &
-      !     nerad(j), tmpr3/nerad(j), & 
+      !     b%pObf(j2)%rad, tmpr3/b%pObf(j2)%rad, & 
       !     b%pObf(i)%phi(j), b%pObf(i)%phiDx(j), b%pObf(i)%phiDy(j)
       ! enddo
       ! write(*,'(F15.6)')sum(b%pObf(i)%phi(1:nn))
-    enddo  
+    enddo      
 
     deallocate(neid,newrk,nedr,phi,phiDx,phiDy,nerad)
 
@@ -114,6 +110,14 @@
 
     ! call testMls2DDx
     ! stop    
+
+    ! Set vvMsh to output vel at -h/3 for all lin nodes
+    call b%vvMsh%initvvProbes( b%npl )
+    do i =1, b%npl
+      b%vvMsh%x(i) = b%cor(i,1)
+      b%vvMsh%y(i) = b%cor(i,2)
+      b%vvMsh%z(i) = -b%dep(i)/3d0
+    enddo
 
     call system_clock(b%sysC(6))
     write(9,'(" [MSG] Size of mFree : npt, sum(nn), MB ",2I15,F15.6)') &

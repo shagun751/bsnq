@@ -14,6 +14,7 @@ implicit none
   contains
     procedure :: initPoi
     procedure :: setPoi
+    procedure :: setPoiNZOnly
   end type mfPoiTyp
 
   type, extends(mfPoiTyp), public :: mfPoiVertVelTyp
@@ -88,6 +89,71 @@ contains
 
   end subroutine setPoi
 !!-------------------------End setPoi--------------------------!!
+
+
+
+!!---------------------setPoisetPoiNZOnly----------------------!!
+  subroutine setPoiNZOnly(m,nn,nnMax,bsnqId,cx,cy,rad,&
+    nei,phi,phiDx,phiDy, wrki)
+  implicit none
+
+    ! Only stores the neighs with non-zero value for
+    ! atleast one of phi, phiDx and phiDy
+    ! This minimises the size of the object
+
+    class(mfPoiTyp),intent(inout)::m
+    integer(kind=C_K1),intent(in)::nn,nnMax,nei(nn),bsnqId
+    real(kind=C_K2),intent(in)::cx,cy,rad
+    real(kind=C_K2),intent(in)::phi(nn),phiDx(nn),phiDy(nn)
+
+    integer(kind=C_K1),intent(inout)::wrki
+
+    m%bsnqId=bsnqId
+    m%cx=cx
+    m%cy=cy
+    m%rad=rad
+    
+
+    m%nn = 0
+    do wrki = 1, nn
+      if( abs(phi(wrki)).lt.1d-10 .and. &
+        abs(phiDx(wrki)).lt.1d-10 .and. &
+        abs(phiDy(wrki)).lt.1d-10 ) cycle
+
+      m%nn = m%nn + 1      
+    enddo
+
+    m%nnMax = m%nn
+
+    if(allocated(m%neid)) deallocate(m%neid)
+    if(allocated(m%phi)) deallocate(m%phi)
+    if(allocated(m%phiDx)) deallocate(m%phiDx)
+    if(allocated(m%phiDy)) deallocate(m%phiDy)
+    allocate( m%neid(m%nnMax), m%phi(m%nnMax))
+    allocate( m%phiDx(m%nnMax), m%phiDy(m%nnMax))
+
+
+    m%nn = 0
+    do wrki = 1, nn
+      if( abs(phi(wrki)).lt.1d-10 .and. &
+        abs(phiDx(wrki)).lt.1d-10 .and. &
+        abs(phiDy(wrki)).lt.1d-10 ) cycle
+      
+      m%nn = m%nn + 1      
+      m%neid(m%nn) = nei(wrki)
+      m%phi(m%nn) = phi(wrki)
+      m%phiDx(m%nn)=phiDx(wrki)
+      m%phiDy(m%nn)=phiDy(wrki)
+    enddo       
+
+    if(m%nn.ne.m%nnMax)then
+      write(9,'(" [ERR] numNei .ne. numNeiMax in setPoiNZOnly",3I10)') &
+        m%bsnqId, m%nn, m%nnMax
+      stop
+    endif 
+
+  end subroutine setPoiNZOnly
+!!-------------------End setPoisetPoiNZOnly--------------------!!
 
 
 

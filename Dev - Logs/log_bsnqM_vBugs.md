@@ -3,6 +3,7 @@
 1. [_updateSoln()_ failing in Aqua cluster [2020-09-09]](#log_bsnqM_vBugs_1)
 2. [Changing from RIAV = R(NOD) to RIAV = (R(NOD) + R(NEI))/2 [2021-09-29]](#log_bsnqM_vBugs_2)
 3. [Major error in RK4 time-stepping [2021-10-07] **VERY IMP**](#log_bsnqM_vBugs_3)
+4. [MLS neighbour search corrected [2021-10-29]](#log_bsnqM_vBugs_4)
 
 ## Attempting
 - From 2020-Sep-09 onwards, the bugs in the main code common across all branches will be noted here.
@@ -11,6 +12,46 @@
 
 ## List of Work
 - [x] Major error in RK4 time-stepping **VERY IMP**
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vBugs_4' ></a>
+
+## MLS neighbour search corrected [2021-10-29]
+
+- The earlier MLS neighbour search based on FEM link-list was a little rough.
+
+- It has three issues
+	1. The MLS radius was based on the farthest node. Hence it depended on the point as seen in the meshes below.<br>
+	<img width="100%" src="./logvBugs/C04/mlsRadBasedOnMesh.png">
+	2. The neighs of vertex nodes and side-centre nodes had difference patterns.
+	3. Due to these differences between nearby points, there was minor difference in the vel calculated from these.
+		- I can see some oscillations in the depResVel-X plot for Mesh1 (Blue) which is not there in Mesh2 (Red). <br>
+		<img width="100%" src="./logvBugs/C04/case3b_vs_case3l_velDepResX.png">
+		- However this was seen when coupled with MLPG, where the purely Bsnq based motion of the MLPG nodes seemed to develop a pattern for the Mesh1 and not for Mesh2.<br>
+		<img width="100%" src="./logvBugs/C04/bqmlboth_case3b_dx062_dt010_L03R03_tOut16.jpg"><br>
+		Maybe the subtle difference add up over time in the position of the particle and create this pattern hence giving wrong elevation at pure Bsnq controlled MLPG nodes as seen below. <br>
+		For x = 1m, here Blue is Bsnq reading, Red is BQML reading with Mesh2 for Bsnq part and Black is BQML reading with Mesh1 for Bsnq part.<br>
+		<img width="100%" src="./logvBugs/C04/bqmlboth_case3b_dx062_dt010_L03R03_wpx1.png">
+
+- I have now corrected this thoroughly
+
+- Firstly the radius is now decided based on the nearest non-self linear point. This is mostly same for all and hence all point will have same mlsrad in a constant mesh size irrespective of the mesh pattern.
+
+- The neighour search is now done far out.<br>
+	<img width="100%" src="./logvBugs/C04/side-middle-search-rad2lt1.png"><br>
+	<img width="100%" src="./logvBugs/C04/side-middle-search-rad2lt3.png">
+
+- To save space I introduced a new subroutine within the mlsObject of mlsModule, _setPointNSOnly_. This will only store those neighbours which have non-zero value for atleast one of phi, phiDx and phiDy. Due to this both vertex nodes and side-middle nodes have similar neighbour pattern.<br>
+<img width="100%" src="./logvBugs/C04/side-middle-search-rad2lt3-nzonly.png"><br>
+<img width="100%" src="./logvBugs/C04/vertex-search-rad2lt2-nzonly.png">
+
+- I expect this to solve the issue. However when I observe the depResVel-X plots in the updated Bsnq code, I still see some oscillations in the Mesh1 (Blue) results compared to the Mesh2 (Red) results.<br>
+	<img width="100%" src="./logvBugs/C04/case3b_vs_case3l_velDepResX_corrected.png"> <br>
+	This implies the oscillations arise more from the FEM soln and not from the MLS derivative or difference in MLS radius. This is because in the updated bsnq code all nodes have same radius and symmetric neighs.
+
+- I have put bqml runs for L03R03 coupling for both Mesh1 and Mesh2 Bsnq meshes. Lets see. Maybe the meshing itself is the issue and I should instead use a different kind of mesh.
 
 -----------------------------------------------
 
