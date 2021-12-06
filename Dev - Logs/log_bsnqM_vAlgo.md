@@ -8,6 +8,7 @@
 6. [Time ramping for wave-making [2021-06-22]](#log_bsnqM_vAlgo_6)
 7. [Source function based wavemaking [2021-06-29][2021-10-08]](#log_bsnqM_vAlgo_7)
 8. [Absolute tolerance test for Berkhoff shoal [2021-10-08]](#log_bsnqM_vAlgo_8)
+9. [Feature: bnd13 on angular sides [2021-12-06]](#log_bsnqM_vAlgo_9)
 
 
 ## Attempting
@@ -27,6 +28,29 @@
 - [x] Internal wave maker [link](#log_bsnqM_vAlgo_7)
 	- [ ] Internal wave-maker of a limited length
 - [ ] RK4 time-interpolation
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_9' ></a>
+
+## Feature: bnd13 on angular sides [2021-12-06]
+
+Folder: bsnq/Test_bnd13
+
+- Till now the bnd13 of slip wall was working only if the domain had sides along the X and the Y axes.
+- Now I generalised it so that it works irrespective of the orientation of the side.
+- Take (nx, ny) as the side normal
+	- If (abs(nx) > 0.86) => side normal angle < 30deg<br> Then limit the P vel as P = -Q\*ny/nx and allow free calculation of Q
+	- Every other case => side normal angle > 30deg <br> Then limit the Q vel as Q = -P\*nx/ny and allow free calculation of P
+
+|     |
+| --- |
+| **waveAlong 70 deg => bnd13 nx 20deg => P is limited** <br> vs <br> **waveAlong 20 deg => bnd13 nx 70deg => Q is limited** |
+| <img width="100%" src="./logvAlgo/C09/fc70_vs_fc20.png"> |
+|  |
+
+**Note: It may fail for random curved boundaries. Use bnd12 for those**
 
 -----------------------------------------------
 

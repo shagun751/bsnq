@@ -32,16 +32,19 @@ implicit none
       gBs3(k+1:k+k1)=0d0
     
     elseif(j1.eq.13)then
-      if(abs(bndPN(i1,1)).gt.0.1)then
+      if( abs(bndPN(i1,1)) .gt. 0.86d0 )then !degLT30
         gBs1(k+k1)=1d0
         gBs1(k+1:k+k1-1)=0d0
-        gBs2(k+1:k+k1)=0d0
-      endif
-
-      if(abs(bndPN(i1,2)).gt.0.1)then
+        gBs2(k+1:k+k1-1)=0d0
+        gBs2(k+k1)=bndPN(i1,2)/bndPN(i1,1)
+        !write(*,*) '!!!!000',i1
+      
+      else        
         gBs4(k+k1)=1d0
         gBs4(k+1:k+k1-1)=0d0      
-        gBs3(k+1:k+k1)=0d0
+        gBs3(k+1:k+k1-1)=0d0
+        gBs3(k+k1)=bndPN(i1,1)/bndPN(i1,2)
+        !write(*,*) '!!!!555',i1
       endif
 
     ! else

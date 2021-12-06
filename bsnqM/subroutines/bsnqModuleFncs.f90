@@ -410,12 +410,12 @@
     read(mf,*,end=81,err=81)b%wvF%fileName
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)wvT, wvH, wvD    
+    read(mf,*,end=81,err=81)wvT, wvH, wvD, wvAng
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)wvScenX, wvScenY, wvSorient
     read(mf,*,end=81,err=81)bqtxt
-    read(mf,*,end=81,err=81)wvDelta, wvAng, wvSl
+    read(mf,*,end=81,err=81)wvDelta, wvSl
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)wvTR0, wvTR1
@@ -427,19 +427,19 @@
       case (1)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         call b%wvF%initAiryFile(b%dt/2d0,b%endTime,wvT,wvD,&
-          wvH,0d0,wvTR0,wvTR1)
+          wvH,wvAng,wvTR0,wvTR1)
 
       case (2)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         ! call b%wvF%initStokes2File(b%dt/2d0,b%endTime,wvT,wvD,&
-        !   wvH,0d0,wvTR0,wvTR1)
+        !   wvH,wvAng,wvTR0,wvTR1)
         write(*,*)'[ERR] Stokes2 is not implemented.'
         stop
 
       case (11)      
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         call b%wvF%initFourier3File(b%dt/2d0,b%endTime,wvT,wvD,&
-          wvH,0d0,wvTR0,wvTR1)
+          wvH,wvAng,wvTR0,wvTR1)
 
       case (21)
         ! (inT, inD, inH, inThDeg, inCenX, inCenY, 
@@ -453,7 +453,7 @@
         ! this will not generate a wave
         ! (dt,totTime,inT,inD,inH,inAngDeg,rampt0,rampt1)
         call b%wvF%initAiryFile(b%dt/2d0,b%endTime,wvT,wvD,&
-          wvH,0d0,wvTR0,wvTR1)
+          wvH,wvAng,wvTR0,wvTR1)
 
       case DEFAULT
         write(*,*)"[ERR] Invalid wave input type", i

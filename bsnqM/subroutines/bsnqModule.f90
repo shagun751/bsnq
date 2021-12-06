@@ -584,12 +584,12 @@ contains
         q(i2)=0d0
 
       elseif(j2.eq.13)then
-        if(abs(b%bndPN(i2,1)).gt.0.1)then
-          p(i2)=0d0
-        endif
-        if(abs(b%bndPN(i2,2)).gt.0.1)then
-          q(i2)=0d0
-        endif
+        if( abs(b%bndPN(i2,1)) .gt. 0.86d0 )then !degLT30
+          p(i2) = -q(i2)*b%bndPN(i2,2)/b%bndPN(i2,1)
+          !write(*,*) '!!!!222',i2,abs(b%bndPN(i2,1))
+        else
+          q(i2) = -p(i2)*b%bndPN(i2,1)/b%bndPN(i2,2)
+        endif        
 
       endif
     enddo
@@ -653,12 +653,12 @@ contains
         mat(b%npt+i2)=0d0
 
       elseif(j2.eq.13)then
-        if(abs(b%bndPN(i2,1)).gt.0.1)then
-          mat(i2)=0d0
-        endif
-        if(abs(b%bndPN(i2,2)).gt.0.1)then
+        if( abs(b%bndPN(i2,1)) .gt. 0.86d0 )then !degLT30
+          mat(i2) = 0d0
+          !write(*,*) '!!!!111',i2,abs(b%bndPN(i2,1))
+        else
           mat(b%npt+i2)=0d0
-        endif
+        endif        
 
       endif
     enddo

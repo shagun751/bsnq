@@ -51,6 +51,7 @@
     write(mf,'(T7,a)')'<DataArray type="Float64" Name="vel" NumberOfComponents="3" format="ascii">'  
     do i=1,b%npl
       write(mf,'(2F20.6,F5.1)')b%tOb(0)%p(i), b%tOb(0)%q(i), 0d0
+      !write(mf,'(2F20.6,F5.1)')b%bndPN(i,1), b%bndPN(i,2), 0d0
     enddo
     write(mf,'(T7,a)')'</DataArray>'
 

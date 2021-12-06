@@ -6,15 +6,15 @@ Q) Resume file name (Mention the path in between quotes)
 Q) Time-step (s)
 0.02
 Q) Run Time (s)
-40.0
+20.0
 
 Q) Error limit
-1e-5
+1e-4
 Q) Maximum number of iterations for GMRES solver
 5000
 
 Q) Output file interval (s)
-1
+2.5
 Q) Resume file generation interval (s)
 40.0
 Q) Wave-height reset time (s)
@@ -38,20 +38,20 @@ Q) Velocity 3D Probes (num; X Y Z)
 
 Q) Wave input type 
 Q) (0-file, 1-Airy, 2-Stokes2, 11-Fourier3, 21-Source Fnc)
-1
+11
 Q) File | FileName
 none
 Q) ---------- No-File ----------
-Q) Time-period (s), Height (m), Depth (m)
-2.0 	0.01 	0.7
+Q) Time-period (s), Height (m), Depth (m), Angle (deg)
+2.0 	0.01 	0.7 	45
 Q) ---------- Source Fnc ----------
 Q) centre X (m), centre Y (m), orientation (parallel 0=y / 1=x) 
 0.0 	0.0  	0
-Q) n (width = nL/2), Angle (deg), length (m) (-1 = full length)
-1.0 	0 	-1
+Q) n (width = nL/2), length (m) (-1 = full length)
+1.0  	-1
 Q) ---------- Time Ramp ----------
 Q) start(s) end(s) | (-1 -1 to disable) (not for source fnc)
--1  	-1
+0  	4
 
 Q) Bottom Friction On ? (.true. / .false.)
 .false.
