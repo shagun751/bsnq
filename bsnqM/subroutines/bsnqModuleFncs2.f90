@@ -471,7 +471,7 @@
 
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(pp,xp,yp,liel,nl,xy,dir,li,p1,p2,vec1,vec2,res)
-    !$OMP DO SCHEDULE(dynamic,10)
+    !$OMP DO SCHEDULE(dynamic,100)
     do pp=1,np
       xp=xin(pp)
       yp=yin(pp)
@@ -521,7 +521,7 @@
 
 !!----------------------------getVertVel---------------------------!!
   subroutine getVertVel(b,np,xin,yin,zin,uOut,vOut,wOut,pOut,&
-    wrki,wrkr,err)
+    etaOut,wrki,wrkr,err,rTime)
   implicit none
 
     class(bsnqCase),intent(in)::b
@@ -530,8 +530,10 @@
 
     integer(kind=C_K1),intent(out)::wrki(np),err(np)
     real(kind=C_K2),intent(out)::uOut(np),vOut(np),wOut(np)
-    real(kind=C_K2),intent(out)::pOut(np),wrkr(np,2)    
+    real(kind=C_K2),intent(out)::pOut(np),etaOut(np),wrkr(np,2)    
+    real(kind=C_K2),intent(out)::rTime
 
+    integer(kind=C_KCLK)::lsysC(2)
     integer(kind=C_K1)::nq(6),i,k
     real(kind=C_K2)::wei(6),hLoc,zLoc,etaLoc
     real(kind=C_K2)::uLoc,vLoc,wLoc,pLoc    
@@ -539,12 +541,14 @@
 
     !Note: pLoc here is pressure. It is not depth-integrated vel-x
 
+    call system_clock(lsysC(1)) 
+
     call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
 
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i, nq, wei, tmp, k, hLoc, etaLoc, zLoc, &
     !$OMP     uLoc, vLoc, wLoc, pLoc)
-    !$OMP DO SCHEDULE(dynamic,10)
+    !$OMP DO SCHEDULE(dynamic,100)
     do i = 1,np
 
       if(wrki(i).eq.-1)then
@@ -553,6 +557,7 @@
         vOut(i)=0d0
         wOut(i)=0d0
         pOut(i)=0d0     
+        etaOut(i)=0d0
         cycle   
       endif
 
@@ -586,10 +591,14 @@
       vOut(i)=vLoc
       wOut(i)=wLoc
       pOut(i)=pLoc
+      etaOut(i)=etaLoc
 
     enddo
     !$OMP END DO NOWAIT
     !$OMP END PARALLEL    
+
+    call system_clock(lsysC(2)) 
+    rTime = 1d0 * (lsysC(2) - lsysC(1)) / b%sysRate
     
   end subroutine getVertVel
 !!--------------------------End getVertVel-------------------------!!
@@ -606,6 +615,7 @@
     integer(kind=C_K1)::wrki(np),err(np),i
     real(kind=C_K2)::xin(np),yin(np),zin(np),wrkr(np,2)
     real(kind=C_K2)::uOut(np),vOut(np),wOut(np),pOut(np)    
+    real(kind=C_K2)::etaOut(np), lRtime
     
     xin(1)=15d0
     yin(1)=2.00d0
@@ -624,12 +634,12 @@
     zin(4)=-0.35d0
 
     call b%getVertVel(np,xin,yin,zin,uOut,vOut,wOut,pOut,&
-      wrki,wrkr,err)
+      etaOut,wrki,wrkr,err,lRtime)
 
     write(120,'(F15.6)',advance='no')b%tOb(0)%rtm
     do i=1,np
-      write(120,'(4F15.6)',advance='no')pOut(i),uOut(i),&
-        vOut(i),wOut(i)
+      write(120,'(5F15.6)',advance='no')pOut(i),uOut(i),&
+        vOut(i),wOut(i),etaOut(i)
     enddo
     write(120,*)
 

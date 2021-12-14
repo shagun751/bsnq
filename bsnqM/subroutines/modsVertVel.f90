@@ -46,7 +46,7 @@ implicit none
   type, public :: vertVelProbes
     integer(kind=C_K1)::np, fileid
     real(kind=C_K2),allocatable::x(:), y(:), z(:), wrkr(:,:)
-    real(kind=C_K2),allocatable::u(:), v(:), w(:), p(:)
+    real(kind=C_K2),allocatable::u(:), v(:), w(:), p(:), eta(:)
     integer(kind=C_K1),allocatable::wrki(:), err(:)
   contains
     procedure :: initvvProbes    
@@ -214,6 +214,7 @@ contains
     b%np = np
     allocate(b%x(np), b%y(np), b%z(np), b%p(np), b%wrkr(np,2))
     allocate(b%u(np), b%v(np), b%w(np), b%wrki(np), b%err(np))
+    allocate(b%eta(np))
 
     b%x = 0d0
     b%y = 0d0

@@ -334,13 +334,15 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b    
+    real(kind=C_K2)::tmpr1
 
     call system_clock(b%sysC(7))
 
     if(mod(b%tStep,b%fileOut).eq.0) then
       call b%getVertVel( b%vvMsh%np, b%vvMsh%x, b%vvMsh%y, &
         b%vvMsh%z, b%vvMsh%u, b%vvMsh%v, b%vvMsh%w, &
-        b%vvMsh%p, b%vvMsh%wrki, b%vvMsh%wrkr, b%vvMsh%err )
+        b%vvMsh%p, b%vvMsh%eta, &
+        b%vvMsh%wrki, b%vvMsh%wrkr, b%vvMsh%err, tmpr1 )
       call b%outputXML
     endif
 
@@ -837,17 +839,19 @@ contains
       
       call b%getVertVel( b%vvPrb%np, b%vvPrb%x, b%vvPrb%y, &
         b%vvPrb%z, b%vvPrb%u, b%vvPrb%v, b%vvPrb%w, &
-        b%vvPrb%p, b%vvPrb%wrki, b%vvPrb%wrkr, b%vvPrb%err )
+        b%vvPrb%p, b%vvPrb%eta, &
+        b%vvPrb%wrki, b%vvPrb%wrkr, b%vvPrb%err, tmpr1 )
 
       do i = 1, b%vvPrb%np
         if(b%vvPrb%err(i).eq.0)then   !noError
-          write(k,'(7F15.6)',advance='no')b%vvPrb%x(i), &
+          write(k,'(8F15.6)',advance='no')b%vvPrb%x(i), &
             b%vvPrb%y(i), b%vvPrb%z(i), b%vvPrb%p(i), &
-            b%vvPrb%u(i), b%vvPrb%v(i), b%vvPrb%w(i)
+            b%vvPrb%u(i), b%vvPrb%v(i), b%vvPrb%w(i), &
+            b%vvPrb%eta(i)
         else
-          write(k,'(3F15.6, 4A15)',advance='no')b%vvPrb%x(i), &
-            b%vvPrb%y(i), b%vvPrb%z(i), '---', '---', &
-            '---', '---'
+          write(k,'(3F15.6, 4A15, F15.6)',advance='no')&
+            b%vvPrb%x(i), b%vvPrb%y(i), b%vvPrb%z(i), &
+            '---', '---', '---', '---', b%vvPrb%eta(i)
         endif 
       enddo
       write(k,*)
