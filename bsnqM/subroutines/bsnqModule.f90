@@ -14,6 +14,7 @@ include 'mergeSort.f90'
 include 'nodeConnAll.f90'
 include 'rk4Interpolation.f90'
 include 'solver_v1.0.f90'
+include 'modCellStore.f90'
 
 module bsnqModule
 use bsnqGlobVars
@@ -24,6 +25,7 @@ use shipMod
 use rk4InterpMod
 use meshFreeMod
 use vertVelMod
+use cellStoreMod
 implicit none
 
   interface
@@ -122,10 +124,11 @@ implicit none
     type(wvSourceType)::wvS
     type(shipType),allocatable::sh(:)
     type(absTyp),allocatable::absOb(:)
-    type(bsnqVars),allocatable::tOb(:),sOb(:),siOb(:)
-    type(bsnqVars)::tiOb !tiOb and siOb For time-interpolation
-    type(vertVelProbes)::vvPrb, vvMsh
-    type(rk4InterpTyp)::rk4intp
+    type(bsnqVars),allocatable::tOb(:),sOb(:)
+    !type(bsnqVars)::siOb(:),tiOb !tiOb and siOb For time-interpolation
+    !type(rk4InterpTyp)::rk4intp
+    type(cellofEleTyp)::cofe
+    type(vertVelProbes)::vvPrb, vvMsh    
 
     !! Optional initialisation
     type(mfPoiTyp),allocatable::pObf(:)
@@ -165,10 +168,11 @@ implicit none
     procedure ::  calcDepResDeriv
     procedure ::  findEleForLocXY1    !For one location. No OpenMP
     procedure ::  findEleForLocXY2    !For a matrix of locs. OpenMP
+    procedure ::  findEleForLocXY3    !For a matrix of locs. OpenMP + Cells
     procedure ::  getVertVel          !using vertVelExp to calculate
     procedure ::  testGetVertVel          
     procedure ::  locWvAng
-    procedure ::  setDepResAtTime     !Set depth resolved quants at time    
+    !procedure ::  setDepResAtTime     !Set depth resolved quants at time    
 
   end type bsnqCase
 
@@ -288,7 +292,7 @@ contains
             shThis%y0, shThis%thDeg
           
           ! get the element that each point in pointCloud is
-          call b%findEleForLocXY2( shThis%gridNN, &
+          call b%findEleForLocXY3( shThis%gridNN, &
             shThis%gP(:,1), shThis%gP(:,2), &
             shThis%gPFEMele, shThis%gPNatCor(:,1), & 
             shThis%gPNatCor(:,2) )
@@ -674,7 +678,7 @@ contains
   implicit none
 
     class(bsnqCase),intent(inout)::b
-    integer(kind=C_K1)::i,i1,j,j1
+    integer(kind=C_K1)::i,i1,j,j1    
 
     i=b%npl
     j=b%npt
@@ -722,13 +726,11 @@ contains
     do i=0,b%nTOb-1
       call b%tOb(i)%initBsnqVars(b%npl,b%npt)
     enddo
-    call b%tiOb%initBsnqVars(b%npl,b%npt) ! For time-interpolation
 
     b%nSOb=4
-    allocate( b%sOb(b%nSOb), b%siOb(b%nSOb))
+    allocate( b%sOb(b%nSOb))
     do i=1,b%nSOb
       call b%sOb(i)%initBsnqVars(b%npl,b%npt)
-      call b%siOb(i)%initBsnqVars(b%npl,b%npt) ! For time-interpolation
     enddo    
 
     b%tStep=0
@@ -778,7 +780,7 @@ contains
     b%presr=0d0    
 
     ! call testMls2DDx
-    ! stop
+    ! stop    
 
     call paralution_init(b%nthrd)    
 
@@ -864,7 +866,7 @@ contains
 
 
 !!--------------------------getEtaPQForXY--------------------------!!
-  subroutine getEtaPQForXY(b,np,xin,yin,eta,p,q,wrki,wrkr,err)
+  subroutine getEtaPQForXY(b,np,xin,yin,eta,p,q,wrki,wrkr,err,rTime)
   implicit none
 
     class(bsnqCase),intent(in)::b    
@@ -872,11 +874,15 @@ contains
     real(kind=C_K2),intent(in)::xin(np),yin(np)
     integer(kind=C_K1),intent(out)::wrki(np),err(np)
     real(kind=C_K2),intent(out)::eta(np),p(np),q(np),wrkr(np,2)
+    real(kind=C_K2),intent(out)::rTime
 
+    integer(kind=C_KCLK)::lsysC(2)
     integer(kind=C_K1)::nq(6),i,k
     real(kind=C_K2)::wei(6),etaLoc,pLoc,qLoc,hLoc
 
-    call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
+    call system_clock(lsysC(1)) 
+
+    call b%findEleForLocXY3(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
 
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i, nq, wei, hLoc, etaLoc, pLoc, qLoc, k)
@@ -914,7 +920,10 @@ contains
 
     enddo
     !$OMP END DO NOWAIT
-    !$OMP END PARALLEL    
+    !$OMP END PARALLEL 
+
+    call system_clock(lsysC(2)) 
+    rTime = 1d0 * (lsysC(2) - lsysC(1)) / b%sysRate   
 
   end subroutine getEtaPQForXY
 

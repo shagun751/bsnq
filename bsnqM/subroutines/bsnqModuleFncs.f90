@@ -315,6 +315,24 @@
     character(len=C_KSTR)::bqtxt
     logical(kind=C_LG)::ex  
 
+
+    ! Dividing elements among Cells for faster search    
+    tmpr1 = sum(b%invJ(:,5))/2d0/b%nele
+    tmpr1 = dsqrt(tmpr1)*1.7548d0 !circum-dia of equi-triangle
+    tmpr1 = tmpr1*5d0
+    tmpr2 = ( maxval(b%cor(:,1)) - minval(b%cor(:,1)) )/20d0
+    tmpr3 = ( maxval(b%cor(:,2)) - minval(b%cor(:,2)) )/20d0
+    write(9,'(" [INF] cellR options ",3F15.6)') &
+      tmpr1, tmpr2, tmpr3
+    tmpr1 = max( tmpr1, tmpr2, tmpr3 ) !cellRadius
+    call b%cofe%setEleCells( minval(b%cor(:,1)), &
+      minval(b%cor(:,2)), maxval(b%cor(:,1)), &
+      maxval(b%cor(:,2)), tmpr1, b%npt, b%nele, &
+      b%cor(:,1), b%cor(:,2), b%conn )
+    ! setEleCells(f, xmin, ymin, xmax, ymax, cellR, &
+    !   np, nele, corx, cory, conn)
+
+
     !Input file open  
     bqtxt=trim(b%probname)//'.inp'
     inquire(file=trim(bqtxt),exist=ex)
@@ -367,7 +385,7 @@
         read(mf,*,end=81,err=81)b%wpLoc(i,1:2)                
       enddo
 
-      call b%findEleForLocXY2(tmpi1, b%wpLoc(:,1), b%wpLoc(:,2), &
+      call b%findEleForLocXY3(tmpi1, b%wpLoc(:,1), b%wpLoc(:,2), &
         b%wpEle(1:tmpi1), b%wpLoc(:,3), b%wpLoc(:,4))
 
       write(9,'(" [INF] Wave Probe Locations")')

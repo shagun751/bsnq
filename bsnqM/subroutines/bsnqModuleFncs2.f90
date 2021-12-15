@@ -453,6 +453,7 @@
 
   end subroutine findEleForLocXY1
 
+
   subroutine findEleForLocXY2(b,np,xin,yin,eleOut,ep,et)
   implicit none
     
@@ -515,6 +516,76 @@
 
 
   end subroutine findEleForLocXY2
+
+
+  subroutine findEleForLocXY3(b,np,xin,yin,eleOut,ep,et)
+  implicit none
+    
+    class(bsnqCase),intent(in)::b
+    integer(kind=C_K1),intent(in)::np
+    real(kind=C_K2),intent(in)::xin(np),yin(np)
+    integer(kind=C_K1),intent(out)::eleOut(np)
+    real(kind=C_K2),intent(out)::ep(np),et(np)
+    integer(kind=C_K1)::ind(3,2),p1,p2,dir,pp,liel,li,nl(3)
+    integer(kind=C_K1)::celli, cellx, celly, i1
+    real(kind=C_K2)::xy(3,2),vec1(2),vec2(2),res,xp,yp
+
+    ind(1,:)=(/ 1,2 /)
+    ind(2,:)=(/ 2,3 /)
+    ind(3,:)=(/ 3,1 /)
+
+
+    !$OMP PARALLEL DEFAULT(shared) &
+    !$OMP   PRIVATE(pp,xp,yp,liel,nl,xy,dir,li,&
+    !$OMP     p1,p2,vec1,vec2,res, celli, cellx, celly, i1)
+    !$OMP DO SCHEDULE(dynamic,100)
+    do pp=1,np
+      xp=xin(pp)
+      yp=yin(pp)
+
+      call b%cofe%getCellNo( xp, yp, cellx, celly, celli)
+
+      dir=-1
+      do i1 = 1, b%cofe%cell(celli)%nm
+        liel = b%cofe%cell(celli)%m(i1)
+        nl=b%conn(liel,1:3)
+        do li=1,3
+          xy(li,:)=b%cor(nl(li),:)
+        enddo
+
+        dir=1
+        do li=1,3
+          p1=ind(li,1)
+          p2=ind(li,2)
+          vec1(1)=xy(p2,1)-xy(p1,1)
+          vec1(2)=xy(p2,2)-xy(p1,2)
+          vec2(1)=xp-xy(p1,1)
+          vec2(2)=yp-xy(p1,2)
+          call vecCross2D(vec1(1),vec1(2),vec2(1),vec2(2),res)
+          if(res.lt.0d0) dir=-1        
+        enddo
+
+        if(dir.eq.1)then
+          eleOut(pp)=liel
+          ep(pp) = ( b%invJ(liel,1)*(xp-xy(1,1)) ) &
+            + ( b%invJ(liel,3)*(yp-xy(1,2)) )
+          et(pp) = ( b%invJ(liel,2)*(xp-xy(1,1)) ) &
+            + ( b%invJ(liel,4)*(yp-xy(1,2)) )
+          exit
+        endif
+      enddo
+      
+      if(dir.eq.1) cycle
+
+      eleOut(pp)=-1
+      ep(pp)=-1
+      et(pp)=-1
+    enddo
+    !$OMP END DO NOWAIT
+    !$OMP END PARALLEL
+
+
+  end subroutine findEleForLocXY3
 !!-----------------------End findEleForLocXY-----------------------!!
 
 
@@ -543,7 +614,7 @@
 
     call system_clock(lsysC(1)) 
 
-    call b%findEleForLocXY2(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
+    call b%findEleForLocXY3(np,xin,yin,wrki,wrkr(:,1),wrkr(:,2))
 
     !$OMP PARALLEL DEFAULT(shared) &
     !$OMP   PRIVATE(i, nq, wei, tmp, k, hLoc, etaLoc, zLoc, &
@@ -712,80 +783,80 @@
 
 
 !!-------------------------setDepResAtTime-------------------------!!
-  subroutine setDepResAtTime(b, tin, err)
-    implicit none
+  ! subroutine setDepResAtTime(b, tin, err)
+  !   implicit none
 
-    class(bsnqCase),intent(inout)::b
+  !   class(bsnqCase),intent(inout)::b
 
-    real(kind=C_K2),intent(in)::tin
-    integer(kind=C_K1),intent(out)::err
+  !   real(kind=C_K2),intent(in)::tin
+  !   integer(kind=C_K1),intent(out)::err
 
-    integer(kind=C_K1)::i
-    real(kind=C_K2)::tr, dtin
+  !   integer(kind=C_K1)::i
+  !   real(kind=C_K2)::tr, dtin
 
-    ! b%tOb(1) = t(n-1)
-    ! b%tOb(0) = t(n)
+  !   ! b%tOb(1) = t(n-1)
+  !   ! b%tOb(0) = t(n)
 
-    ! err = 0 no error
-    ! err = 1 some error
+  !   ! err = 0 no error
+  !   ! err = 1 some error
 
-    err = 0
+  !   err = 0
 
-    dtin = (tin-b%tOb(1)%rtm)
-    tr =  dtin / b%dt
+  !   dtin = (tin-b%tOb(1)%rtm)
+  !   tr =  dtin / b%dt
 
-    if((tr.lt.0d0) .or. (tr.gt.1d0))then
-      write(9,'(" [ERR] setDepResAtTime")')
-      write(9,'(" [---] Tin not within t(n-1) and t(n)")')
-      write(9,'(" [---] ",3a15)')'Tin', 't(n-1)', 't(n)'
-      write(9,'(" [---] ",3f15.6)')tin, b%tOb(1)%rtm, b%tOb(0)%rtm
-      err = 1
-      return
-    endif
+  !   if((tr.lt.0d0) .or. (tr.gt.1d0))then
+  !     write(9,'(" [ERR] setDepResAtTime")')
+  !     write(9,'(" [---] Tin not within t(n-1) and t(n)")')
+  !     write(9,'(" [---] ",3a15)')'Tin', 't(n-1)', 't(n)'
+  !     write(9,'(" [---] ",3f15.6)')tin, b%tOb(1)%rtm, b%tOb(0)%rtm
+  !     err = 1
+  !     return
+  !   endif
 
-    call b%rk4intp%setrk4InterpMatrix( b%dt, dtin)
+  !   call b%rk4intp%setrk4InterpMatrix( b%dt, dtin)
 
-    ! Cant use for now
-    ! Made probably a humungous blunder in RK4 time-stepping
-    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i)
-    !$OMP DO SCHEDULE(dynamic,1000)
-    do i = 1, b%npl
-      call b%rk4intp%get_ktilde( b%sOb(1:4)%e(i), &
-        b%siOb(1:4)%e(i) )
-    enddo
-    !$OMP END DO NOWAIT
+  !   ! Cant use for now
+  !   ! Made probably a humungous blunder in RK4 time-stepping
+  !   !$OMP PARALLEL DEFAULT(shared) PRIVATE(i)
+  !   !$OMP DO SCHEDULE(dynamic,1000)
+  !   do i = 1, b%npl
+  !     call b%rk4intp%get_ktilde( b%sOb(1:4)%e(i), &
+  !       b%siOb(1:4)%e(i) )
+  !   enddo
+  !   !$OMP END DO NOWAIT
 
-    !$OMP DO SCHEDULE(dynamic,1000)
-    do i = 1, b%npt
-      call b%rk4intp%get_ktilde( b%sOb(1:4)%p(i), &
-        b%siOb(1:4)%p(i) )
+  !   !$OMP DO SCHEDULE(dynamic,1000)
+  !   do i = 1, b%npt
+  !     call b%rk4intp%get_ktilde( b%sOb(1:4)%p(i), &
+  !       b%siOb(1:4)%p(i) )
 
-      call b%rk4intp%get_ktilde( b%sOb(1:4)%q(i), &
-        b%siOb(1:4)%q(i) )
-    enddo
-    !$OMP END DO NOWAIT
-    !$OMP END PARALLEL          
+  !     call b%rk4intp%get_ktilde( b%sOb(1:4)%q(i), &
+  !       b%siOb(1:4)%q(i) )
+  !   enddo
+  !   !$OMP END DO NOWAIT
+  !   !$OMP END PARALLEL          
 
 
-    b%tiOb%rtm = tin
-    b%tiOb%e = b%tOb(1)%e + 1d0/6d0*(b%siOb(1)%e &
-      + 2d0*b%siOb(2)%e + 2d0*b%siOb(3)%e + b%siOb(4)%e)
-    b%tiOb%p = b%tOb(1)%p + 1d0/6d0*(b%siOb(1)%p &
-      + 2d0*b%siOb(2)%p + 2d0*b%siOb(3)%p + b%siOb(4)%p)
-    b%tiOb%q = b%tOb(1)%q + 1d0/6d0*(b%siOb(1)%q &
-      + 2d0*b%siOb(2)%q + 2d0*b%siOb(3)%q + b%siOb(4)%q)
+  !   b%tiOb%rtm = tin
+  !   b%tiOb%e = b%tOb(1)%e + 1d0/6d0*(b%siOb(1)%e &
+  !     + 2d0*b%siOb(2)%e + 2d0*b%siOb(3)%e + b%siOb(4)%e)
+  !   b%tiOb%p = b%tOb(1)%p + 1d0/6d0*(b%siOb(1)%p &
+  !     + 2d0*b%siOb(2)%p + 2d0*b%siOb(3)%p + b%siOb(4)%p)
+  !   b%tiOb%q = b%tOb(1)%q + 1d0/6d0*(b%siOb(1)%q &
+  !     + 2d0*b%siOb(2)%q + 2d0*b%siOb(3)%q + b%siOb(4)%q)
 
-    !! Forcing Dirichlet BC
-    call b%diriBCEta(b%tiOb%e,b%tiOb%rtm)
-    call b%diriBCPQ(b%tiOb%p,b%tiOb%q,b%tiOb%rtm)
+  !   !! Forcing Dirichlet BC
+  !   call b%diriBCEta(b%tiOb%e,b%tiOb%rtm)
+  !   call b%diriBCPQ(b%tiOb%p,b%tiOb%q,b%tiOb%rtm)
     
-    b%tiOb%tD(1:b%npl) = b%dep(1:b%npl) + b%tiOb%e
-    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tiOb%tD)
+  !   b%tiOb%tD(1:b%npl) = b%dep(1:b%npl) + b%tiOb%e
+  !   call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tiOb%tD)
 
-    call b%calcDepResDeriv(b%npt, b%tiOb%p, b%tiOb%q, &
-      b%tiOb%tD, b%iDf)
+  !   call b%calcDepResDeriv(b%npt, b%tiOb%p, b%tiOb%q, &
+  !     b%tiOb%tD, b%iDf)
 
-  end subroutine setDepResAtTime
+  ! end subroutine setDepResAtTime
 !!-----------------------End setDepResAtTime-----------------------!!
 
 

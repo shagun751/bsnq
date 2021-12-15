@@ -55,7 +55,8 @@ subroutines/matrixSet2.f90 \
 subroutines/mergeSort.f90 \
 subroutines/nodeConnAll.f90 \
 subroutines/rk4Interpolation.f90 \
-subroutines/solver_v1.0.f90 
+subroutines/solver_v1.0.f90 \
+subroutines/modCellStore.f90
 	
 default: $(OBJ)
 	mkdir -p Output
