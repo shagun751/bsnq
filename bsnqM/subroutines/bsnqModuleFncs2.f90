@@ -58,6 +58,9 @@
 
       call findNeiLinkList(i, rad, b%npt, b%Sz(4), b%ivq, &
         b%linkq, b%cor, b%npt, nn, neid, newrk, nedr)          
+
+      ! call findNeiBruteForce(i, rad, b%npt, b%Sz(4), b%ivq, &
+      !   b%linkq, b%cor, b%npt, nn, neid)
           
       nerad(1:nn) = b%pObf(neid(1:nn))%rad
 

@@ -9,6 +9,7 @@
 7. [Source function based wavemaking [2021-06-29][2021-10-08]](#log_bsnqM_vAlgo_7)
 8. [Absolute tolerance test for Berkhoff shoal [2021-10-08]](#log_bsnqM_vAlgo_8)
 9. [Feature: bnd13 on angular sides [2021-12-06]](#log_bsnqM_vAlgo_9)
+10. [Observation: Brute force vs FEM-linked-list search comparison](#log_bsnqM_vAlgo_10)
 
 
 ## Attempting
@@ -31,6 +32,66 @@
 
 -----------------------------------------------
 
+
+<a name = 'log_bsnqM_vAlgo_10' ></a>
+
+## Observation: Brute force vs FEM-linked-list search comparison
+
+I checked using rect2D and caseE3aW10 meshes the brute force vs the FEM-linked-list algo to search the neighbours and find out the order of complexity for each method
+
+Output file from rect2D_brute
+
+```
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]         5611       16410       22021       16410
+
+ [MSG] Size of mFree : npt, sum(nn), MB           22021         792893      21.172527
+ [MSG] Done setMFree
+ [TIM]          0.2065
+```
+
+Output file from rect2D_FEMLinkedList
+
+```
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]         5611       16410       22021       16410
+
+ [MSG] Size of mFree : npt, sum(nn), MB           22021         792893      21.172527
+ [MSG] Done setMFree
+ [TIM]          0.6379
+```
+
+Output file from caseE3aW10_FEMLinkedList
+
+```
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]       141876      423125      565001      423125
+
+ [MSG] Size of mFree : npt, sum(nn), MB          565001       20775120     554.755554
+ [MSG] Done setMFree
+ [TIM]        438.4095
+```
+
+Output file from caseE3aW10_FEMLinkedList
+
+```
+ [INF]      LinNode    QuadNode     TotNode      nEdges
+ [---]       141876      423125      565001      423125
+
+ [MSG] Size of mFree : npt, sum(nn), MB          565001       20775120     554.755554
+ [MSG] Done setMFree
+ [TIM]         27.2988
+```
+
+
+| Nodes |	Time-Brute |	Time-FEM | Order of complexity
+| ---- | ---- | ---- | ---- | 
+| 22021 |	0.6379 |	0.2065 | 2.0133 |
+| 565001 |	438.4095 |	27.2988 | 1.5052 |
+
+Order of complexity = log(T2 / T1) / log(N2 / N1)
+
+-----------------------------------------------
 
 <a name = 'log_bsnqM_vAlgo_9' ></a>
 
