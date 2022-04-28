@@ -350,6 +350,8 @@
     read(mf,*,end=81,err=81)b%resumeFile  
 
     read(mf,*,end=81,err=81)bqtxt
+    read(mf,*,end=81,err=81)b%tStepMethod
+    read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%dt     
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)b%endTime
@@ -555,6 +557,21 @@
       stop
       84 close(mf)
     endif    
+
+    write(9,*)
+    write(9,'(" [INF] Time-stepping method")')
+    select case (b%tStepMethod)
+      case (0)
+        write(9,'(" [---] Classic Runge-Kutta 4-step RK4")')
+      case (1)
+        write(9,'(" [---] Explicit Adam Bashforth 3-step AdBa3")')
+      case default
+        write(9,'(" [---] Improper Time-stepping chosen")')
+        write(9,'(" [---] Selecting RK4")')
+        b%tStepMethod=0
+    end select
+    write(9,'(" [INF] Time-step", F15.6)')b%dt
+    write(9,*)
 
     write(9,*)"[MSG] Done setRun"
     write(9,*)

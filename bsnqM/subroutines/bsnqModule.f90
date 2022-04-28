@@ -77,7 +77,8 @@ implicit none
     character(len=C_KSTR)::probname,resumeFile
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
-    integer(kind=C_K1)::maxIter,fileOut,resumeOut    
+    integer(kind=C_K1)::maxIter,fileOut,resumeOut
+    integer(kind=C_K1)::tStepMethod !(0=RK4, 1=AdBa3)
     integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb,nSOb
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
@@ -146,7 +147,7 @@ implicit none
     procedure ::  CSRMatrices
     procedure ::  destructR1    
     procedure ::  outputXML    
-    procedure ::  preInstructs
+    procedure ::  preInstructsRK4
     procedure ::  postInstructs
     procedure ::  solveAll
     procedure ::  diriBCEtaDt
@@ -160,6 +161,7 @@ implicit none
     procedure ::  readResume
     procedure ::  caseOutputs
     procedure ::  timeStepRK4
+    procedure ::  timeStepAdBa3
     procedure ::  setParalutionLS
     !procedure ::  destructor
     
@@ -183,8 +185,8 @@ contains
   include 'initialCondition.f90'
   include 'outputXML.f90'
 
-!!---------------------------preInstructs--------------------------!!
-  subroutine preInstructs(b)
+!!-------------------------preInstructsRK4-------------------------!!
+  subroutine preInstructsRK4(b)
   implicit none
 
     class(bsnqCase),intent(inout)::b    
@@ -209,8 +211,8 @@ contains
     write(9,*)
     write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
 
-  end subroutine preInstructs
-!!-------------------------End preInstructs------------------------!!
+  end subroutine preInstructsRK4
+!!-----------------------End preInstructsRK4-----------------------!!
 
 
 
@@ -218,20 +220,35 @@ contains
   subroutine postInstructs(b)
   implicit none
 
-    class(bsnqCase),intent(inout),target::b
+    class(bsnqCase),intent(inout),target::b    
+    !(0=RK4), (1=AdBa3)
 
     type(shipType),pointer::shThis
 
     integer(kind=C_K1)::i, ishp, j, k
     real(kind=C_K2)::tmpr1,tmpr2,tmpr3, wei(3)
 
-    
-    b%tOb(0)%e = b%tOb(1)%e + b%dt/6d0*(b%sOb(1)%e &
-      + 2d0*b%sOb(2)%e + 2d0*b%sOb(3)%e + b%sOb(4)%e)
-    b%tOb(0)%p = b%tOb(1)%p + b%dt/6d0*(b%sOb(1)%p &
-      + 2d0*b%sOb(2)%p + 2d0*b%sOb(3)%p + b%sOb(4)%p)
-    b%tOb(0)%q = b%tOb(1)%q + b%dt/6d0*(b%sOb(1)%q &
-      + 2d0*b%sOb(2)%q + 2d0*b%sOb(3)%q + b%sOb(4)%q)
+    select case (b%tStepMethod)
+      case (0) !RK4
+        b%tOb(0)%e = b%tOb(1)%e + b%dt/6d0*(b%sOb(1)%e &
+          + 2d0*b%sOb(2)%e + 2d0*b%sOb(3)%e + b%sOb(4)%e)
+        b%tOb(0)%p = b%tOb(1)%p + b%dt/6d0*(b%sOb(1)%p &
+          + 2d0*b%sOb(2)%p + 2d0*b%sOb(3)%p + b%sOb(4)%p)
+        b%tOb(0)%q = b%tOb(1)%q + b%dt/6d0*(b%sOb(1)%q &
+          + 2d0*b%sOb(2)%q + 2d0*b%sOb(3)%q + b%sOb(4)%q)
+
+      case (1) !AdBa3
+        b%tOb(0)%e = b%tOb(1)%e + b%dt/12d0*(23d0*b%sOb(1)%e &
+          - 16d0*b%sOb(2)%e + 5d0*b%sOb(3)%e)
+        b%tOb(0)%p = b%tOb(1)%p + b%dt/12d0*(23d0*b%sOb(1)%p &
+          - 16d0*b%sOb(2)%p + 5d0*b%sOb(3)%p)
+        b%tOb(0)%q = b%tOb(1)%q + b%dt/12d0*(23d0*b%sOb(1)%q &
+          - 16d0*b%sOb(2)%q + 5d0*b%sOb(3)%q)
+
+      case DEFAULT
+        write(9,'(" [ERR] Wrong time-step method!")')
+        stop
+    end select
 
     !! Forcing Dirichlet BC
     call b%diriBCEta(b%tOb(0)%e,b%tOb(0)%rtm)
@@ -431,6 +448,69 @@ contains
 
   end subroutine timeStepRK4
 !!-------------------------End timeStepRK4-------------------------!!
+
+
+
+!!--------------------------timeStepAdBa3--------------------------!!
+  subroutine timeStepAdBa3(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    integer(kind=4)::i,j
+    real(kind=C_K2)::rTime
+
+    !---------preInstruct----------!
+    call system_clock(b%sysC(3)) 
+    
+    b%tStep=b%tStep+1            
+
+    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
+    b%sysT(2)=0d0 ! To time solveAll
+
+    do i=3,2,-1
+      b%sOb(i)%rtm = b%sOb(i-1)%rtm
+      b%sOb(i)%e = b%sOb(i-1)%e
+      b%sOb(i)%p = b%sOb(i-1)%p
+      b%sOb(i)%q = b%sOb(i-1)%q
+      b%sOb(i)%tD = b%sOb(i-1)%tD
+    enddo
+
+    do i=b%nTOb-1,1,-1
+      b%tOb(i)%rtm = b%tOb(i-1)%rtm
+      b%tOb(i)%e = b%tOb(i-1)%e
+      b%tOb(i)%p = b%tOb(i-1)%p
+      b%tOb(i)%q = b%tOb(i-1)%q
+      b%tOb(i)%tD = b%tOb(i-1)%tD
+    enddo
+    b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
+
+    write(9,*)
+    write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
+    !-------End preInstruct--------!
+    
+    !-----------solution-----------!
+    b%ur = b%tOb(1)%p / b%tOb(1)%tD
+    b%vr = b%tOb(1)%q / b%tOb(1)%tD
+    b%pbpr = b%tOb(1)%p / b%por
+    b%qbpr = b%tOb(1)%q / b%por   
+    rTime=b%tOb(1)%rtm
+    call b%dynaMatrices(rTime,b%tOb(1)%tD, b%ur, b%vr)
+    call b%solveAll(rTime, b%tOb(1)%p, b%tOb(1)%q, &
+      b%pbpr, b%qbpr, b%presr, b%tOb(1)%e, &
+      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)   
+    !---------End solution---------!
+
+    !----------updateSoln----------!
+    b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+
+    b%sOb(1)%e = b%gXE
+    b%sOb(1)%p = b%gXPQ(1:b%npt)
+    b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)        
+    !--------End updateSoln--------!
+
+  end subroutine timeStepAdBa3
+!!------------------------End timeStepAdBa3------------------------!!
 
 
 

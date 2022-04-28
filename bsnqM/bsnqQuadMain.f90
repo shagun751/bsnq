@@ -47,18 +47,40 @@ implicit none
   call bq%setParalutionLS  
 
   call bq%caseOutputs
-  
-  do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
-  
-    call bq%preInstructs
 
-    call bq%timeStepRK4
+  select case (bq%tStepMethod)
+  case (0) !RK4
   
-    call bq%postInstructs   
+    do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)
+    
+      call bq%preInstructsRK4
 
-    call bq%caseOutputs
+      call bq%timeStepRK4
+    
+      call bq%postInstructs
 
-  enddo
+      call bq%caseOutputs
+
+    enddo
+
+
+  case (1) !AdBa3
+
+    do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)          
+
+      call bq%timeStepAdBa3
+    
+      call bq%postInstructs
+
+      call bq%caseOutputs
+
+    enddo
+
+
+  case default
+    write(9,'(" [ERR] Wrong time-step method!")')
+    stop
+  end select
 
   call system_clock(bq%sysC(2))
   close(bq%wpEle(-1))
