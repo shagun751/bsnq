@@ -44,3 +44,65 @@
 
   end subroutine solitIC
 !!---------------------------End solitIC---------------------------!!
+
+
+
+!!-------------------------solitICFromFile-------------------------!!
+  subroutine solitICFromFile(npl,npt,cor,er,pr,qr)
+  use bsnqGlobVars
+  implicit none
+    
+    integer(kind=C_K1),intent(in)::npl,npt
+    real(kind=C_K2),intent(in)::cor(npt,2)
+    real(kind=C_K2),intent(out)::er(npl),pr(npt),qr(npt)
+
+    integer(kind=C_K1)::i, ff, nn, j
+    real(kind=C_K2)::tmpr1, x, dx
+    real(kind=C_K2),allocatable::data(:,:)
+    character(len=C_KSTR)::fileName
+
+    er = 0d0
+    pr = 0d0
+    qr = 0d0
+  
+    write(9,'(" [INF] Solitary from file")')    
+
+    !Opening mesh file  
+    fileName='solitaryWave_dx0010.dat'    
+    open(newunit=ff,file=trim(fileName))       
+
+    read(ff,*,end=11,err=11)nn
+    allocate(data(nn,3))
+
+    do i = 1, nn
+      read(ff,*,end=11,err=11) data(i,1:3)
+    enddo
+
+    dx = data(2,1) - data(1,1)
+    dx = dx/10d0
+
+    do i = 1, npt
+      x = cor(i,1)
+
+      j=1
+      do while(1)        
+        if(abs(data(j,1)-x).lt.dx) exit
+        j = j+1
+        if(j.gt.nn) goto 21
+      enddo
+
+      if(i.le.npl) er(i) = data(j,2)
+      pr(i) = data(j,3)
+
+      21 continue
+    enddo
+
+    write(9,'(" [---] End Solitary from file")')    
+    write(9,*)
+
+    return
+    11 write(9,'(" [ERR] Error in solitary input file")')    
+    stop
+
+  end subroutine solitICFromFile
+!!-----------------------End solitICFromFile-----------------------!!

@@ -57,7 +57,7 @@ implicit none
 
       call bq%timeStepRK4
     
-      call bq%postInstructs
+      call bq%postInstructs(0) !RK4
 
       call bq%caseOutputs
 
@@ -66,14 +66,16 @@ implicit none
 
   case (1) !AdBa3
 
-    do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)          
+    do while(bq%tStep.le.2) 
+      call bq%timeStepEuEx1
+      call bq%postInstructs(11) !EuEx1
+      call bq%caseOutputs      
+    enddo
 
-      call bq%timeStepAdBa3
-    
-      call bq%postInstructs
-
+    do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0) 
+      call bq%timeStepEuEx1
+      call bq%postInstructs(1) !AdBa3
       call bq%caseOutputs
-
     enddo
 
 

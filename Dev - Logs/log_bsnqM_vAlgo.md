@@ -10,6 +10,7 @@
 8. [Absolute tolerance test for Berkhoff shoal [2021-10-08]](#log_bsnqM_vAlgo_8)
 9. [Feature: bnd13 on angular sides [2021-12-06]](#log_bsnqM_vAlgo_9)
 10. [Observation: Brute force vs FEM-linked-list search comparison](#log_bsnqM_vAlgo_10)
+11. [Feature: Exact solitary wave generation [2022-04-30]](#log_bsnqM_vAlgo_11)
 
 
 ## Attempting
@@ -29,6 +30,89 @@
 - [x] Internal wave maker [link](#log_bsnqM_vAlgo_7)
 	- [ ] Internal wave-maker of a limited length
 - [ ] RK4 time-interpolation
+- [x] Exact solitary wave generation [link](#log_bsnqM_vAlgo_11)
+
+-----------------------------------------------
+
+
+<a name = 'log_bsnqM_vAlgo_11' ></a>
+
+## Exact solitary wave generation
+
+- One of the reviewers of the OE (2022) Bsnq paper had asked us to do convergence study through solitary wave.
+
+- This is because for solitary wave, you can solve the weakly non-linear Boussinesq equation in 1D nearly exactly.
+
+- The reviwer pointed us to likely one of his/her publication (Ricchiuto 2014). I already had this publication.
+
+- From this I referred to Orszaghova (2012) (which I had previously read) to follow the procedure for exact solution of solitary wave for Madsen and Sorenson's form of weakly non-linear Boussinesq equation
+
+- Wrote a Matlab code to generate the wave and depth integrated velocity. <br> File: bsnq/OtherCodes/solitaryWave/solitary_v2.m
+
+- I output the solution to a .dat file, at a resolution appropriate for the depth-intergrated vel P. <br> i.e., is mesh is set to dx = 0.10, the P will be at resolution dx = 0.05. So I output the Matlab solution at dx = 0.05 to ensure I get point to point values for P and eta everywhere, without interpolation
+
+- Wrote the subroutine _solitaryICFromFile()_ in intialConditions.f90 to enable the point to point read of the solution from the .dat file.
+
+- Resultant simulation of the solitary wave produces minimum tail, unlike the previous method _solitaryIC()_ of using the cosh function to generate the wave.
+
+- The comparison between the old and new generation method was tested for a A/h = 0.2 solitary wave. <br> Folder: bsnq/Test_sol/sol_m0200 vs bsnq/Test_sol/sol_m0200_cosh
+
+- Domain is [-100 200]. The wave has peak at x=0 at t=0
+
+We observe that
+
+- Initial shape is different in the exact solution method compared to the cosh method
+- The cosh method immediately starts shedding extra components as a tail to fit the solution to the Bsnq eqn, and hence lose amplitude. <br> This is almost completely absent in the new exact solution method
+- Almost no dissipation of amplitude and no tail in case of exact solution, even after 30s of propagation for 100m.
+
+|  New Method (black) vs Old method (blue &eta; / red P)   |
+| --- |
+| **t=0s Between x = [-25 25]** |
+| <img width="100%" src="./logvAlgo/C11/cmp_t00.png"> |
+|  |
+| **t=16s Between x = [25 75]** |
+| <img width="100%" src="./logvAlgo/C11/cmp_t16.png"> |
+|  |
+| **t=30s Between x = [75 125]** |
+| <img width="100%" src="./logvAlgo/C11/cmp_t30.png"> |
+|  |
+
+
+### Important Update
+
+- We should be careful to use this 'exact' method.
+- Its still a numerical solution
+- You are still doing a nuemrical integration along the space
+- So the step size of the numerical integration of the 'exact' solution matters a lot
+- I was doing the mesh convergence study. For the finest mesh it didnt work earlier. I thought mistake in bsnq mode. But no.
+- Take the following teo setups
+    - Setup-1: Bsnq mesh dx=0.05m dt=0.00625s Cou=0.44, exact soln dx=0.01m
+    - Setup-2: Bsnq mesh dx=0.05m dt=0.00625s Cou=0.44, exact soln dx=0.001m
+- My simulation was giving spurious reuslts and failing with Setup-1.
+- I had to reduce the step size for the 'exact' solution to get a stable result.
+- The instability and inaccuracy in Setup-1 came from the initial condition specified to the Bsnq model by the 'exact' solution.
+- The difference in the exact solution with dx=0.01m and dx=0.001m is miniscual! Still made a huge difference in the Bsnq simulation.
+
+
+|    |
+| --- |
+| **Setup-1 (fails) t=08s between x=[-50 50]** |
+| <img width="100%" src="./logvAlgo/C11/sol_m0050_dt0062_setup1_t08.png"> |
+|  |
+| **Setup-2 (works) t=08s between x=[-50 50]** |
+| <img width="100%" src="./logvAlgo/C11/sol_m0050_dt0062_setup2_t08.png"> |
+|  |
+| **Setup-2 (works) t=30s between x=[80 120]** |
+| <img width="100%" src="./logvAlgo/C11/sol_m0050_dt0062_setup2_t30.png"> |
+
+
+### References
+
+1. Ricchiuto, M., Filippini, A.G., 2014. Upwind residual discretization of enhanced Boussinesq equations for wave propagation over complex bathymetries. Journal of Computational Physics 271, 306–341. [link](https://doi.org/10.1016/j.jcp.2013.12.048)
+
+1. Orszaghova, J., Borthwick, A.G.L., Taylor, P.H., 2012. From the paddle to the beach - A Boussinesq shallow water numerical wave tank based on Madsen and Sorensen equations. Journal of Computational Physics 231, 328–344. [link](https://doi.org/10.1016/j.jcp.2011.08.028)
+
+
 
 -----------------------------------------------
 

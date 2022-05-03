@@ -161,7 +161,7 @@ implicit none
     procedure ::  readResume
     procedure ::  caseOutputs
     procedure ::  timeStepRK4
-    procedure ::  timeStepAdBa3
+    procedure ::  timeStepEuEx1
     procedure ::  setParalutionLS
     !procedure ::  destructor
     
@@ -217,18 +217,19 @@ contains
 
 
 !!--------------------------postInstructs--------------------------!!
-  subroutine postInstructs(b)
+  subroutine postInstructs(b, ltStepMethod)
   implicit none
 
     class(bsnqCase),intent(inout),target::b    
-    !(0=RK4), (1=AdBa3)
+    integer(kind=C_K1),intent(in)::ltStepMethod
+    !(0=RK4), (1=AdBa3), (11=EuEx1)
 
     type(shipType),pointer::shThis
 
     integer(kind=C_K1)::i, ishp, j, k
     real(kind=C_K2)::tmpr1,tmpr2,tmpr3, wei(3)
 
-    select case (b%tStepMethod)
+    select case (ltStepMethod)
       case (0) !RK4
         b%tOb(0)%e = b%tOb(1)%e + b%dt/6d0*(b%sOb(1)%e &
           + 2d0*b%sOb(2)%e + 2d0*b%sOb(3)%e + b%sOb(4)%e)
@@ -237,6 +238,7 @@ contains
         b%tOb(0)%q = b%tOb(1)%q + b%dt/6d0*(b%sOb(1)%q &
           + 2d0*b%sOb(2)%q + 2d0*b%sOb(3)%q + b%sOb(4)%q)
 
+      
       case (1) !AdBa3
         b%tOb(0)%e = b%tOb(1)%e + b%dt/12d0*(23d0*b%sOb(1)%e &
           - 16d0*b%sOb(2)%e + 5d0*b%sOb(3)%e)
@@ -244,6 +246,12 @@ contains
           - 16d0*b%sOb(2)%p + 5d0*b%sOb(3)%p)
         b%tOb(0)%q = b%tOb(1)%q + b%dt/12d0*(23d0*b%sOb(1)%q &
           - 16d0*b%sOb(2)%q + 5d0*b%sOb(3)%q)
+
+
+      case (11) !EuEx1
+        b%tOb(0)%e = b%tOb(1)%e + b%dt*b%sOb(1)%e
+        b%tOb(0)%p = b%tOb(1)%p + b%dt*b%sOb(1)%p
+        b%tOb(0)%q = b%tOb(1)%q + b%dt*b%sOb(1)%q
 
       case DEFAULT
         write(9,'(" [ERR] Wrong time-step method!")')
@@ -451,69 +459,6 @@ contains
 
 
 
-!!--------------------------timeStepAdBa3--------------------------!!
-  subroutine timeStepAdBa3(b)
-  implicit none
-
-    class(bsnqCase),intent(inout)::b
-    integer(kind=4)::i,j
-    real(kind=C_K2)::rTime
-
-    !---------preInstruct----------!
-    call system_clock(b%sysC(3)) 
-    
-    b%tStep=b%tStep+1            
-
-    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
-    b%sysT(2)=0d0 ! To time solveAll
-
-    do i=3,2,-1
-      b%sOb(i)%rtm = b%sOb(i-1)%rtm
-      b%sOb(i)%e = b%sOb(i-1)%e
-      b%sOb(i)%p = b%sOb(i-1)%p
-      b%sOb(i)%q = b%sOb(i-1)%q
-      b%sOb(i)%tD = b%sOb(i-1)%tD
-    enddo
-
-    do i=b%nTOb-1,1,-1
-      b%tOb(i)%rtm = b%tOb(i-1)%rtm
-      b%tOb(i)%e = b%tOb(i-1)%e
-      b%tOb(i)%p = b%tOb(i-1)%p
-      b%tOb(i)%q = b%tOb(i-1)%q
-      b%tOb(i)%tD = b%tOb(i-1)%tD
-    enddo
-    b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
-
-    write(9,*)
-    write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
-    !-------End preInstruct--------!
-    
-    !-----------solution-----------!
-    b%ur = b%tOb(1)%p / b%tOb(1)%tD
-    b%vr = b%tOb(1)%q / b%tOb(1)%tD
-    b%pbpr = b%tOb(1)%p / b%por
-    b%qbpr = b%tOb(1)%q / b%por   
-    rTime=b%tOb(1)%rtm
-    call b%dynaMatrices(rTime,b%tOb(1)%tD, b%ur, b%vr)
-    call b%solveAll(rTime, b%tOb(1)%p, b%tOb(1)%q, &
-      b%pbpr, b%qbpr, b%presr, b%tOb(1)%e, &
-      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)   
-    !---------End solution---------!
-
-    !----------updateSoln----------!
-    b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
-    b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
-
-    b%sOb(1)%e = b%gXE
-    b%sOb(1)%p = b%gXPQ(1:b%npt)
-    b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)        
-    !--------End updateSoln--------!
-
-  end subroutine timeStepAdBa3
-!!------------------------End timeStepAdBa3------------------------!!
-
-
-
 !!----------------------------updateSoln---------------------------!!
   subroutine updateSoln(b,step)
   implicit none
@@ -614,6 +559,69 @@ contains
 
   end subroutine updateSoln
 !!--------------------------End updateSoln-------------------------!!
+
+
+
+!!--------------------------timeStepEuEx1--------------------------!!
+  subroutine timeStepEuEx1(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    integer(kind=4)::i,j
+    real(kind=C_K2)::rTime
+
+    !---------preInstruct----------!
+    call system_clock(b%sysC(3)) 
+    
+    b%tStep=b%tStep+1            
+
+    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
+    b%sysT(2)=0d0 ! To time solveAll
+
+    do i=b%nSOb,2,-1
+      b%sOb(i)%rtm = b%sOb(i-1)%rtm
+      b%sOb(i)%e = b%sOb(i-1)%e
+      b%sOb(i)%p = b%sOb(i-1)%p
+      b%sOb(i)%q = b%sOb(i-1)%q
+      b%sOb(i)%tD = b%sOb(i-1)%tD
+    enddo
+
+    do i=b%nTOb-1,1,-1
+      b%tOb(i)%rtm = b%tOb(i-1)%rtm
+      b%tOb(i)%e = b%tOb(i-1)%e
+      b%tOb(i)%p = b%tOb(i-1)%p
+      b%tOb(i)%q = b%tOb(i-1)%q
+      b%tOb(i)%tD = b%tOb(i-1)%tD
+    enddo
+    b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
+
+    write(9,*)
+    write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
+    !-------End preInstruct--------!
+    
+    !-----------solution-----------!
+    b%ur = b%tOb(1)%p / b%tOb(1)%tD
+    b%vr = b%tOb(1)%q / b%tOb(1)%tD
+    b%pbpr = b%tOb(1)%p / b%por
+    b%qbpr = b%tOb(1)%q / b%por   
+    rTime=b%tOb(1)%rtm
+    call b%dynaMatrices(rTime,b%tOb(1)%tD, b%ur, b%vr)
+    call b%solveAll(rTime, b%tOb(1)%p, b%tOb(1)%q, &
+      b%pbpr, b%qbpr, b%presr, b%tOb(1)%e, &
+      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)   
+    !---------End solution---------!
+
+    !----------updateSoln----------!
+    b%sysT(1)=b%sysT(1)+1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2)=b%sysT(2)+1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+
+    b%sOb(1)%e = b%gXE
+    b%sOb(1)%p = b%gXPQ(1:b%npt)
+    b%sOb(1)%q = b%gXPQ(b%npt+1:2*b%npt)        
+    !--------End updateSoln--------!
+
+  end subroutine timeStepEuEx1
+!!------------------------End timeStepEuEx1------------------------!!
 
 
 
@@ -845,12 +853,12 @@ contains
         b%tOb(0)%e = -b%presr
       endif
     endif
+
+    ! call solitICFromFile(b%npl, b%npt, b%cor, &
+    !   b%tOb(0)%e, b%tOb(0)%p, b%tOb(0)%q)
     
     b%tOb(0)%tD(1:b%npl)=b%dep(1:b%npl)+b%tOb(0)%e
-    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)    
-
-    ! call solitIC(b%npl, b%npt, b%cor, &
-    !   b%tOb(0)%e, b%tOb(0)%p, b%tOb(0)%q)
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD)        
     
     b%etaMin=b%tOb(0)%e
     b%etaMax=b%tOb(0)%e    
