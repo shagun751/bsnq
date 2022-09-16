@@ -101,7 +101,7 @@ contains
     write(9,'(" [---] ymin, ymax : ",2F15.6)') f%ymin, f%ymax
     write(9,'(" [---] cellR, NX, NY, NTOT : ",F15.6, 3I10)') &
       f%cellR, f%nx-10, f%ny-10, f%ntot
-    write(9,'(" [TIM] setEleCells Time : ", F15.6)'), &
+    write(9,'(" [TIM] setEleCells Time : ", F15.6)') &
       1d0*(lsysC(2)-lsysC(1))/lsysC(3)
     write(9,*)
 

@@ -506,7 +506,7 @@ contains
       + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * dcos(3d0*phi) )
     etadt = ( b%H/2d0 * -dsin(phi) * b%w ) &
       + ( b%H**2 / 4d0 / b%d * b%coefG2 * -dsin(2d0*phi) * 2d0*b%w ) &
-      + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * -dsin(3d0*phi) * 3d0*b%w )
+      + ( b%H**3 / 8d0 / (b%d**2) * b%coefG3 * (-dsin(3d0*phi)) * 3d0*b%w )
 
   end subroutine getEta
 !!-------------------------End getEta--------------------------!!

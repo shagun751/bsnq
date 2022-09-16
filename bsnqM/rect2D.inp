@@ -6,7 +6,7 @@ Q) Resume file name (Mention the path in between quotes)
 Q) Time-stepping method (0=RK4, 1=AdBa3, 2=SSPRK3)
 0
 Q) Time-step (s)
-0.02
+0.04
 Q) Run Time (s)
 40.0
 

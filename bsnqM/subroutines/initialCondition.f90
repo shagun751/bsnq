@@ -85,7 +85,7 @@
       x = cor(i,1)
 
       j=1
-      do while(1)        
+      do while(.true.)        
         if(abs(data(j,1)-x).lt.dx) exit
         j = j+1
         if(j.gt.nn) goto 21

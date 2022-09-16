@@ -8,8 +8,6 @@ SWITCH_GFORTRAN_DEBUG=-O0 -g -fbounds-check -fbacktrace
 COMPILER=ifort
 #COMPILER=gfortran
 
-TIMESTEPPING = -DTRK4      #RK4 TimeStepping
-#TIMESTEPPING = -DTADBAE3  #Adam-Bashforth Explicit 3 point
 
 ifeq ($(COMPILER),ifort)
 	MODPATH=-module subroutines
@@ -22,7 +20,7 @@ else ifeq ($(COMPILER),gfortran)
 	PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64
 	PARA_PATH=$(HOME)/Programs/paralution_gcc_min
 endif
-OTH_FLAGS = -cpp $(TIMESTEPPING)
+OTH_FLAGS = -cpp 
 
 PARA_CONV=./subroutines/paralution_fortran.cpp
 PARA_LIB=$(PARA_PATH)/build/lib/libparalution.so 
