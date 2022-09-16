@@ -5,8 +5,8 @@ SWITCH_GFORTRAN_RELEASE=-Ofast
 SWITCH_GFORTRAN_O2=-O2
 SWITCH_GFORTRAN_DEBUG=-O0 -g -fbounds-check -fbacktrace
 
-COMPILER=ifort
-#COMPILER=gfortran
+#COMPILER=ifort
+COMPILER=gfortran
 
 
 ifeq ($(COMPILER),ifort)
@@ -16,7 +16,7 @@ ifeq ($(COMPILER),ifort)
 	PARA_PATH=$(HOME)/Programs/paralution_icc_min
 else ifeq ($(COMPILER),gfortran)
 	MODPATH=-J subroutines
-	C_COMP=g++
+	C_COMP=gcc
 	PARA_FLAGS=-O3 -lstdc++ -fopenmp -L/usr/local/cuda/lib64
 	PARA_PATH=$(HOME)/Programs/paralution_gcc_min
 endif

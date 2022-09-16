@@ -55,6 +55,37 @@ implicit none
       type(C_PTR), value, intent(in) :: obj
     end subroutine checkLSObj
 
+
+    subroutine initLSSys(lsObj, np,nnz,iv,jv,gA, &
+      atol, rtol, div, maxIter)
+
+      use, intrinsic :: ISO_C_BINDING, only : C_INT, C_PTR, C_DOUBLE
+      use bsnqGlobVars
+
+      type(C_PTR)::lsObj
+      integer(kind=C_K1),intent(in)::np,nnz, maxiter
+      integer(kind=C_INT),intent(in),target::iv(np+1),jv(nnz)
+      real(kind=C_K2),intent(in)::atol, rtol, div
+      real(kind=C_DOUBLE),intent(in),target::gA(nnz)
+    end subroutine initLSSys
+
+
+    subroutine solveSys2(obj,np,nnz,gB,gX,&
+      iter,resnorm,ier)
+
+      use, intrinsic :: ISO_C_BINDING, only : C_INT, C_PTR, C_DOUBLE
+      use bsnqGlobVars
+
+      type(C_PTR),intent(in)::obj
+      integer(kind=C_K1),intent(in)::np,nnz  
+      integer(kind=C_K1),intent(out)::iter,ier  
+      real(kind=C_DOUBLE),intent(in),target::gB(np)  
+      real(kind=C_DOUBLE),intent(out),target::gX(np)
+      real(kind=C_K2),intent(out)::resnorm  
+
+    end subroutine solveSys2
+
+
   end interface
   
   private
