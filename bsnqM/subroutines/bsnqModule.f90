@@ -78,7 +78,7 @@ implicit none
     integer(kind=C_K1)::npl,npq,npt,nele,nbnd,nbndtyp,nedg
     integer(kind=C_K1)::maxNePoi,maxNeEle,nbndp,nthrd,Sz(4)
     integer(kind=C_K1)::maxIter,fileOut,resumeOut
-    integer(kind=C_K1)::tStepMethod !(0=RK4, 1=AdBa3)
+    integer(kind=C_K1)::tStepMethod !(0=RK4, 1=AdBa3, 2=SSPRK3)
     integer(kind=C_K1)::nnzl,nnzf,tStep,nTOb,nSOb
     integer(kind=C_K1),allocatable::conn(:,:),mabnd(:,:)    
     integer(kind=C_K1),allocatable::npoisur(:,:),bndP(:)
@@ -161,6 +161,7 @@ implicit none
     procedure ::  readResume
     procedure ::  caseOutputs
     procedure ::  timeStepRK4
+    procedure ::  timeStepSSPRK3
     procedure ::  timeStepEuEx1
     procedure ::  setParalutionLS
     !procedure ::  destructor
@@ -246,6 +247,15 @@ contains
           - 16d0*b%sOb(2)%p + 5d0*b%sOb(3)%p)
         b%tOb(0)%q = b%tOb(1)%q + b%dt/12d0*(23d0*b%sOb(1)%q &
           - 16d0*b%sOb(2)%q + 5d0*b%sOb(3)%q)
+
+
+      case (2) !SSPRK3
+        b%tOb(0)%e = b%tOb(1)%e + b%dt/6d0 * ( b%sOb(1)%e &
+          + b%sOb(2)%e + 4d0*b%sOb(3)%e )
+        b%tOb(0)%p = b%tOb(1)%p + b%dt/6d0 * ( b%sOb(1)%p &
+          + b%sOb(2)%p + 4d0*b%sOb(3)%p )
+        b%tOb(0)%q = b%tOb(1)%q + b%dt/6d0 * ( b%sOb(1)%q &
+          + b%sOb(2)%q + 4d0*b%sOb(3)%q )        
 
 
       case (11) !EuEx1
@@ -622,6 +632,164 @@ contains
 
   end subroutine timeStepEuEx1
 !!------------------------End timeStepEuEx1------------------------!!
+
+
+
+!!-------------------------timeStepSSPRK3--------------------------!!
+  subroutine timeStepSSPRK3(b)
+  implicit none
+
+    class(bsnqCase),intent(inout)::b
+    integer(kind=4)::i,j
+    real(kind=C_K2)::rTime
+
+
+    !!------------preInstructs-----------!!
+    call system_clock(b%sysC(3)) 
+    
+    b%tStep=b%tStep+1            
+
+    b%sysT(1)=0d0 ! To time PQ soln in Predictor + Corrector    
+    b%sysT(2)=0d0 ! To time solveAll
+
+    do i=b%nTOb-1,1,-1
+      b%tOb(i)%rtm = b%tOb(i-1)%rtm
+      b%tOb(i)%e = b%tOb(i-1)%e
+      b%tOb(i)%p = b%tOb(i-1)%p
+      b%tOb(i)%q = b%tOb(i-1)%q
+      b%tOb(i)%tD = b%tOb(i-1)%tD
+    enddo
+    b%tOb(0)%rtm = b%tOb(1)%rtm + b%dt
+
+    write(9,*)
+    write(9,'(" ------Time : ",F20.6,"------")') b%tOb(0)%rtm
+    !!----------End preInstructs---------!!
+
+
+    !!-------------SSPRK3 S1-------------!!
+    b%ur = b%tOb(1)%p / b%tOb(1)%tD
+    b%vr = b%tOb(1)%q / b%tOb(1)%tD
+    b%pbpr = b%tOb(1)%p / b%por
+    b%qbpr = b%tOb(1)%q / b%por   
+    rTime = b%tOb(1)%rtm
+    call b%dynaMatrices(rTime,b%tOb(1)%tD, b%ur, b%vr)
+    call b%solveAll(rTime, b%tOb(1)%p, b%tOb(1)%q, &
+      b%pbpr, b%qbpr, b%presr, b%tOb(1)%e, &
+      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)    
+    !!-----------End SSPRK3 S1-----------!!
+
+
+    !!-----------updateSoln S1-----------!!
+    b%sysT(1) = b%sysT(1) + 1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2) = b%sysT(2) + 1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+
+    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j)
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npl          
+      b%sOb(1)%e(i) = b%gXE(i)          
+      
+      b%tOb(0)%e(i) = b%tOb(1)%e(i) + b%dt * b%gXE(i)
+      b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
+    enddo
+    !$OMP END DO NOWAIT
+
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npt
+      j = b%npt + i          
+      b%sOb(1)%p(i) = b%gXPQ(i)
+      b%sOb(1)%q(i) = b%gXPQ(j)        
+                
+      b%tOb(0)%p(i) = b%tOb(1)%p(i) + b%dt * b%gXPQ(i)
+      b%tOb(0)%q(i) = b%tOb(1)%q(i) + b%dt * b%gXPQ(j)          
+    enddo        
+    !$OMP END DO NOWAIT
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
+    !$OMP END PARALLEL          
+    !!---------End updateSoln S1---------!!
+
+
+    !!-------------SSPRK3 S2-------------!!
+    b%ur = b%tOb(0)%p / b%tOb(0)%tD
+    b%vr = b%tOb(0)%q / b%tOb(0)%tD
+    b%pbpr = b%tOb(0)%p / b%por
+    b%qbpr = b%tOb(0)%q / b%por   
+    rTime = b%tOb(1)%rtm + b%dt
+    call b%dynaMatrices(rTime,b%tOb(0)%tD, b%ur, b%vr)
+    call b%solveAll(rTime, b%tOb(0)%p, b%tOb(0)%q, &
+      b%pbpr, b%qbpr, b%presr, b%tOb(0)%e, &
+      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)    
+    !!-----------End SSPRK3 S2-----------!!
+
+
+    !!-----------updateSoln S2-----------!!
+    b%sysT(1) = b%sysT(1) + 1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2) = b%sysT(2) + 1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+
+    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j)
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npl          
+      b%sOb(2)%e(i) = b%gXE(i)          
+      
+      b%tOb(0)%e(i) = b%tOb(1)%e(i) &
+        + b%dt/4d0 * ( b%sOb(1)%e(i) + b%sOb(2)%e(i) )
+      b%tOb(0)%tD(i) = b%dep(i) + b%tOb(0)%e(i)
+    enddo
+    !$OMP END DO NOWAIT
+
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npt
+      j = b%npt + i          
+      b%sOb(2)%p(i) = b%gXPQ(i)
+      b%sOb(2)%q(i) = b%gXPQ(j)        
+                
+      b%tOb(0)%p(i) = b%tOb(1)%p(i) &
+        + b%dt/4d0 * ( b%sOb(1)%p(i) + b%sOb(2)%p(i) )
+      b%tOb(0)%q(i) = b%tOb(1)%q(i) &
+        + b%dt/4d0 * ( b%sOb(1)%q(i) + b%sOb(2)%q(i) )
+    enddo        
+    !$OMP END DO NOWAIT
+    call fillMidPoiVals(b%npl,b%npt,b%nele,b%conn,b%tOb(0)%tD) 
+    !$OMP END PARALLEL          
+    !!---------End updateSoln S2---------!!
+
+
+    !!-------------SSPRK3 S3-------------!!
+    b%ur = b%tOb(0)%p / b%tOb(0)%tD
+    b%vr = b%tOb(0)%q / b%tOb(0)%tD
+    b%pbpr = b%tOb(0)%p / b%por
+    b%qbpr = b%tOb(0)%q / b%por   
+    rTime = b%tOb(1)%rtm + b%dt/2d0
+    call b%dynaMatrices(rTime,b%tOb(0)%tD, b%ur, b%vr)
+    call b%solveAll(rTime, b%tOb(0)%p, b%tOb(0)%q, &
+      b%pbpr, b%qbpr, b%presr, b%tOb(0)%e, &
+      b%gXW, b%gXE, b%gXPQ, b%gRE, b%gRPQ, b%sysC)    
+    !!-----------End SSPRK3 S3-----------!!
+
+
+    !!-----------updateSoln S3-----------!!
+    b%sysT(1) = b%sysT(1) + 1d0*(b%sysC(8)-b%sysC(7))/b%sysRate
+    b%sysT(2) = b%sysT(2) + 1d0*(b%sysC(6)-b%sysC(5))/b%sysRate
+
+    !$OMP PARALLEL DEFAULT(shared) PRIVATE(i,j)
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npl          
+      b%sOb(3)%e(i) = b%gXE(i)                    
+    enddo
+    !$OMP END DO NOWAIT
+
+    !$OMP DO SCHEDULE(dynamic,1000)
+    do i = 1, b%npt
+      j = b%npt + i          
+      b%sOb(3)%p(i) = b%gXPQ(i)
+      b%sOb(3)%q(i) = b%gXPQ(j)                              
+    enddo        
+    !$OMP END DO NOWAIT    
+    !$OMP END PARALLEL          
+    !!---------End updateSoln S3---------!!
+    
+
+  end subroutine timeStepSSPRK3
+!!-----------------------End timeStepSSPRK3------------------------!!
 
 
 

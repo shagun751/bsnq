@@ -79,6 +79,18 @@ implicit none
     enddo
 
 
+  case (2) !SSPRK3
+  
+    do while(abs(bq%tOb(0)%rtm-bq%endTime).gt.bq%dt/2d0)        
+
+      call bq%timeStepSSPRK3
+    
+      call bq%postInstructs(2) !SSPRK3
+
+      call bq%caseOutputs
+
+    enddo
+
   case default
     write(9,'(" [ERR] Wrong time-step method!")')
     stop

@@ -565,6 +565,8 @@
         write(9,'(" [---] Classic Runge-Kutta 4-step RK4")')
       case (1)
         write(9,'(" [---] Explicit Adam Bashforth 3-step AdBa3")')
+      case (2)
+        write(9,'(" [---] Strong-Stability-Preserving RK3 3-step SSPRK3")')
       case default
         write(9,'(" [---] Improper Time-stepping chosen")')
         write(9,'(" [---] Selecting RK4")')

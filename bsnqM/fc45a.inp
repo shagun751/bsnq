@@ -3,7 +3,7 @@ Q) Resume? (.true. / .false.)
 Q) Resume file name (Mention the path in between quotes)
 'Output/Resume_ftc1_24999.dat'
 
-Q) Time-stepping method (0=RK4, 1=AdBa3)
+Q) Time-stepping method (0=RK4, 1=AdBa3, 2=SSPRK3)
 0
 Q) Time-step (s)
 0.02
