@@ -669,7 +669,7 @@ contains
     class(wvFileType),intent(inout)::b
     real(kind=C_K2),intent(in)::rampt0, rampt1
     integer(kind=C_K1)::mf,i
-    real(kind=C_K2)::tmpra(4), ramptw, t
+    real(kind=C_K2)::tmpra(7), ramptw, t
     logical::ex
 
     inquire(file=trim(b%fileName),exist=ex)
@@ -701,10 +701,11 @@ contains
 
     open(newunit=mf,file=trim(b%fileName))    
     do i=1,b%numP
-      read(mf,*,end=21,err=21)b%data(i,1:4) !t,eta,p,q
+      read(mf,*,end=21,err=21)b%data(i,1:4), b%da2(i,2:4) 
+      !t,eta,p,q,etadt,pdt,qdt
 
       t = b%data(i,1)
-      b%da2(i,:) = b%data(i,:) !t,etadt,pdt,qdt
+      b%da2(i,1) = b%data(i,1)
 
       !Time Ramp
       ramptw = 1d0
@@ -1007,7 +1008,7 @@ contains
       if(b%data(i,1).gt.rTime) exit      
     enddo
     posI=i-1      
-    if((posI.eq.0) .or. (rTime.gt.b%data(b%numP,1)) )then        
+    if((posI.eq.0) .or. ((rTime-b%data(b%numP,1)).gt.1d-6) )then        
       write(9,*)"[ERR] Wave query exceeds supplied time range"
       write(9,'( "[---] ",F15.6)')rTime
       write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
@@ -1053,7 +1054,7 @@ contains
       if(b%data(i,1).gt.rTime) exit      
     enddo
     posI=i-1      
-    if((posI.eq.0) .or. (rTime.gt.b%data(b%numP,1)) )then        
+    if((posI.eq.0) .or. ((rTime-b%data(b%numP,1)).gt.1d-6) )then        
       write(9,*)"[ERR] Wave query exceeds supplied time range"
       write(9,'( "[---] ",F15.6)')rTime
       write(9,'( "[---] ",2F15.6)')b%data(1,1),b%data(b%numP,1)
