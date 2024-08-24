@@ -1083,7 +1083,7 @@ contains
 
       endif
 
-      write(k,'(5F15.6)',advance='no')b%wpLoc(i,1), b%wpLoc(i,2),&
+      write(k,301,advance='no')b%wpLoc(i,1), b%wpLoc(i,2),&
         tmpr1, tmpr2, tmpr3
     enddo
     write(k,*)
@@ -1102,18 +1102,26 @@ contains
 
       do i = 1, b%vvPrb%np
         if(b%vvPrb%err(i).eq.0)then   !noError
-          write(k,'(8F15.6)',advance='no')b%vvPrb%x(i), &
+          write(k,302,advance='no')b%vvPrb%x(i), &
             b%vvPrb%y(i), b%vvPrb%z(i), b%vvPrb%p(i), &
             b%vvPrb%u(i), b%vvPrb%v(i), b%vvPrb%w(i), &
             b%vvPrb%eta(i)
         else
-          write(k,'(3F15.6, 4A15, F15.6)',advance='no')&
+          write(k,303,advance='no')&
             b%vvPrb%x(i), b%vvPrb%y(i), b%vvPrb%z(i), &
             '---', '---', '---', '---', b%vvPrb%eta(i)
         endif 
       enddo
       write(k,*)
     endif
+
+    301 format(',', F15.6, ',', F15.6, ',', F15.6, ',', &
+      F15.6, ',', F15.6)
+    302 format(',', F15.6, ',', F15.6, ',', F15.6, ',', &
+      F15.6, ',', F15.6, ',', F15.6, ',', F15.6, ',', F15.6)    
+    303 format(',', F15.6, ',', F15.6, ',', F15.6, &
+      ',', A15, ',', A15, ',', A15, ',', A15, &
+      ',', F15.6)
 
 
   end subroutine writeWaveProbe

@@ -307,12 +307,12 @@
 
     class(bsnqCase),intent(inout)::b
 
-    integer(kind=C_K1)::tmpi1,tmpi2,mf,i
+    integer(kind=C_K1)::tmpi1,tmpi2,mf,i,velf
     real(kind=C_K2)::tmpr1,tmpr2,tmpr3,tmpr4
     real(kind=C_K2)::wvT, wvH, wvD, wvDelta, wvAng
     real(kind=C_K2)::wvTR0, wvTR1, wvScenX, wvScenY
     real(kind=C_K2)::wvSorient, wvSl
-    character(len=C_KSTR)::bqtxt
+    character(len=C_KSTR)::bqtxt, velProbFile
     logical(kind=C_LG)::ex  
 
 
@@ -410,7 +410,31 @@
     b%vvPrb%np = 0
     read(mf,*,end=81,err=81)bqtxt
     read(mf,*,end=81,err=81)tmpi1
-    if(tmpi1.gt.0)then
+    if(tmpi1.eq.-1)then ! Vel probes from a file
+
+      read(mf,*,end=81,err=81)velProbFile
+      !Input file open  
+      inquire(file=trim(velProbFile),exist=ex)
+      if(ex) then
+        open(newunit=velf,file=trim(velProbFile))
+      else
+        write(9,*)"[ERR] Missing vel probes file"
+        stop
+      endif
+
+      read(velf,*,end=81,err=81)tmpi2
+
+      call b%vvPrb%initvvProbes(tmpi2) !in modVertVel
+
+      do i = 1, tmpi2
+        read(velf,*,end=81,err=81)b%vvPrb%x(i), &
+          b%vvPrb%y(i), b%vvPrb%z(i)
+      enddo
+
+      bqtxt='Output/AllVel3DProbes_'//trim(b%probname)//'.dat'
+      open(newunit=b%vvPrb%fileid, file=trim(bqtxt))      
+    
+    elseif(tmpi1.gt.0)then
       call b%vvPrb%initvvProbes(tmpi1) !in modVertVel
 
       do i = 1, tmpi1
